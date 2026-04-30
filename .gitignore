@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+*.db
+.venv/
+dist/
+*.egg-info/
+.langfuse/
+.ollama/
+node_modules/
+.DS_Store
