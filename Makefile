@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run test eval lint format clean
+.PHONY: setup seed ingest run serve test eval lint format clean
 
 setup:
 	pip install -e ".[dev]"
@@ -11,6 +11,9 @@ ingest:
 
 run:
 	uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+serve:
+	uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 test:
 	pytest -v --tb=short
