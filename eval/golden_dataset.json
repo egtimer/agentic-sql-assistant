@@ -1,0 +1,107 @@
+[
+  {
+    "id": "sql_01",
+    "query": "How much did we sell in Q3 2024?",
+    "expected_tools": ["sql_query"],
+    "expected_answer_contains": ["Q3", "sales"],
+    "category": "single-tool-sql"
+  },
+  {
+    "id": "sql_02",
+    "query": "What are the top 5 products by revenue?",
+    "expected_tools": ["sql_query"],
+    "expected_answer_contains": ["product"],
+    "category": "single-tool-sql"
+  },
+  {
+    "id": "sql_03",
+    "query": "How many customers made purchases in 2024?",
+    "expected_tools": ["sql_query"],
+    "expected_answer_contains": ["customer"],
+    "category": "single-tool-sql"
+  },
+  {
+    "id": "sql_04",
+    "query": "What was the average order value last quarter?",
+    "expected_tools": ["sql_query"],
+    "expected_answer_contains": ["average"],
+    "category": "single-tool-sql"
+  },
+  {
+    "id": "sql_05",
+    "query": "Which customer spent the most in total?",
+    "expected_tools": ["sql_query"],
+    "expected_answer_contains": ["customer"],
+    "category": "single-tool-sql"
+  },
+  {
+    "id": "rag_01",
+    "query": "What is the return policy?",
+    "expected_tools": ["doc_search"],
+    "expected_answer_contains": ["return", "policy"],
+    "category": "single-tool-rag"
+  },
+  {
+    "id": "rag_02",
+    "query": "What are the shipping options available?",
+    "expected_tools": ["doc_search"],
+    "expected_answer_contains": ["shipping"],
+    "category": "single-tool-rag"
+  },
+  {
+    "id": "rag_03",
+    "query": "What is the warranty coverage for electronics?",
+    "expected_tools": ["doc_search"],
+    "expected_answer_contains": ["warranty"],
+    "category": "single-tool-rag"
+  },
+  {
+    "id": "calc_01",
+    "query": "What is 15% of 234500?",
+    "expected_tools": ["calculator"],
+    "expected_answer_contains": ["35175"],
+    "category": "single-tool-calculator"
+  },
+  {
+    "id": "calc_02",
+    "query": "What is 78000 divided by 12?",
+    "expected_tools": ["calculator"],
+    "expected_answer_contains": ["6500"],
+    "category": "single-tool-calculator"
+  },
+  {
+    "id": "multi_01",
+    "query": "What was the sales growth Q3 vs Q2 2024?",
+    "expected_tools": ["sql_query", "calculator"],
+    "expected_answer_contains": ["growth", "%"],
+    "category": "multi-tool"
+  },
+  {
+    "id": "multi_02",
+    "query": "What is the top product and its discount policy?",
+    "expected_tools": ["sql_query", "doc_search"],
+    "expected_answer_contains": ["product"],
+    "category": "multi-tool"
+  },
+  {
+    "id": "multi_03",
+    "query": "What percentage of total sales came from the top customer?",
+    "expected_tools": ["sql_query", "calculator"],
+    "expected_answer_contains": ["%"],
+    "category": "multi-tool"
+  },
+  {
+    "id": "multi_04",
+    "query": "How do Q4 sales compare to Q3 in percentage terms?",
+    "expected_tools": ["sql_query", "calculator"],
+    "expected_answer_contains": ["%"],
+    "category": "multi-tool"
+  },
+  {
+    "id": "multi_05",
+    "query": "What is the return policy and how many returns were processed last quarter?",
+    "expected_tools": ["doc_search", "sql_query"],
+    "expected_answer_contains": ["return"],
+    "category": "multi-tool"
+  }
+]

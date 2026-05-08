@@ -87,6 +87,37 @@ The agent executes `sql_query` twice (Q3 and Q2 totals), then `calculator` for t
 
 **calculator** — Safe math evaluation using AST parsing. No `eval()`. Whitelisted operators and functions only, with exponent limits.
 
+## Evaluation
+
+The project includes an evaluation pipeline that measures agent quality against a golden dataset of 15 queries across 4 categories.
+
+```bash
+python -m eval.run_eval
+```
+
+### Metrics
+
+| Metric | Description |
+|---|---|
+| Tool selection accuracy | Did the agent pick the correct tools for the query? |
+| Answer contains accuracy | Does the response contain expected keywords/values? |
+
+### Golden Dataset Breakdown
+
+| Category | Count | Description |
+|---|---|
+| single-tool-sql | 5 | Queries that require only `sql_query` |
+| single-tool-rag | 3 | Queries that require only `doc_search` |
+| single-tool-calculator | 2 | Queries that require only `calculator` |
+| multi-tool | 5 | Queries requiring 2+ tools in sequence |
+
+Results are saved to `eval/results/latest.json` with per-query breakdowns and aggregate scores by category.
+
+## Architecture Decision Records
+
+- [ADR-001: Agent Architecture](docs/ADR-001-agent-architecture.md) — LangGraph StateGraph with 4 nodes
+- [ADR-002: Tool Selection](docs/ADR-002-tool-selection.md) — LLM-based tool selection with JSON output
+
 ## Stack
 
 Python 3.11 · LangGraph · Ollama · Qdrant · FastAPI · Langfuse · Pydantic · SQLite · Docker Compose
