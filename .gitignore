@@ -10,3 +10,8 @@ dist/
 node_modules/
 .DS_Store
 evals/results/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
