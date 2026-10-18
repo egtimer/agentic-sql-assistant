@@ -73,13 +73,15 @@ def _eval_node(node: ast.AST) -> float | int:
         if op_type in (ast.Div, ast.FloorDiv, ast.Mod) and right == 0:
             raise ValueError("Division by zero")
 
-        return SAFE_OPERATORS[op_type](left, right)
+        bin_result: float | int = SAFE_OPERATORS[op_type](left, right)
+        return bin_result
 
     if isinstance(node, ast.UnaryOp):
-        op_type = type(node.op)
-        if op_type not in SAFE_OPERATORS:
-            raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
-        return SAFE_OPERATORS[op_type](_eval_node(node.operand))
+        unary_type = type(node.op)
+        if unary_type not in SAFE_OPERATORS:
+            raise ValueError(f"Unsupported unary operator: {unary_type.__name__}")
+        unary_result: float | int = SAFE_OPERATORS[unary_type](_eval_node(node.operand))
+        return unary_result
 
     if isinstance(node, ast.Call):
         if not isinstance(node.func, ast.Name):
@@ -90,7 +92,8 @@ def _eval_node(node: ast.AST) -> float | int:
             raise ValueError(f"Function not allowed: {func_name}")
 
         args = [_eval_node(arg) for arg in node.args]
-        return SAFE_FUNCTIONS[func_name](*args)
+        call_result: float | int = SAFE_FUNCTIONS[func_name](*args)
+        return call_result
 
     raise ValueError(f"Unsupported expression element: {type(node).__name__}")
 

@@ -137,8 +137,8 @@ def _fallback_search(
 
         chunks = [
             DocumentChunk(
-                content=hit.payload.get("content", ""),
-                source=hit.payload.get("source", "unknown"),
+                content=(hit.payload or {}).get("content", ""),
+                source=(hit.payload or {}).get("source", "unknown"),
                 score=round(hit.score, 4),
             )
             for hit in results

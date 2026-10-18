@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 P = ParamSpec("P")
 T = TypeVar("T")
 
-_langfuse_client = None
+_langfuse_client: Any = None
 
 
-def get_langfuse():
+def get_langfuse() -> Any:
     """Return a shared Langfuse client instance, or None if not configured."""
     global _langfuse_client
 
@@ -43,7 +43,7 @@ def get_langfuse():
         return None
 
 
-def create_trace(name: str, query: str, metadata: dict[str, Any] | None = None):
+def create_trace(name: str, query: str, metadata: dict[str, Any] | None = None) -> Any:
     """Create a new Langfuse trace for an agent invocation.
 
     Args:
@@ -69,7 +69,7 @@ def create_trace(name: str, query: str, metadata: dict[str, Any] | None = None):
         return None
 
 
-def trace_node(node_name: str) -> Callable:
+def trace_node(node_name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator that wraps a graph node function with Langfuse span tracking.
 
     Each node execution is recorded as a span within the active trace,

@@ -1,6 +1,7 @@
 """FastAPI application entry point."""
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifecycle: startup and shutdown hooks."""
     logger.info("Starting agentic-sql-assistant API")
     yield

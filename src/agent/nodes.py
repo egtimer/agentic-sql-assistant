@@ -167,20 +167,20 @@ def _execute_tool(tool_name: ToolName, tool_input: str) -> ToolResult:
                 success=output.success,
             )
         elif tool_name == ToolName.DOC_SEARCH:
-            output = doc_search(tool_input)
+            doc_output = doc_search(tool_input)
             return ToolResult(
                 tool=tool_name.value,
                 input=tool_input,
-                output=output.model_dump(),
-                success=output.success,
+                output=doc_output.model_dump(),
+                success=doc_output.success,
             )
         elif tool_name == ToolName.CALCULATOR:
-            output = calculate(tool_input)
+            calc_output = calculate(tool_input)
             return ToolResult(
                 tool=tool_name.value,
                 input=tool_input,
-                output=output.model_dump(),
-                success=output.success,
+                output=calc_output.model_dump(),
+                success=calc_output.success,
             )
         else:
             return ToolResult(

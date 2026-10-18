@@ -15,7 +15,8 @@ dependencies = [
     "uvicorn[standard]>=0.32,<1",
     "pydantic>=2.0,<3",
     "pydantic-settings>=2.0,<3",
-    "qdrant-client>=1.12,<2",
+    # QdrantClient.search is removed in 1.16; code still uses it (migration is a later step).
+    "qdrant-client>=1.12,<1.16",
     "sentence-transformers>=3.0,<6",
     # Direct dependency so the CPU-only index below applies (no CUDA wheels).
     "torch>=2.2,<3",
@@ -70,3 +71,7 @@ strict = true
 [tool.ruff.lint.per-file-ignores]
 # Prompt templates contain long literal example lines that must not be re-wrapped.
 "src/agent/prompts.py" = ["E501"]
+
+[[tool.mypy.overrides]]
+module = ["langfuse", "langfuse.*"]
+ignore_missing_imports = true

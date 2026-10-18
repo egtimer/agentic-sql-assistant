@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from src.agent.nodes import execute_node, reason_node, respond_node, validate_node
 from src.agent.state import AgentState
@@ -36,7 +37,7 @@ def _should_reason_or_error(state: AgentState) -> str:
     return "execute"
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
     """Construct the agent's execution graph.
 
     Flow:
@@ -87,10 +88,10 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-_compiled_graph = None
+_compiled_graph: CompiledStateGraph[AgentState, None, AgentState, AgentState] | None = None
 
 
-def get_graph():
+def get_graph() -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
     """Return a cached compiled graph instance."""
     global _compiled_graph
     if _compiled_graph is None:
