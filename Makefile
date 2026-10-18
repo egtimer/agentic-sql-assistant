@@ -1,7 +1,7 @@
 .PHONY: setup seed ingest run serve test eval lint format clean
 
 setup:
-	pip install -e ".[dev]"
+	uv sync
 
 seed:
 	python -m src.db.seed
