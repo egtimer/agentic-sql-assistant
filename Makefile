@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval lint typecheck format clean docker-build up down
+.PHONY: setup seed ingest run serve test cov eval bird-data lint typecheck format clean docker-build up down
 
 setup:
 	uv sync
@@ -23,6 +23,9 @@ cov:
 
 eval:
 	uv run python -m evals.run_eval
+
+bird-data:
+	uv run python -m evals.text2sql.prepare
 
 lint:
 	uv run ruff check src tests evals
