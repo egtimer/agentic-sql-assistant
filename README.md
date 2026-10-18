@@ -1,6 +1,13 @@
 # agentic-sql-assistant
 
-AI Agent with tool calling, multi-step reasoning, and full observability. The agent autonomously decides which tools to use, executes them in sequence, validates results, and produces traced, auditable responses.
+AI Agent with tool calling and multi-step reasoning. The agent plans tool calls with an LLM, executes them in sequence, and composes an answer.
+
+## Status
+
+- The evaluation runner uses a mocked LLM and mocked tools, so it does not measure agent quality yet.
+- Langfuse per-node spans are not working yet.
+- The `sql_query` guardrail is a keyword blocklist, not a full read-only guarantee.
+- `docker compose` requires an NVIDIA GPU.
 
 ## Architecture
 
@@ -33,17 +40,16 @@ AI Agent with tool calling, multi-step reasoning, and full observability. The ag
                     └──────────────┘
 ```
 
-## Key Metrics
+## At a glance
 
-| Metric | Value |
+| Item | Value |
 |---|---|
-| Total tests | 103 |
 | Tools | 3 (sql_query, doc_search, calculator) |
 | Agent nodes | 4 (reason, execute, validate, respond) |
-| Retrieval | Hybrid dense + BM25 + RRF (k=60) |
+| Retrieval | Dense candidates re-scored with BM25, fused with RRF (k=60) |
 | Sample data | 10 products, 20 customers, 150 sales |
 | Documents | 3 policy files for RAG |
-| Observability | Langfuse tracing per node |
+| Observability | Langfuse integration in progress (per-node spans not yet working) |
 
 ## Quick Start
 
@@ -51,7 +57,7 @@ AI Agent with tool calling, multi-step reasoning, and full observability. The ag
 make setup          # Install dependencies
 make seed           # Populate SQLite + ingest docs
 make serve          # Start FastAPI server
-make test           # Run all 103 tests
+make test           # Run the test suite
 ```
 
 ## Example
@@ -62,56 +68,34 @@ curl -X POST http://localhost:8000/agent/query \
   -d '{"query": "How much did we sell in Q3 2024?"}'
 ```
 
-```json
-{
-  "answer": "Total Q3 2024 sales were €234,500.",
-  "tools_used": ["sql_query"],
-  "trace_id": "abc123"
-}
-```
-
 Multi-tool example:
 
 ```bash
 curl -X POST http://localhost:8000/agent/query \
+  -H "Content-Type: application/json" \
   -d '{"query": "What was the sales growth Q3 vs Q2?"}'
 ```
 
-The agent executes `sql_query` twice (Q3 and Q2 totals), then `calculator` for the percentage, returning a combined answer with full tool traceability.
-
 ## Tools
 
-**sql_query** — Read-only SQLite queries with injection protection and row limits. Rejects INSERT/UPDATE/DELETE/DROP.
+**sql_query** — Executes a single SELECT against SQLite. Write keywords are blocked with a regex blocklist; this is not a full guardrail yet (see Status).
 
-**doc_search** — Hybrid retrieval (dense embeddings + BM25 keyword search) combined with Reciprocal Rank Fusion. Searches company policy documents in Qdrant.
+**doc_search** — Dense search in Qdrant returns candidates, BM25 re-scores those candidates, and the two rankings are fused with Reciprocal Rank Fusion. Searches company policy documents.
 
 **calculator** — Safe math evaluation using AST parsing. No `eval()`. Whitelisted operators and functions only, with exponent limits.
 
 ## Evaluation
 
-The project includes an evaluation pipeline that measures agent quality against a golden dataset of 15 queries across 4 categories.
-
-```bash
-python -m eval.run_eval
-```
-
-### Metrics
-
-| Metric | Description |
-|---|---|
-| Tool selection accuracy | Did the agent pick the correct tools for the query? |
-| Answer contains accuracy | Does the response contain expected keywords/values? |
+The project includes a golden dataset of 15 queries across 4 categories. The current runner (`python -m eval.run_eval`) uses a mocked LLM and mocked tools, so it does not measure agent quality. It is being replaced by an execution-based eval against a public text-to-SQL benchmark, with a baseline. No results are reported yet.
 
 ### Golden Dataset Breakdown
 
 | Category | Count | Description |
-|---|---|
+|---|---|---|
 | single-tool-sql | 5 | Queries that require only `sql_query` |
 | single-tool-rag | 3 | Queries that require only `doc_search` |
 | single-tool-calculator | 2 | Queries that require only `calculator` |
 | multi-tool | 5 | Queries requiring 2+ tools in sequence |
-
-Results are saved to `eval/results/latest.json` with per-query breakdowns and aggregate scores by category.
 
 ## Architecture Decision Records
 
