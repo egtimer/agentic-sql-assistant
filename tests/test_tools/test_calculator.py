@@ -1,7 +1,5 @@
 """Tests for the calculator tool."""
 
-import math
-
 import pytest
 
 from src.tools.calculator import calculate

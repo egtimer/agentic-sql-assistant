@@ -26,7 +26,9 @@ class DocumentChunk(BaseModel):
     chunk_index: int = Field(description="Position of the chunk in the source document")
 
 
-def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
+def chunk_text(
+    text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP
+) -> list[str]:
     """Split text into overlapping chunks by character count.
 
     Splits on paragraph boundaries when possible, falling back to
@@ -57,7 +59,9 @@ def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = D
         else:
             if current_chunk:
                 chunks.append(current_chunk.strip())
-                overlap_text = current_chunk[-overlap:] if len(current_chunk) > overlap else current_chunk
+                overlap_text = (
+                    current_chunk[-overlap:] if len(current_chunk) > overlap else current_chunk
+                )
                 current_chunk = f"{overlap_text}\n\n{paragraph}" if overlap_text else paragraph
             else:
                 if len(paragraph) > chunk_size:
@@ -106,15 +110,21 @@ def load_documents(docs_dir: Path | None = None) -> list[DocumentChunk]:
         chunks = chunk_text(text)
 
         for i, chunk_content in enumerate(chunks):
-            all_chunks.append(DocumentChunk(
-                content=chunk_content,
-                source=md_file.name,
-                chunk_index=i,
-            ))
+            all_chunks.append(
+                DocumentChunk(
+                    content=chunk_content,
+                    source=md_file.name,
+                    chunk_index=i,
+                )
+            )
 
         logger.info("Loaded %s: %d chunks", md_file.name, len(chunks))
 
-    logger.info("Total documents loaded: %d files, %d chunks", len(list(docs_dir.glob("*.md"))), len(all_chunks))
+    logger.info(
+        "Total documents loaded: %d files, %d chunks",
+        len(list(docs_dir.glob("*.md"))),
+        len(all_chunks),
+    )
     return all_chunks
 
 
@@ -174,7 +184,7 @@ def ingest_to_qdrant(
                 "chunk_index": chunk.chunk_index,
             },
         )
-        for chunk, embedding in zip(chunks, embeddings)
+        for chunk, embedding in zip(chunks, embeddings, strict=False)
     ]
 
     batch_size = 100

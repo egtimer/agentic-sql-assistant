@@ -5,7 +5,7 @@ from src.agent.graph import (
     _should_loop_or_respond,
     _should_reason_or_error,
 )
-from src.agent.state import AgentState, ToolCall, ToolName, ToolResult
+from src.agent.state import AgentState, ToolCall, ToolName
 
 
 class TestReasonRouting:
@@ -67,7 +67,9 @@ class TestEndToEndRouting:
         state = AgentState(
             query="¿Cuánto vendimos en Q3?",
             planned_tools=[
-                ToolCall(tool=ToolName.SQL_QUERY, input="SELECT SUM(amount) FROM sales", reason="sales"),
+                ToolCall(
+                    tool=ToolName.SQL_QUERY, input="SELECT SUM(amount) FROM sales", reason="sales"
+                ),
             ],
             current_tool_index=0,
         )

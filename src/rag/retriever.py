@@ -138,15 +138,8 @@ def retrieve(
     qdrant_url = qdrant_url or settings.qdrant_url
     collection_name = collection_name or settings.qdrant_collection
 
-    if _client is None:
-        client = QdrantClient(url=qdrant_url)
-    else:
-        client = _client
-
-    if _embedder is None:
-        embedder = SentenceTransformer(settings.embedding_model)
-    else:
-        embedder = _embedder
+    client = QdrantClient(url=qdrant_url) if _client is None else _client
+    embedder = SentenceTransformer(settings.embedding_model) if _embedder is None else _embedder
 
     query_vector = embedder.encode(query).tolist()
 
@@ -165,10 +158,12 @@ def retrieve(
 
     for idx, hit in enumerate(hits):
         payload = hit.payload or {}
-        candidates.append({
-            "content": payload.get("content", ""),
-            "source": payload.get("source", "unknown"),
-        })
+        candidates.append(
+            {
+                "content": payload.get("content", ""),
+                "source": payload.get("source", "unknown"),
+            }
+        )
         dense_ranking[idx] = hit.score
 
     bm25_ranking = _compute_bm25_scores(query, candidates)
@@ -178,13 +173,15 @@ def retrieve(
     chunks = []
     for doc_idx, fused_score in fused_results[:top_k]:
         candidate = candidates[doc_idx]
-        chunks.append(RetrievedChunk(
-            content=candidate["content"],
-            source=candidate["source"],
-            score=round(fused_score, 4),
-            dense_score=round(dense_ranking.get(doc_idx, 0.0), 4),
-            bm25_score=round(bm25_ranking.get(doc_idx, 0.0), 4),
-        ))
+        chunks.append(
+            RetrievedChunk(
+                content=candidate["content"],
+                source=candidate["source"],
+                score=round(fused_score, 4),
+                dense_score=round(dense_ranking.get(doc_idx, 0.0), 4),
+                bm25_score=round(bm25_ranking.get(doc_idx, 0.0), 4),
+            )
+        )
 
     logger.info("Retrieved %d chunks for query: %s", len(chunks), query[:80])
     return chunks

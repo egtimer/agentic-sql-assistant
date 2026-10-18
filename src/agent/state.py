@@ -3,12 +3,12 @@
 from enum import Enum
 from typing import Annotated, Any
 
-from pydantic import BaseModel, Field
-from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
+from pydantic import BaseModel, Field
 
 
-class ToolName(str, Enum):
+class ToolName(str, Enum):  # noqa: UP042  (StrEnum would change str()/format() output)
     """Available tools the agent can invoke."""
 
     SQL_QUERY = "sql_query"

@@ -1,12 +1,11 @@
 """Tests for the LangGraph agent graph structure and execution."""
 
 import json
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.agent.graph import build_graph, run_agent
+from src.agent.graph import build_graph
 from src.agent.nodes import (
     _execute_tool,
     _extract_json,
@@ -48,7 +47,11 @@ class TestExtractJson:
         assert result[0]["tool"] == "calculator"
 
     def test_json_with_surrounding_text(self) -> None:
-        text = 'Here is the plan:\n[{"tool": "doc_search", "input": "policy", "reason": "search"}]\nDone.'
+        text = (
+            "Here is the plan:\n"
+            '[{"tool": "doc_search", "input": "policy", "reason": "search"}]\n'
+            "Done."
+        )
         result = _extract_json(text)
         assert isinstance(result, list)
 
@@ -80,14 +83,18 @@ class TestFormatToolResults:
 
     def test_format_failed_result(self) -> None:
         results = [
-            ToolResult(tool="calculator", input="1/0", output={"error": "div by zero"}, success=False)
+            ToolResult(
+                tool="calculator", input="1/0", output={"error": "div by zero"}, success=False
+            )
         ]
         formatted = _format_tool_results(results)
         assert "FAILED" in formatted
 
     def test_format_truncates_long_output(self) -> None:
         results = [
-            ToolResult(tool="sql_query", input="SELECT *", output={"data": "x" * 2000}, success=True)
+            ToolResult(
+                tool="sql_query", input="SELECT *", output={"data": "x" * 2000}, success=True
+            )
         ]
         formatted = _format_tool_results(results)
         assert "..." in formatted
@@ -113,9 +120,7 @@ class TestResolvePlaceholder:
         assert resolved == "PLACEHOLDER"
 
     def test_keeps_placeholder_with_failed_sql(self) -> None:
-        results = [
-            ToolResult(tool="sql_query", input="bad query", output={}, success=False)
-        ]
+        results = [ToolResult(tool="sql_query", input="bad query", output={}, success=False)]
         resolved = _resolve_placeholder("PLACEHOLDER", results)
         assert resolved == "PLACEHOLDER"
 
@@ -200,7 +205,9 @@ class TestReasonNode:
     def test_plans_single_sql_tool(self, mock_get_llm: MagicMock) -> None:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = self._mock_llm_response(
-            '[{"tool": "sql_query", "input": "SELECT SUM(amount) FROM sales WHERE quarter = \'Q3\'", "reason": "Get Q3 sales"}]'
+            '[{"tool": "sql_query", '
+            '"input": "SELECT SUM(amount) FROM sales WHERE quarter = \'Q3\'", '
+            '"reason": "Get Q3 sales"}]'
         )
         mock_get_llm.return_value = mock_llm
 
@@ -214,7 +221,8 @@ class TestReasonNode:
     def test_plans_multiple_tools(self, mock_get_llm: MagicMock) -> None:
         mock_llm = MagicMock()
         mock_llm.invoke.return_value = self._mock_llm_response(
-            '[{"tool": "sql_query", "input": "SELECT quarter, SUM(amount) FROM sales WHERE quarter IN (\'Q2\',\'Q3\') GROUP BY quarter", "reason": "get totals"}, '
+            '[{"tool": "sql_query", "input": "SELECT quarter, SUM(amount) FROM sales '
+            'WHERE quarter IN (\'Q2\',\'Q3\') GROUP BY quarter", "reason": "get totals"}, '
             '{"tool": "calculator", "input": "PLACEHOLDER", "reason": "calculate growth"}]'
         )
         mock_get_llm.return_value = mock_llm
@@ -298,7 +306,9 @@ class TestValidateNode:
                 ToolCall(tool=ToolName.CALCULATOR, input="2+2", reason="second"),
             ],
             tool_results=[
-                ToolResult(tool="sql_query", input="SELECT 1", output={"rows": [[1]]}, success=True),
+                ToolResult(
+                    tool="sql_query", input="SELECT 1", output={"rows": [[1]]}, success=True
+                ),
             ],
             current_tool_index=1,
         )

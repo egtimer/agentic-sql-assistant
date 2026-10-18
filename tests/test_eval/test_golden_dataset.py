@@ -42,9 +42,7 @@ class TestDatasetStructure:
     def test_all_tools_are_valid(self, dataset: list[dict]) -> None:
         for entry in dataset:
             for tool in entry["expected_tools"]:
-                assert tool in VALID_TOOLS, (
-                    f"Entry {entry['id']} has invalid tool: {tool}"
-                )
+                assert tool in VALID_TOOLS, f"Entry {entry['id']} has invalid tool: {tool}"
 
     def test_all_categories_are_valid(self, dataset: list[dict]) -> None:
         for entry in dataset:
@@ -65,7 +63,8 @@ class TestDatasetContent:
         for entry in dataset:
             if entry["category"] == "multi-tool":
                 assert len(entry["expected_tools"]) >= 2, (
-                    f"Multi-tool entry {entry['id']} has only {len(entry['expected_tools'])} tool(s)"
+                    f"Multi-tool entry {entry['id']} has only "
+                    f"{len(entry['expected_tools'])} tool(s)"
                 )
 
     def test_expected_answer_contains_not_empty(self, dataset: list[dict]) -> None:

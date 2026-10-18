@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
-import pytest
 
 from src.tools.doc_search import doc_search
 
@@ -39,11 +38,17 @@ class TestDocSearchBasic:
     def test_returns_matching_chunks(self) -> None:
         hits = [
             FakeSearchHit(
-                payload={"content": "Return policy is 30 days", "source": "politica_devoluciones.md"},
+                payload={
+                    "content": "Return policy is 30 days",
+                    "source": "politica_devoluciones.md",
+                },
                 score=0.92,
             ),
             FakeSearchHit(
-                payload={"content": "Defective products get full refund", "source": "politica_devoluciones.md"},
+                payload={
+                    "content": "Defective products get full refund",
+                    "source": "politica_devoluciones.md",
+                },
                 score=0.78,
             ),
         ]

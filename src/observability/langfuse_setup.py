@@ -1,9 +1,11 @@
 """Langfuse tracing integration for agent observability."""
 
+import contextlib
 import functools
 import logging
 import time
-from typing import Any, Callable, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import Any, ParamSpec, TypeVar
 
 from src.config import settings
 
@@ -79,6 +81,7 @@ def trace_node(node_name: str) -> Callable:
     Returns:
         Decorator function.
     """
+
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -112,15 +115,14 @@ def trace_node(node_name: str) -> Callable:
                 logger.debug("Node %s completed in %.1fms", node_name, duration_ms)
 
                 if span is not None:
-                    try:
+                    with contextlib.suppress(Exception):
                         span.end(
                             output=result if error is None else {"error": error},
                             level="ERROR" if error else "DEFAULT",
                         )
-                    except Exception:
-                        pass
 
         return wrapper
+
     return decorator
 
 

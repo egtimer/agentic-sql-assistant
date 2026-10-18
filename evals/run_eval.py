@@ -13,7 +13,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.agent.graph import run_agent
-from src.agent.state import ToolName
 
 DATASET_PATH = Path(__file__).parent / "golden_dataset.json"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -102,30 +101,38 @@ def build_tool_plan_json(entry: dict[str, Any]) -> str:
     tool_calls = []
     for tool_name in entry["expected_tools"]:
         if tool_name == "sql_query":
-            tool_calls.append({
-                "tool": "sql_query",
-                "input": "SELECT SUM(amount) FROM sales WHERE quarter = 'Q3'",
-                "reason": "Query sales data",
-            })
+            tool_calls.append(
+                {
+                    "tool": "sql_query",
+                    "input": "SELECT SUM(amount) FROM sales WHERE quarter = 'Q3'",
+                    "reason": "Query sales data",
+                }
+            )
         elif tool_name == "doc_search":
-            tool_calls.append({
-                "tool": "doc_search",
-                "input": entry["query"],
-                "reason": "Search company documents",
-            })
+            tool_calls.append(
+                {
+                    "tool": "doc_search",
+                    "input": entry["query"],
+                    "reason": "Search company documents",
+                }
+            )
         elif tool_name == "calculator":
             if "sql_query" in entry["expected_tools"]:
-                tool_calls.append({
-                    "tool": "calculator",
-                    "input": "PLACEHOLDER",
-                    "reason": "Calculate result from data",
-                })
+                tool_calls.append(
+                    {
+                        "tool": "calculator",
+                        "input": "PLACEHOLDER",
+                        "reason": "Calculate result from data",
+                    }
+                )
             else:
-                tool_calls.append({
-                    "tool": "calculator",
-                    "input": entry["query"],
-                    "reason": "Compute mathematical expression",
-                })
+                tool_calls.append(
+                    {
+                        "tool": "calculator",
+                        "input": entry["query"],
+                        "reason": "Compute mathematical expression",
+                    }
+                )
     return json.dumps(tool_calls)
 
 
@@ -268,7 +275,8 @@ def format_results_table(results: list[EvalResult], summary: EvalSummary) -> str
         tool_ok = "PASS" if r.tool_match else "FAIL"
         answer_pct = f"{r.answer_contains_score:.0%}"
         lines.append(
-            f"{r.query_id:<10} {r.category:<25} {tool_ok:<10} {answer_pct:<10} {r.duration_ms:<10.1f}"
+            f"{r.query_id:<10} {r.category:<25} {tool_ok:<10} "
+            f"{answer_pct:<10} {r.duration_ms:<10.1f}"
         )
 
     lines.append("")

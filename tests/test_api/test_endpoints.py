@@ -1,12 +1,11 @@
 """Tests for FastAPI endpoints."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.schemas import ErrorResponse, HealthResponse, QueryResponse
 
 
 @pytest.fixture
@@ -49,7 +48,12 @@ class TestQueryEndpoint:
             "response": "Las ventas de Q3 fueron €234,500",
             "tools_used": ["sql_query"],
             "tool_results": [
-                {"tool": "sql_query", "input": "SELECT SUM(amount) FROM sales", "success": True, "output": {}}
+                {
+                    "tool": "sql_query",
+                    "input": "SELECT SUM(amount) FROM sales",
+                    "success": True,
+                    "output": {},
+                }
             ],
         }
         response = client.post("/agent/query", json={"query": "¿Cuánto vendimos en Q3?"})
@@ -89,7 +93,12 @@ class TestQueryEndpoint:
             "tools_used": ["sql_query", "calculator"],
             "tool_results": [
                 {"tool": "sql_query", "input": "SELECT...", "success": True, "output": {}},
-                {"tool": "calculator", "input": "(234500-198000)/198000*100", "success": True, "output": {}},
+                {
+                    "tool": "calculator",
+                    "input": "(234500-198000)/198000*100",
+                    "success": True,
+                    "output": {},
+                },
             ],
         }
         response = client.post("/agent/query", json={"query": "crecimiento Q3 vs Q2"})
@@ -103,7 +112,12 @@ class TestQueryEndpoint:
             "response": "resultado",
             "tools_used": ["doc_search"],
             "tool_results": [
-                {"tool": "doc_search", "input": "política devoluciones", "success": True, "output": {}}
+                {
+                    "tool": "doc_search",
+                    "input": "política devoluciones",
+                    "success": True,
+                    "output": {},
+                }
             ],
         }
         response = client.post("/agent/query", json={"query": "política de devoluciones"})

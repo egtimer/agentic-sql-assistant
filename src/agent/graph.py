@@ -1,5 +1,6 @@
 """LangGraph agent definition with stateful tool execution."""
 
+import contextlib
 import logging
 from typing import Any
 
@@ -54,20 +55,32 @@ def build_graph() -> StateGraph:
 
     graph.set_entry_point("reason")
 
-    graph.add_conditional_edges("reason", _should_reason_or_error, {
-        "execute": "execute",
-        "respond": "respond",
-    })
+    graph.add_conditional_edges(
+        "reason",
+        _should_reason_or_error,
+        {
+            "execute": "execute",
+            "respond": "respond",
+        },
+    )
 
-    graph.add_conditional_edges("execute", _should_continue_execution, {
-        "execute": "execute",
-        "validate": "validate",
-    })
+    graph.add_conditional_edges(
+        "execute",
+        _should_continue_execution,
+        {
+            "execute": "execute",
+            "validate": "validate",
+        },
+    )
 
-    graph.add_conditional_edges("validate", _should_loop_or_respond, {
-        "execute": "execute",
-        "respond": "respond",
-    })
+    graph.add_conditional_edges(
+        "validate",
+        _should_loop_or_respond,
+        {
+            "execute": "execute",
+            "respond": "respond",
+        },
+    )
 
     graph.add_edge("respond", END)
 
@@ -122,10 +135,8 @@ def run_agent(query: str, trace_metadata: dict[str, Any] | None = None) -> dict[
         response = final_state.response
 
     if trace is not None:
-        try:
+        with contextlib.suppress(Exception):
             trace.update(output={"response": response, "tools_used": tools_used})
-        except Exception:
-            pass
 
     flush()
 

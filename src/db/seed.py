@@ -122,7 +122,9 @@ def _generate_sales(rng: random.Random) -> list[tuple[int, int, int, int, float,
 
             date = _random_date(start_date, end_date, rng)
 
-            sales.append((sale_id, product_id, customer_id, quantity, amount, date, quarter, region))
+            sales.append(
+                (sale_id, product_id, customer_id, quantity, amount, date, quarter, region)
+            )
             sale_id += 1
 
     return sales
@@ -162,7 +164,8 @@ def seed_database(db_path: Path | None = None) -> Path:
         rng = random.Random(42)
         sales = _generate_sales(rng)
         conn.executemany(
-            "INSERT INTO sales (id, product_id, customer_id, quantity, amount, date, quarter, region) "
+            "INSERT INTO sales "
+            "(id, product_id, customer_id, quantity, amount, date, quarter, region) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             sales,
         )

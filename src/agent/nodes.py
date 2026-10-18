@@ -93,11 +93,13 @@ def reason_node(state: AgentState) -> dict[str, Any]:
         planned = []
         for tc in tool_calls_raw:
             try:
-                planned.append(ToolCall(
-                    tool=ToolName(tc["tool"]),
-                    input=tc.get("input", ""),
-                    reason=tc.get("reason", ""),
-                ))
+                planned.append(
+                    ToolCall(
+                        tool=ToolName(tc["tool"]),
+                        input=tc.get("input", ""),
+                        reason=tc.get("reason", ""),
+                    )
+                )
             except (ValueError, KeyError) as e:
                 logger.warning("Skipping invalid tool call %s: %s", tc, e)
 
@@ -254,8 +256,7 @@ def validate_node(state: AgentState) -> dict[str, Any]:
     to determine what expression to compute with the actual data.
     """
     has_placeholder = any(
-        tc.input == "PLACEHOLDER"
-        and state.current_tool_index <= i
+        tc.input == "PLACEHOLDER" and state.current_tool_index <= i
         for i, tc in enumerate(state.planned_tools)
     )
 
@@ -269,7 +270,9 @@ def validate_node(state: AgentState) -> dict[str, Any]:
             tool_results=_format_tool_results(state.tool_results),
         )
         response = llm.invoke([HumanMessage(content=prompt)])
-        response_text = response.content if isinstance(response.content, str) else str(response.content)
+        response_text = (
+            response.content if isinstance(response.content, str) else str(response.content)
+        )
 
         try:
             validation = _extract_json(response_text)
@@ -277,11 +280,13 @@ def validate_node(state: AgentState) -> dict[str, Any]:
                 additional = []
                 for tc in validation["additional_tools"]:
                     try:
-                        additional.append(ToolCall(
-                            tool=ToolName(tc["tool"]),
-                            input=tc.get("input", ""),
-                            reason=tc.get("reason", ""),
-                        ))
+                        additional.append(
+                            ToolCall(
+                                tool=ToolName(tc["tool"]),
+                                input=tc.get("input", ""),
+                                reason=tc.get("reason", ""),
+                            )
+                        )
                     except (ValueError, KeyError):
                         continue
 

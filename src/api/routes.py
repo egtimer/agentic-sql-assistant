@@ -68,7 +68,10 @@ async def health_check() -> HealthResponse:
         500: {"model": ErrorResponse},
     },
     summary="Query the agent",
-    description="Submit a natural language question. The agent reasons about which tools to use and returns a traced response.",
+    description=(
+        "Submit a natural language question. The agent reasons about which tools "
+        "to use and returns a traced response."
+    ),
 )
 async def agent_query(request: QueryRequest) -> QueryResponse:
     """Process a user query through the agent pipeline."""
@@ -91,17 +94,21 @@ async def agent_query(request: QueryRequest) -> QueryResponse:
         tool_details = []
         for tr in result.get("tool_results", []):
             if isinstance(tr, dict):
-                tool_details.append(ToolDetail(
-                    tool=tr.get("tool", "unknown"),
-                    input=tr.get("input", ""),
-                    success=tr.get("success", False),
-                ))
+                tool_details.append(
+                    ToolDetail(
+                        tool=tr.get("tool", "unknown"),
+                        input=tr.get("input", ""),
+                        success=tr.get("success", False),
+                    )
+                )
             else:
-                tool_details.append(ToolDetail(
-                    tool=tr.tool,
-                    input=tr.input,
-                    success=tr.success,
-                ))
+                tool_details.append(
+                    ToolDetail(
+                        tool=tr.tool,
+                        input=tr.input,
+                        success=tr.success,
+                    )
+                )
 
         return QueryResponse(
             query=request.query,
@@ -112,4 +119,4 @@ async def agent_query(request: QueryRequest) -> QueryResponse:
 
     except Exception as e:
         logger.exception("Agent execution failed for query: %s", request.query[:100])
-        raise HTTPException(status_code=500, detail=f"Agent execution failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Agent execution failed: {e!s}") from e

@@ -1,15 +1,11 @@
 """Tests for the evaluation runner logic."""
 
 import json
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from evals.run_eval import (
     EvalResult,
-    EvalSummary,
     build_mock_response,
     build_tool_plan_json,
     check_answer_contains,
@@ -224,6 +220,9 @@ class TestLoadDataset:
 
     def test_loads_custom_path(self, tmp_path: Path) -> None:
         custom = tmp_path / "custom.json"
-        custom.write_text('[{"id": "t1", "query": "test", "expected_tools": [], "expected_answer_contains": [], "category": "test"}]')
+        custom.write_text(
+            '[{"id": "t1", "query": "test", "expected_tools": [], '
+            '"expected_answer_contains": [], "category": "test"}]'
+        )
         dataset = load_dataset(custom)
         assert len(dataset) == 1

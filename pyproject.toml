@@ -61,8 +61,12 @@ target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt templates contain long literal example lines that must not be re-wrapped.
+"src/agent/prompts.py" = ["E501"]
