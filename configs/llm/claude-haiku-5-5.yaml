@@ -1,0 +1,14 @@
+# Prices: USD per million tokens, platform.claude.com pricing page, checked 2026-10-18
+# (see docs/ADR-003-text-to-sql-evaluation.md). Prompt caching is not enabled.
+provider: anthropic
+model: claude-haiku-5-5
+max_tokens: 16000
+effort: low
+pricing:
+  input_per_mtok: 0.10
+  output_per_mtok: 0.50
+  cache_read_per_mtok: 0.01
+  cache_write_per_mtok: 0.125
+  long_context_threshold: 100000
+  long_input_per_mtok: 0.50
+  long_output_per_mtok: 2.50

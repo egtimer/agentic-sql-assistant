@@ -1,0 +1,13 @@
+# Local model, cost is zero. num_ctx is explicit because Ollama's default context (2048)
+# silently truncates long prompts such as BIRD schemas.
+provider: ollama
+model: qwen2.5:3b
+temperature: 0
+num_ctx: 8192
+max_tokens: 1024
+base_url: http://localhost:11434
+pricing:
+  input_per_mtok: 0
+  output_per_mtok: 0
+  cache_read_per_mtok: 0
+  cache_write_per_mtok: 0

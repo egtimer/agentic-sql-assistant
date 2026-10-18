@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval bird-data lint typecheck format clean docker-build up down
+.PHONY: setup seed ingest run serve test cov eval eval-sql bird-data lint typecheck format clean docker-build up down
 
 setup:
 	uv sync
@@ -23,6 +23,17 @@ cov:
 
 eval:
 	uv run python -m evals.run_eval
+
+# Text-to-SQL eval on BIRD Mini-Dev. Override on the command line, e.g.
+#   make eval-sql LLM_CONFIG=configs/llm/claude-haiku-5-5.yaml BUDGET_USD=1 RUN_ID=smoke LIMIT=20
+LLM_CONFIG ?= configs/llm/ollama-qwen2.5-3b.yaml
+SYSTEM ?= both
+SPLIT ?= dev
+eval-sql:
+	uv run python -m evals.text2sql.run --llm-config $(LLM_CONFIG) --system $(SYSTEM) --split $(SPLIT) \
+		$(if $(LIMIT),--limit $(LIMIT)) $(if $(BUDGET_USD),--budget-usd $(BUDGET_USD)) \
+		$(if $(RUN_ID),--run-id $(RUN_ID)) $(if $(WORKERS),--workers $(WORKERS)) \
+		$(if $(RESUME),--resume) $(if $(QUESTION_IDS),--question-ids $(QUESTION_IDS))
 
 bird-data:
 	uv run python -m evals.text2sql.prepare

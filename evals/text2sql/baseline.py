@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from evals.text2sql.data import Question, db_path, schema_ddl
-from src.llm import Completion, LLMClient
+from src.llm import CallUsage, Completion, LLMClient
 
 BASELINE_SYSTEM = (
     "You are an expert SQLite analyst. Given a database schema, optional external knowledge "
@@ -15,15 +15,20 @@ BASELINE_SYSTEM = (
 
 
 class CountingClient:
-    """Wraps a client and counts the calls made through it."""
+    """Wraps a client; counts the calls made through it and keeps their usage."""
 
     def __init__(self, client: LLMClient) -> None:
         self._client = client
-        self.n_calls = 0
+        self.usages: list[CallUsage] = []
+
+    @property
+    def n_calls(self) -> int:
+        return len(self.usages)
 
     def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
-        self.n_calls += 1
-        return self._client.complete(system, user, tag=tag)
+        completion = self._client.complete(system, user, tag=tag)
+        self.usages.append(completion.usage)
+        return completion
 
 
 @lru_cache(maxsize=32)
