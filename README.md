@@ -7,7 +7,6 @@ AI Agent with tool calling and multi-step reasoning. The agent plans tool calls 
 - The evaluation runner uses a mocked LLM and mocked tools, so it does not measure agent quality yet.
 - Langfuse per-node spans are not working yet.
 - The `sql_query` guardrail is a keyword blocklist, not a full read-only guarantee.
-- `docker compose` requires an NVIDIA GPU.
 
 ## Architecture
 
@@ -54,9 +53,11 @@ AI Agent with tool calling and multi-step reasoning. The agent plans tool calls 
 ## Quick Start
 
 ```bash
-make setup          # Install dependencies
-make seed           # Populate SQLite + ingest docs
-make serve          # Start FastAPI server
+make setup          # Install dependencies with uv (Python 3.12)
+make up             # Start Ollama, Qdrant and Langfuse (docker compose up -d)
+make seed           # Populate the SQLite sample database
+make ingest         # Embed and index the policy documents into Qdrant
+make serve          # Start the FastAPI server
 make test           # Run the test suite
 ```
 
@@ -104,13 +105,27 @@ The project includes a golden dataset of 15 queries across 4 categories. The cur
 
 ## Stack
 
-Python 3.11 · LangGraph · Ollama · Qdrant · FastAPI · Langfuse · Pydantic · SQLite · Docker Compose
+Python 3.12 · LangGraph · Ollama · Qdrant · FastAPI · Langfuse · Pydantic · SQLite · Docker Compose
 
 ## Infrastructure
 
 ```bash
-docker compose up -d   # Ollama + Qdrant + Langfuse + PostgreSQL
+docker compose up -d   # app + Ollama + Qdrant + Langfuse + PostgreSQL (CPU only)
 ```
+
+Langfuse server secrets in `docker-compose.yml` have local-development defaults and can be overridden through the variables documented in `.env.example`.
+
+## Development
+
+```bash
+make lint              # ruff check, ruff format --check, mypy --strict
+make test              # pytest
+make cov               # pytest with coverage report
+make docker-build      # build the application image
+docker compose up -d   # run the full stack
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`.
 
 ## Related
 
