@@ -8,7 +8,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from src.agent.nodes import execute_node, reason_node, respond_node, validate_node
-from src.agent.state import AgentState
+from src.agent.state import AgentState, ToolProfile
 from src.observability.langfuse_setup import create_trace, flush
 
 logger = logging.getLogger(__name__)
@@ -99,19 +99,31 @@ def get_graph() -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
     return _compiled_graph
 
 
-def run_agent(query: str, trace_metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+def run_agent(
+    query: str,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    schema_description: str | None = None,
+    db_path: str | None = None,
+    profile: ToolProfile = ToolProfile.DEFAULT,
+) -> dict[str, Any]:
     """Execute the agent pipeline for a user query.
 
     Args:
         query: Natural language question from the user.
         trace_metadata: Optional metadata for the Langfuse trace.
+        schema_description: Database schema shown to the LLM (non-default profiles).
+        db_path: SQLite file for ``sql_query``; None uses the sample sales database.
+        profile: Tool set and prompt wording; the default is the sales assistant.
 
     Returns:
         Dictionary with 'response', 'tools_used', and 'tool_results'.
     """
     trace = create_trace("agent_query", query, trace_metadata)
 
-    initial_state = AgentState(query=query)
+    initial_state = AgentState(
+        query=query, schema_description=schema_description, db_path=db_path, profile=profile
+    )
     if trace is not None:
         initial_state._trace = trace  # type: ignore[attr-defined]
 

@@ -8,11 +8,18 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.agent.prompts import (
-    RESPONSE_PROMPT,
-    TOOL_SELECTION_PROMPT,
     VALIDATION_PROMPT,
+    build_response_prompt,
+    build_tool_selection_prompt,
 )
-from src.agent.state import AgentState, ToolCall, ToolName, ToolResult
+from src.agent.state import (
+    PROFILE_TOOLS,
+    AgentState,
+    ToolCall,
+    ToolName,
+    ToolProfile,
+    ToolResult,
+)
 from src.llm import get_client
 from src.observability.langfuse_setup import trace_node
 from src.tools.calculator import calculate
@@ -65,7 +72,7 @@ def reason_node(state: AgentState) -> dict[str, Any]:
     Sends the query to the LLM with tool descriptions and expects
     a JSON array of tool calls in response.
     """
-    prompt = TOOL_SELECTION_PROMPT.format(query=state.query)
+    prompt = build_tool_selection_prompt(state.query, state.profile, state.schema_description)
     response_text = (
         get_client().complete("You output only valid JSON arrays.", prompt, tag="reason").text
     )
@@ -75,16 +82,19 @@ def reason_node(state: AgentState) -> dict[str, Any]:
         if not isinstance(tool_calls_raw, list):
             tool_calls_raw = [tool_calls_raw]
 
+        allowed = PROFILE_TOOLS[state.profile]
         planned = []
         for tc in tool_calls_raw:
             try:
-                planned.append(
-                    ToolCall(
-                        tool=ToolName(tc["tool"]),
-                        input=tc.get("input", ""),
-                        reason=tc.get("reason", ""),
-                    )
+                call = ToolCall(
+                    tool=ToolName(tc["tool"]),
+                    input=tc.get("input", ""),
+                    reason=tc.get("reason", ""),
                 )
+                if call.tool not in allowed:
+                    logger.warning("Skipping tool %s: not in profile %s", call.tool, state.profile)
+                    continue
+                planned.append(call)
             except (ValueError, KeyError) as e:
                 logger.warning("Skipping invalid tool call %s: %s", tc, e)
 
@@ -124,7 +134,7 @@ def execute_node(state: AgentState) -> dict[str, Any]:
     if "PLACEHOLDER" in tool_input and state.tool_results:
         tool_input = _resolve_placeholder(tool_input, state.tool_results)
 
-    result = _execute_tool(tool_call.tool, tool_input)
+    result = _execute_tool(tool_call.tool, tool_input, state.db_path)
 
     logger.info(
         "Executed %s (success=%s): %s",
@@ -140,11 +150,11 @@ def execute_node(state: AgentState) -> dict[str, Any]:
     }
 
 
-def _execute_tool(tool_name: ToolName, tool_input: str) -> ToolResult:
+def _execute_tool(tool_name: ToolName, tool_input: str, db_path: str | None = None) -> ToolResult:
     """Dispatch to the appropriate tool function."""
     try:
         if tool_name == ToolName.SQL_QUERY:
-            output = sql_query(tool_input)
+            output = sql_query(tool_input) if db_path is None else sql_query(tool_input, db_path)
             return ToolResult(
                 tool=tool_name.value,
                 input=tool_input,
@@ -290,15 +300,22 @@ def respond_node(state: AgentState) -> dict[str, Any]:
     Sends all collected tool results to the LLM along with the
     original query to produce a natural language answer.
     """
+    neutral = state.profile is not ToolProfile.DEFAULT
+
     if state.error:
+        if neutral:
+            return {
+                "response": f"Sorry, there was an error processing your question: {state.error}"
+            }
         return {"response": f"Lo siento, hubo un error procesando tu pregunta: {state.error}"}
 
     if not state.tool_results:
+        if neutral:
+            return {"response": "I could not find relevant information to answer your question."}
         return {"response": "No pude encontrar información relevante para responder tu pregunta."}
 
-    prompt = RESPONSE_PROMPT.format(
-        query=state.query,
-        tool_results=_format_tool_results(state.tool_results),
+    prompt = build_response_prompt(
+        state.query, _format_tool_results(state.tool_results), state.profile
     )
 
     response_text = get_client().complete(None, prompt, tag="respond").text

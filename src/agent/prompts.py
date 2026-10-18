@@ -1,5 +1,7 @@
 """System prompts for the agent's reasoning and response generation."""
 
+from src.agent.state import ToolProfile
+
 TOOL_SELECTION_PROMPT = """\
 You are a business intelligence assistant with access to three tools:
 
@@ -98,3 +100,88 @@ If everything looks good:
   "reason": "All data available to answer the question",
   "additional_tools": []
 }}"""
+
+# --- SQL-only profile (arbitrary database, e.g. BIRD) -------------------------------------
+# Layout matters: everything stable across questions (instructions, tools, schema) comes
+# first and the per-question text is last, so Ollama can reuse its KV cache for the prefix.
+
+SQL_ONLY_TOOL_SELECTION_PROMPT = """\
+You are a data analyst assistant with access to two tools:
+
+1. **sql_query**: Executes a single read-only SQLite SELECT query against the database described below.
+   - Input: one valid SQLite SELECT query
+
+2. **calculator**: Evaluates mathematical expressions.
+   - Supports: +, -, *, /, **, sqrt(), round(), abs(), min(), max(), log()
+   - Use for: percentages, growth rates, comparisons, derived metrics
+   - Input: a mathematical expression (e.g., "(234 - 198) / 198 * 100")
+
+Database schema (SQLite):
+
+{schema}
+
+Given the user's question, decide which tool(s) to use and in what order.
+
+Respond ONLY with a JSON array of tool calls. Each element must have:
+- "tool": one of "sql_query", "calculator"
+- "input": the exact input for the tool
+- "reason": brief explanation of why this tool is needed
+
+Examples (for a different database):
+
+Question: "How many employees joined in 2020?"
+[{{"tool": "sql_query", "input": "SELECT COUNT(*) FROM employees WHERE strftime('%Y', hire_date) = '2020'", "reason": "Count employees hired in 2020"}}]
+
+Question: "What was the percentage growth in headcount from 2019 to 2020?"
+[{{"tool": "sql_query", "input": "SELECT strftime('%Y', hire_date) AS year, COUNT(*) FROM employees WHERE strftime('%Y', hire_date) IN ('2019', '2020') GROUP BY year ORDER BY year", "reason": "Get headcount for both years"}}, {{"tool": "calculator", "input": "PLACEHOLDER", "reason": "Calculate growth percentage between the years"}}]
+
+IMPORTANT:
+- Use only the tables and columns in the schema above.
+- For calculator inputs that depend on previous results, write "PLACEHOLDER" — it will be filled after getting the data.
+- Write valid SQLite SQL syntax.
+- The question may include a line starting with "External knowledge"; use it to interpret the question.
+- Do NOT explain anything outside the JSON array.
+
+User question: {query}"""
+
+SQL_ONLY_RESPONSE_PROMPT = """\
+You are a data analyst assistant. Using the tool results below, \
+compose a clear, concise answer to the user's question.
+
+**User question:** {query}
+
+**Tool results:**
+{tool_results}
+
+Instructions:
+- Answer in the same language as the question.
+- Include specific numbers and data from the results.
+- If a tool failed, acknowledge it and answer with whatever data is available.
+- Be direct — answer the question first, then add context if relevant.
+- Keep it under 200 words."""
+
+SCHEMA_NOT_PROVIDED = "(The schema was not provided. Inspect it with queries on sqlite_master.)"
+
+
+def build_tool_selection_prompt(
+    query: str,
+    profile: ToolProfile = ToolProfile.DEFAULT,
+    schema_description: str | None = None,
+) -> str:
+    """Render the tool-selection prompt for a profile.
+
+    The default profile renders exactly ``TOOL_SELECTION_PROMPT.format(query=query)``.
+    """
+    if profile is ToolProfile.SQL_ONLY:
+        return SQL_ONLY_TOOL_SELECTION_PROMPT.format(
+            schema=schema_description or SCHEMA_NOT_PROVIDED, query=query
+        )
+    return TOOL_SELECTION_PROMPT.format(query=query)
+
+
+def build_response_prompt(
+    query: str, tool_results: str, profile: ToolProfile = ToolProfile.DEFAULT
+) -> str:
+    """Render the final-answer prompt; only non-default profiles use the neutral wording."""
+    template = RESPONSE_PROMPT if profile is ToolProfile.DEFAULT else SQL_ONLY_RESPONSE_PROMPT
+    return template.format(query=query, tool_results=tool_results)
