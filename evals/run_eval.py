@@ -13,6 +13,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.agent.graph import run_agent
+from src.llm import CallUsage, Completion
 
 DATASET_PATH = Path(__file__).parent / "golden_dataset.json"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -172,14 +173,17 @@ def create_mock_tool_result(tool_name: str) -> dict[str, Any]:
 
 def run_single_eval(entry: dict[str, Any]) -> EvalResult:
     """Run evaluation for a single query with mocked dependencies."""
-    mock_llm = MagicMock()
     tool_plan_json = build_tool_plan_json(entry)
     response_text = build_mock_response(entry["query"], entry)
 
-    mock_llm.invoke.side_effect = [
-        MagicMock(content=tool_plan_json),
-        MagicMock(content='{"is_complete": true, "additional_tools": []}'),
-        MagicMock(content=response_text),
+    mock_client = MagicMock()
+    mock_client.complete.side_effect = [
+        Completion(text=text, usage=CallUsage(tag="mock"))
+        for text in (
+            tool_plan_json,
+            '{"is_complete": true, "additional_tools": []}',
+            response_text,
+        )
     ]
 
     tool_mocks = {}
@@ -189,7 +193,7 @@ def run_single_eval(entry: dict[str, Any]) -> EvalResult:
     start = time.perf_counter()
 
     with (
-        patch("src.agent.nodes._get_llm", return_value=mock_llm),
+        patch("src.agent.nodes.get_client", return_value=mock_client),
         patch("src.agent.nodes.sql_query") as mock_sql,
         patch("src.agent.nodes.doc_search") as mock_doc,
         patch("src.agent.nodes.calculate") as mock_calc,

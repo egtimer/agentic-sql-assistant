@@ -17,6 +17,15 @@ from src.agent.nodes import (
     validate_node,
 )
 from src.agent.state import AgentState, ToolCall, ToolName, ToolResult
+from src.llm import CallUsage, Completion
+
+
+def _mock_client(*texts: str) -> MagicMock:
+    """Client whose ``complete`` returns the given texts in order (the last one repeats)."""
+    client = MagicMock()
+    completions = [Completion(text=t, usage=CallUsage(tag="test")) for t in texts]
+    client.complete.side_effect = completions + [completions[-1]] * 10
+    return client
 
 
 class TestGraphStructure:
@@ -196,36 +205,33 @@ class TestExecuteNode:
 
 
 class TestReasonNode:
-    def _mock_llm_response(self, content: str) -> MagicMock:
-        mock_response = MagicMock()
-        mock_response.content = content
-        return mock_response
-
-    @patch("src.agent.nodes._get_llm")
-    def test_plans_single_sql_tool(self, mock_get_llm: MagicMock) -> None:
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = self._mock_llm_response(
+    @patch("src.agent.nodes.get_client")
+    def test_plans_single_sql_tool(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client(
             '[{"tool": "sql_query", '
             '"input": "SELECT SUM(amount) FROM sales WHERE quarter = \'Q3\'", '
             '"reason": "Get Q3 sales"}]'
         )
-        mock_get_llm.return_value = mock_llm
 
         state = AgentState(query="¿Cuánto vendimos en Q3?")
         updates = reason_node(state)
 
         assert len(updates["planned_tools"]) == 1
         assert updates["planned_tools"][0].tool == ToolName.SQL_QUERY
+        system, user = mock_get_client.return_value.complete.call_args.args
+        assert system == "You output only valid JSON arrays."
+        assert "¿Cuánto vendimos en Q3?" in user
+        assert mock_get_client.return_value.complete.call_args.kwargs == {"tag": "reason"}
+        assert updates["messages"][0].content == "¿Cuánto vendimos en Q3?"
+        assert updates["messages"][1].type == "ai"
 
-    @patch("src.agent.nodes._get_llm")
-    def test_plans_multiple_tools(self, mock_get_llm: MagicMock) -> None:
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = self._mock_llm_response(
+    @patch("src.agent.nodes.get_client")
+    def test_plans_multiple_tools(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client(
             '[{"tool": "sql_query", "input": "SELECT quarter, SUM(amount) FROM sales '
             'WHERE quarter IN (\'Q2\',\'Q3\') GROUP BY quarter", "reason": "get totals"}, '
             '{"tool": "calculator", "input": "PLACEHOLDER", "reason": "calculate growth"}]'
         )
-        mock_get_llm.return_value = mock_llm
 
         state = AgentState(query="¿Crecimiento Q3 vs Q2?")
         updates = reason_node(state)
@@ -234,11 +240,9 @@ class TestReasonNode:
         assert updates["planned_tools"][0].tool == ToolName.SQL_QUERY
         assert updates["planned_tools"][1].tool == ToolName.CALCULATOR
 
-    @patch("src.agent.nodes._get_llm")
-    def test_handles_invalid_json(self, mock_get_llm: MagicMock) -> None:
-        mock_llm = MagicMock()
-        mock_llm.invoke.return_value = self._mock_llm_response("I don't know what to do")
-        mock_get_llm.return_value = mock_llm
+    @patch("src.agent.nodes.get_client")
+    def test_handles_invalid_json(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("I don't know what to do")
 
         state = AgentState(query="test")
         updates = reason_node(state)
@@ -247,13 +251,9 @@ class TestReasonNode:
 
 
 class TestRespondNode:
-    @patch("src.agent.nodes._get_llm")
-    def test_generates_response(self, mock_get_llm: MagicMock) -> None:
-        mock_llm = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "Las ventas de Q3 fueron €234,500."
-        mock_llm.invoke.return_value = mock_response
-        mock_get_llm.return_value = mock_llm
+    @patch("src.agent.nodes.get_client")
+    def test_generates_response(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("Las ventas de Q3 fueron €234,500.")
 
         state = AgentState(
             query="¿Cuánto vendimos en Q3?",

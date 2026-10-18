@@ -5,8 +5,7 @@ import logging
 import re
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
+from langchain_core.messages import AIMessage, HumanMessage
 
 from src.agent.prompts import (
     RESPONSE_PROMPT,
@@ -14,21 +13,13 @@ from src.agent.prompts import (
     VALIDATION_PROMPT,
 )
 from src.agent.state import AgentState, ToolCall, ToolName, ToolResult
-from src.config import settings
+from src.llm import get_client
 from src.observability.langfuse_setup import trace_node
 from src.tools.calculator import calculate
 from src.tools.doc_search import doc_search
 from src.tools.sql_query import sql_query
 
 logger = logging.getLogger(__name__)
-
-
-def _get_llm() -> ChatOllama:
-    return ChatOllama(
-        base_url=settings.ollama_base_url,
-        model=settings.ollama_model,
-        temperature=0,
-    )
 
 
 def _extract_json(text: str) -> Any:
@@ -74,16 +65,10 @@ def reason_node(state: AgentState) -> dict[str, Any]:
     Sends the query to the LLM with tool descriptions and expects
     a JSON array of tool calls in response.
     """
-    llm = _get_llm()
-
     prompt = TOOL_SELECTION_PROMPT.format(query=state.query)
-    messages = [
-        SystemMessage(content="You output only valid JSON arrays."),
-        HumanMessage(content=prompt),
-    ]
-
-    response = llm.invoke(messages)
-    response_text = response.content if isinstance(response.content, str) else str(response.content)
+    response_text = (
+        get_client().complete("You output only valid JSON arrays.", prompt, tag="reason").text
+    )
 
     try:
         tool_calls_raw = _extract_json(response_text)
@@ -112,7 +97,7 @@ def reason_node(state: AgentState) -> dict[str, Any]:
         logger.info("Planned %d tool(s) for query: %s", len(planned), state.query[:80])
         return {
             "planned_tools": planned,
-            "messages": [HumanMessage(content=state.query)] + [response],
+            "messages": [HumanMessage(content=state.query), AIMessage(content=response_text)],
         }
 
     except (json.JSONDecodeError, TypeError) as e:
@@ -261,7 +246,6 @@ def validate_node(state: AgentState) -> dict[str, Any]:
     )
 
     if has_placeholder and state.tool_results:
-        llm = _get_llm()
         prompt = VALIDATION_PROMPT.format(
             query=state.query,
             planned_tools=json.dumps(
@@ -269,10 +253,7 @@ def validate_node(state: AgentState) -> dict[str, Any]:
             ),
             tool_results=_format_tool_results(state.tool_results),
         )
-        response = llm.invoke([HumanMessage(content=prompt)])
-        response_text = (
-            response.content if isinstance(response.content, str) else str(response.content)
-        )
+        response_text = get_client().complete(None, prompt, tag="validate").text
 
         try:
             validation = _extract_json(response_text)
@@ -315,14 +296,12 @@ def respond_node(state: AgentState) -> dict[str, Any]:
     if not state.tool_results:
         return {"response": "No pude encontrar información relevante para responder tu pregunta."}
 
-    llm = _get_llm()
     prompt = RESPONSE_PROMPT.format(
         query=state.query,
         tool_results=_format_tool_results(state.tool_results),
     )
 
-    response = llm.invoke([HumanMessage(content=prompt)])
-    response_text = response.content if isinstance(response.content, str) else str(response.content)
+    response_text = get_client().complete(None, prompt, tag="respond").text
 
     tools_used = list({r.tool for r in state.tool_results})
     response_with_trace = response_text.strip()
