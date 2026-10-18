@@ -1,32 +1,48 @@
-.PHONY: setup seed ingest run serve test eval lint format clean
+.PHONY: setup seed ingest run serve test cov eval lint typecheck format clean docker-build up down
 
 setup:
 	uv sync
 
 seed:
-	python -m src.db.seed
+	uv run python -m src.db.seed
 
 ingest:
-	python -m src.rag.ingest
+	uv run python -m src.rag.ingest
 
 run:
-	uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+	uv run uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 
 serve:
-	uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+	uv run uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 test:
-	pytest -v --tb=short
+	uv run pytest -v --tb=short
+
+cov:
+	uv run pytest --cov=src --cov-report=term-missing
 
 eval:
-	python -m evals.run_eval
+	uv run python -m evals.run_eval
 
 lint:
-	ruff check src/ tests/
-	mypy src/
+	uv run ruff check src tests evals
+	uv run ruff format --check src tests evals
+	uv run mypy src
+
+typecheck:
+	uv run mypy src
 
 format:
-	ruff format src/ tests/
+	uv run ruff format src tests evals
+
+docker-build:
+	docker build -t agentic-sql-assistant:dev .
+
+up:
+	docker compose up -d
+
+down:
+	docker compose down
 
 clean:
 	rm -f src/db/sample.db
