@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
+    ollama_num_ctx: int | None = None
     embedding_model: str = "all-MiniLM-L6-v2"
 
     qdrant_url: str = "http://localhost:6333"
