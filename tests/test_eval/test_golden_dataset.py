@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-DATASET_PATH = Path(__file__).parent.parent.parent / "eval" / "golden_dataset.json"
+DATASET_PATH = Path(__file__).parent.parent.parent / "evals" / "golden_dataset.json"
 
 VALID_TOOLS = {"sql_query", "doc_search", "calculator"}
 VALID_CATEGORIES = {

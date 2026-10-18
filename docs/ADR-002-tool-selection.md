@@ -62,4 +62,4 @@ Compute embeddings for the query and predefined tool descriptions, then select t
 
 - Tool descriptions in `src/agent/prompts.py` must be kept in sync with actual tool capabilities.
 - The JSON extraction logic (`_extract_json`) must handle LLM output variations (markdown blocks, surrounding text).
-- Evaluation of tool selection accuracy requires a golden dataset (see `eval/golden_dataset.json`).
+- Evaluation of tool selection accuracy requires a golden dataset (see `evals/golden_dataset.json`).

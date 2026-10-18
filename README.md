@@ -86,7 +86,7 @@ curl -X POST http://localhost:8000/agent/query \
 
 ## Evaluation
 
-The project includes a golden dataset of 15 queries across 4 categories. The current runner (`python -m eval.run_eval`) uses a mocked LLM and mocked tools, so it does not measure agent quality. It is being replaced by an execution-based eval against a public text-to-SQL benchmark, with a baseline. No results are reported yet.
+The project includes a golden dataset of 15 queries across 4 categories. The current runner (`python -m evals.run_eval`) uses a mocked LLM and mocked tools, so it does not measure agent quality. It is being replaced by an execution-based eval against a public text-to-SQL benchmark, with a baseline. No results are reported yet.
 
 ### Golden Dataset Breakdown
 

@@ -19,7 +19,7 @@ test:
 	pytest -v --tb=short
 
 eval:
-	python -m eval.run_eval
+	python -m evals.run_eval
 
 lint:
 	ruff check src/ tests/

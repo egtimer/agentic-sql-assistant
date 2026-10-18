@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from eval.run_eval import (
+from evals.run_eval import (
     EvalResult,
     EvalSummary,
     build_mock_response,
@@ -207,7 +207,7 @@ class TestSaveResults:
         ]
         summary = compute_summary(results)
 
-        with patch("eval.run_eval.RESULTS_DIR", tmp_path / "results"):
+        with patch("evals.run_eval.RESULTS_DIR", tmp_path / "results"):
             output_path = save_results(results, summary)
 
         assert output_path.exists()
