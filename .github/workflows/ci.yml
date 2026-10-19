@@ -58,6 +58,9 @@ jobs:
       # Real runner, scorer and agent v2 graph with a scripted LLM on a tiny database.
       - name: Text-to-SQL runner smoke test
         run: uv run python -m evals.text2sql.smoke --out "$RUNNER_TEMP/text2sql-smoke"
+      # Memory evals: teach -> recall -> answer, and a two-turn thread, with a scripted LLM.
+      - name: Memory evals smoke test
+        run: uv run python -m evals.memory.smoke --out "$RUNNER_TEMP/memory-smoke"
 
   docker:
     runs-on: ubuntu-latest
