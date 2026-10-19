@@ -14,6 +14,7 @@ schema prefix of the prompts. ``--workers > 1`` is meant for the API provider.
 """
 
 import argparse
+import contextlib
 import json
 import statistics
 import sys
@@ -35,6 +36,7 @@ from evals.provenance import (
     sigterm_as_interrupt,
     start_run,
     status_from_abort,
+    update_run,
 )
 from evals.text2sql.agent_system import (
     predict_agent,
@@ -59,7 +61,15 @@ from evals.text2sql.stats import (
     bootstrap_meta,
     paired_bootstrap,
 )
+from src.config import settings
 from src.llm import BudgetExceeded, LLMClient, LLMConfig, UsageTracker, build_client, call_context
+from src.observability import tracing
+from src.observability.tracing import NoopTracer
+
+
+class TracingNotConfiguredError(RuntimeError):
+    """``trace=True`` without Langfuse keys."""
+
 
 RESULTS_ROOT = REPO_ROOT / "evals" / "results" / "text2sql"
 FAILURE_STOP_REASONS = ("refusal", "max_tokens")
@@ -215,8 +225,76 @@ def evaluate_question(
     timeout_s: float,
     skip_respond: bool = False,
     max_fixes: int = DEFAULT_MAX_FIXES,
+    trace: bool = False,
+    split: str | None = None,
 ) -> dict[str, Any]:
-    """Predict and score one (question, system) pair. Raises BudgetExceeded on the cap."""
+    """Predict and score one (question, system) pair. Raises BudgetExceeded on the cap.
+
+    With ``trace`` the pair runs inside one Langfuse trace (session = ``run_id``, tags =
+    system, database, difficulty and split); after scoring the trace gets the scores
+    ``execution_accuracy`` (0/1) and ``cost_usd``, and the record gets a ``trace_id``.
+    """
+    if not trace:
+        return _evaluate_pair(
+            question,
+            system,
+            client,
+            gold_cache,
+            run_id=run_id,
+            databases_dir=databases_dir,
+            timeout_s=timeout_s,
+            skip_respond=skip_respond,
+            max_fixes=max_fixes,
+        )
+    tags = [system, question.db_id, question.difficulty] + ([split] if split else [])
+    with tracing.trace(
+        f"text2sql/{system}",
+        input={"question": question.question, "evidence": question.evidence},
+        metadata={"question_id": question.question_id, "run_id": run_id, "system": system},
+        tags=tags,
+        session_id=run_id,
+    ) as handle:
+        record = _evaluate_pair(
+            question,
+            system,
+            client,
+            gold_cache,
+            run_id=run_id,
+            databases_dir=databases_dir,
+            timeout_s=timeout_s,
+            skip_respond=skip_respond,
+            max_fixes=max_fixes,
+        )
+        handle.update(
+            output={
+                "pred_sql": record["pred_sql"],
+                "correct": record["correct"],
+                "error": record["error"],
+                "failure_type": record["failure_type"],
+            }
+        )
+        tracing.score(
+            handle.id,
+            "execution_accuracy",
+            1.0 if record["correct"] else 0.0,
+            record["failure_type"],
+        )
+        tracing.score(handle.id, "cost_usd", record["cost_usd"])
+    return {**record, "trace_id": handle.id}
+
+
+def _evaluate_pair(
+    question: Question,
+    system: str,
+    client: LLMClient,
+    gold_cache: GoldCache,
+    *,
+    run_id: str,
+    databases_dir: Path | None,
+    timeout_s: float,
+    skip_respond: bool,
+    max_fixes: int,
+) -> dict[str, Any]:
     database = db_path(question.db_id, databases_dir)
     recorder = CountingClient(client)
     pred_sql = ""
@@ -481,13 +559,23 @@ def run_experiment(
     extra_meta: dict[str, Any] | None = None,
     argv: list[str] | None = None,
     launched_by: str | None = None,
+    trace: bool = False,
 ) -> dict[str, Any]:
     """Run the systems over the questions and write predictions, LLM calls and summary.
 
     ``run.json`` (see ``evals.provenance``) is written before the first question runs. An
     existing, non-empty ``run_dir`` is refused unless ``resume`` is set; a resume appends an
     entry to the existing ``run.json``.
+
+    With ``trace`` every (question, system) pair is one Langfuse trace in the session
+    ``run_id`` (see :func:`evaluate_question`); it needs Langfuse to be configured. Without
+    it tracing is switched off for the whole run, even when the keys are set.
     """
+    if trace and not tracing.enabled():
+        raise TracingNotConfiguredError(
+            "--trace needs Langfuse: set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY "
+            "(and LANGFUSE_HOST) in the environment or .env, e.g. after `make langfuse-up`"
+        )
     if run_dir.exists() and any(run_dir.iterdir()) and not resume:
         raise FileExistsError(f"{run_dir} exists; use --resume or another --run-id")
     run_file = start_run(
@@ -500,27 +588,35 @@ def run_experiment(
         launched_by=launched_by,
         resume=resume,
     )
-    try:
-        summary = _run_experiment(
-            config=config,
-            systems=systems,
-            questions=questions,
-            run_dir=run_dir,
-            run_id=run_id,
-            split=split,
-            budget_usd=budget_usd,
-            workers=workers,
-            resume=resume,
-            llm_config_name=llm_config_name,
-            client_factory=client_factory,
-            databases_dir=databases_dir,
-            timeout_s=timeout_s,
-            skip_respond=skip_respond,
-            max_fixes=max_fixes,
-            bootstrap_resamples=bootstrap_resamples,
-            bootstrap_seed=bootstrap_seed,
-            extra_meta=extra_meta,
+    if trace:
+        update_run(
+            run_file,
+            langfuse={"host": settings.langfuse_host, "session_id": run_id, "traced": True},
         )
+    try:
+        scope = contextlib.nullcontext() if trace else tracing.use_tracer(NoopTracer())
+        with scope:
+            summary = _run_experiment(
+                config=config,
+                systems=systems,
+                questions=questions,
+                run_dir=run_dir,
+                run_id=run_id,
+                split=split,
+                budget_usd=budget_usd,
+                workers=workers,
+                resume=resume,
+                llm_config_name=llm_config_name,
+                client_factory=client_factory,
+                databases_dir=databases_dir,
+                timeout_s=timeout_s,
+                skip_respond=skip_respond,
+                max_fixes=max_fixes,
+                bootstrap_resamples=bootstrap_resamples,
+                bootstrap_seed=bootstrap_seed,
+                extra_meta=extra_meta,
+                trace=trace,
+            )
     except BaseException as e:
         finish_run(
             run_file,
@@ -551,6 +647,7 @@ def _run_experiment(
     bootstrap_resamples: int,
     bootstrap_seed: int,
     extra_meta: dict[str, Any] | None,
+    trace: bool,
 ) -> dict[str, Any]:
     predictions_path = run_dir / "predictions.jsonl"
     started_at = datetime.now(UTC).isoformat()
@@ -578,6 +675,8 @@ def _run_experiment(
                 timeout_s=timeout_s,
                 skip_respond=skip_respond,
                 max_fixes=max_fixes,
+                trace=trace,
+                split=split,
             )
         except BudgetExceeded as e:
             abort_reason.setdefault(system, "budget")
@@ -614,6 +713,8 @@ def _run_experiment(
         for system in systems:
             aborted_systems.setdefault(system, "interrupted")
 
+    if trace:
+        tracing.flush()
     final = read_predictions(predictions_path)
     selected_ids = {q.question_id for q in questions}
     system_summaries: dict[str, Any] = {}
@@ -707,6 +808,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "existing run dir is refused",
     )
     parser.add_argument(
+        "--trace",
+        action="store_true",
+        help="send one Langfuse trace per (question, system) pair (session = run id) with\n"
+        "execution_accuracy and cost_usd scores; needs LANGFUSE_* keys (make langfuse-up)",
+    )
+    parser.add_argument(
         "--launched-by",
         help=f"free text recorded in run.json (default: env {LAUNCHED_BY_ENV})",
     )
@@ -723,6 +830,11 @@ def main(argv: list[str] | None = None) -> None:
         systems = parse_systems(args.system)
     except ValueError as e:
         raise SystemExit(str(e)) from e
+    if args.trace and not tracing.enabled():
+        raise SystemExit(
+            "--trace needs Langfuse: set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY (and "
+            "LANGFUSE_HOST) in the environment or .env; `make langfuse-up` starts a local one"
+        )
     run_id = args.run_id or f"{datetime.now(UTC):%Y%m%d-%H%M%S}-{args.llm_config.stem}"
     questions = select_questions(
         load_questions(), load_split(args.split), args.limit, args.question_ids, args.seed
@@ -749,10 +861,17 @@ def main(argv: list[str] | None = None) -> None:
             },
             argv=raw_argv,
             launched_by=args.launched_by,
+            trace=args.trace,
         )
     print()
     print(format_table(summary))
     print(f"\nResults in {RESULTS_ROOT / run_id}")
+    if args.trace:
+        print(
+            f"Traces: {settings.langfuse_host} (session {run_id}); check with "
+            f"`python -m evals.observability.verify_traces --session {run_id} "
+            f"--predictions {RESULTS_ROOT / run_id}`"
+        )
 
 
 if __name__ == "__main__":

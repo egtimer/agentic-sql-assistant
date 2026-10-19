@@ -138,6 +138,13 @@ def start_run(
     return path
 
 
+def update_run(path: Path, **fields: Any) -> None:
+    """Merge extra top-level ``fields`` into an existing ``run.json``."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.update(fields)
+    _write(path, data)
+
+
 def finish_run(path: Path, status: str) -> None:
     """Record the end time and final ``status`` in ``run.json``."""
     data = json.loads(path.read_text(encoding="utf-8"))

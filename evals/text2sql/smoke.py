@@ -16,12 +16,14 @@ import re
 import sqlite3
 import sys
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from evals.text2sql.data import Question
 from evals.text2sql.run import run_experiment
-from src.llm import CallUsage, Completion, LLMConfig, UsageTracker
+from src.llm import CallUsage, Completion, LLMConfig, UsageTracker, trace_completion
+from src.observability import tracing
 
 DB_ID = "toy"
 RIGHT = "SELECT v FROM t WHERE id = {n}"
@@ -76,6 +78,7 @@ class ScriptedClient:
         self, system: str | None, user: str, *, tag: str, prefix: str | None = None
     ) -> Completion:
         self.tracker.check()
+        started = datetime.now(UTC)
         match = re.search(r"\[Q(\d+)\]", (prefix or "") + user)
         if match is None:
             raise AssertionError(f"no question marker in the {tag} prompt")
@@ -85,7 +88,10 @@ class ScriptedClient:
         self.calls[qid, tag] = n + 1
         usage = CallUsage(tag=tag, input_tokens=100, output_tokens=20, stop_reason="end_turn")
         self.tracker.record(usage)
-        return Completion(text=answers[min(n, len(answers) - 1)], usage=usage)
+        completion = Completion(text=answers[min(n, len(answers) - 1)], usage=usage)
+        # Same hook as the real providers, so --trace shows the generations of the script.
+        trace_completion("scripted", system, prefix, user, completion, started, tag=tag)
+        return completion
 
 
 def build_fixture(root: Path) -> tuple[Path, list[Question]]:
@@ -146,7 +152,13 @@ def verify(summary: dict[str, Any], run_dir: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", type=Path, help="run directory (default: a temporary one)")
+    parser.add_argument("--run-id", default="smoke", help="run id (and Langfuse session)")
+    parser.add_argument(
+        "--trace", action="store_true", help="send the traces to Langfuse (needs LANGFUSE_* keys)"
+    )
     args = parser.parse_args(argv)
+    if args.trace and not tracing.enabled():
+        raise SystemExit("--trace needs LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY to be set")
     with tempfile.TemporaryDirectory(prefix="t2s-smoke-") as tmp:
         databases_dir, questions = build_fixture(Path(tmp))
         run_dir = args.out.resolve() if args.out else Path(tmp) / "run"
@@ -155,19 +167,22 @@ def main(argv: list[str] | None = None) -> None:
             systems=["baseline", "agent_v2"],
             questions=questions,
             run_dir=run_dir,
-            run_id="smoke",
+            run_id=args.run_id,
             split="dev",
             client_factory=lambda config, tracker: ScriptedClient(tracker),
             databases_dir=databases_dir,
             skip_respond=True,
             bootstrap_resamples=200,
             launched_by="evals.text2sql.smoke",
+            trace=args.trace,
         )
         problems = verify(summary, run_dir)
     if problems:
         print("SMOKE FAILED:\n  " + "\n  ".join(problems), file=sys.stderr)
         raise SystemExit(1)
     print("SMOKE PASSED: baseline 2/4, agent_v2 3/4, 2 fixes, 0 unparsed checks")
+    if args.trace:
+        print(f"Traces sent to session {args.run_id!r}")
 
 
 if __name__ == "__main__":
