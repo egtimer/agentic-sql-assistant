@@ -1,0 +1,477 @@
+{
+  "python": "3.12.11",
+  "sqlite": "3.40.1",
+  "timeout_s": 3.0,
+  "rss_limit_mb": 256.0,
+  "gold_included": true,
+  "guards": {
+    "legacy_v1": {
+      "bounded_by_guard": false,
+      "attacks": {
+        "n": 152,
+        "expectation_met": 76,
+        "side_effects": 14
+      },
+      "categories": {
+        "write": {
+          "n": 29,
+          "blocked": 22,
+          "error": 0,
+          "ok": 7,
+          "timeout": 0,
+          "side_effects": 5,
+          "expectation_met": 22,
+          "succeeded": 7
+        },
+        "cte_write": {
+          "n": 7,
+          "blocked": 7,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 7,
+          "succeeded": 0
+        },
+        "multi_statement": {
+          "n": 15,
+          "blocked": 15,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 15,
+          "succeeded": 0
+        },
+        "file_access": {
+          "n": 13,
+          "blocked": 0,
+          "error": 3,
+          "ok": 10,
+          "timeout": 0,
+          "side_effects": 7,
+          "expectation_met": 0,
+          "succeeded": 10
+        },
+        "metadata": {
+          "n": 17,
+          "blocked": 0,
+          "error": 0,
+          "ok": 17,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 17
+        },
+        "transaction": {
+          "n": 9,
+          "blocked": 0,
+          "error": 5,
+          "ok": 4,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 4
+        },
+        "obfuscation": {
+          "n": 22,
+          "blocked": 18,
+          "error": 1,
+          "ok": 3,
+          "timeout": 0,
+          "side_effects": 2,
+          "expectation_met": 18,
+          "succeeded": 3
+        },
+        "policy": {
+          "n": 22,
+          "blocked": 0,
+          "error": 0,
+          "ok": 22,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 22
+        },
+        "resource": {
+          "n": 18,
+          "blocked": 1,
+          "error": 5,
+          "ok": 6,
+          "timeout": 6,
+          "side_effects": 0,
+          "expectation_met": 14,
+          "max_elapsed_s": 8.924,
+          "max_peak_rss_delta_mb": 3227.7
+        }
+      },
+      "benign_cases": {
+        "n": 40,
+        "false_blocks": 15,
+        "false_block_rate": 0.375,
+        "errors": 0,
+        "rows_differ_from_readonly_only": null,
+        "side_effects": 0
+      },
+      "benign_gold": {
+        "n": 500,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": null,
+        "side_effects": 0
+      }
+    },
+    "readonly_only": {
+      "bounded_by_guard": false,
+      "attacks": {
+        "n": 152,
+        "expectation_met": 14,
+        "side_effects": 9
+      },
+      "categories": {
+        "write": {
+          "n": 29,
+          "blocked": 0,
+          "error": 24,
+          "ok": 5,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 5
+        },
+        "cte_write": {
+          "n": 7,
+          "blocked": 0,
+          "error": 7,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 0
+        },
+        "multi_statement": {
+          "n": 15,
+          "blocked": 0,
+          "error": 15,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 0
+        },
+        "file_access": {
+          "n": 13,
+          "blocked": 0,
+          "error": 3,
+          "ok": 10,
+          "timeout": 0,
+          "side_effects": 7,
+          "expectation_met": 0,
+          "succeeded": 10
+        },
+        "metadata": {
+          "n": 17,
+          "blocked": 0,
+          "error": 0,
+          "ok": 17,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 17
+        },
+        "transaction": {
+          "n": 9,
+          "blocked": 0,
+          "error": 5,
+          "ok": 4,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 4
+        },
+        "obfuscation": {
+          "n": 22,
+          "blocked": 0,
+          "error": 19,
+          "ok": 3,
+          "timeout": 0,
+          "side_effects": 2,
+          "expectation_met": 0,
+          "succeeded": 3
+        },
+        "policy": {
+          "n": 22,
+          "blocked": 0,
+          "error": 0,
+          "ok": 22,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 0,
+          "succeeded": 22
+        },
+        "resource": {
+          "n": 18,
+          "blocked": 0,
+          "error": 5,
+          "ok": 7,
+          "timeout": 6,
+          "side_effects": 0,
+          "expectation_met": 14,
+          "max_elapsed_s": 8.568,
+          "max_peak_rss_delta_mb": 3207.9
+        }
+      },
+      "benign_cases": {
+        "n": 40,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": null,
+        "side_effects": 0
+      },
+      "benign_gold": {
+        "n": 500,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": null,
+        "side_effects": 0
+      }
+    },
+    "sql_guard": {
+      "bounded_by_guard": true,
+      "attacks": {
+        "n": 152,
+        "expectation_met": 152,
+        "side_effects": 0
+      },
+      "categories": {
+        "write": {
+          "n": 29,
+          "blocked": 29,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 29,
+          "succeeded": 0
+        },
+        "cte_write": {
+          "n": 7,
+          "blocked": 7,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 7,
+          "succeeded": 0
+        },
+        "multi_statement": {
+          "n": 15,
+          "blocked": 15,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 15,
+          "succeeded": 0
+        },
+        "file_access": {
+          "n": 13,
+          "blocked": 13,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 13,
+          "succeeded": 0
+        },
+        "metadata": {
+          "n": 17,
+          "blocked": 17,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 17,
+          "succeeded": 0
+        },
+        "transaction": {
+          "n": 9,
+          "blocked": 9,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 9,
+          "succeeded": 0
+        },
+        "obfuscation": {
+          "n": 22,
+          "blocked": 22,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 22,
+          "succeeded": 0
+        },
+        "policy": {
+          "n": 22,
+          "blocked": 22,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 22,
+          "succeeded": 0
+        },
+        "resource": {
+          "n": 18,
+          "blocked": 11,
+          "error": 0,
+          "ok": 2,
+          "timeout": 5,
+          "side_effects": 0,
+          "expectation_met": 18,
+          "max_elapsed_s": 3.122,
+          "max_peak_rss_delta_mb": 0.0
+        }
+      },
+      "benign_cases": {
+        "n": 40,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": 0,
+        "side_effects": 0
+      },
+      "benign_gold": {
+        "n": 500,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": 0,
+        "side_effects": 0
+      }
+    },
+    "no_lexical": {
+      "bounded_by_guard": true,
+      "attacks": {
+        "n": 152,
+        "expectation_met": 143,
+        "side_effects": 0
+      },
+      "categories": {
+        "write": {
+          "n": 29,
+          "blocked": 28,
+          "error": 0,
+          "ok": 1,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 28,
+          "succeeded": 1
+        },
+        "cte_write": {
+          "n": 7,
+          "blocked": 7,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 7,
+          "succeeded": 0
+        },
+        "multi_statement": {
+          "n": 15,
+          "blocked": 15,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 15,
+          "succeeded": 0
+        },
+        "file_access": {
+          "n": 13,
+          "blocked": 13,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 13,
+          "succeeded": 0
+        },
+        "metadata": {
+          "n": 17,
+          "blocked": 17,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 17,
+          "succeeded": 0
+        },
+        "transaction": {
+          "n": 9,
+          "blocked": 9,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 9,
+          "succeeded": 0
+        },
+        "obfuscation": {
+          "n": 22,
+          "blocked": 14,
+          "error": 8,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 14,
+          "succeeded": 0
+        },
+        "policy": {
+          "n": 22,
+          "blocked": 22,
+          "error": 0,
+          "ok": 0,
+          "timeout": 0,
+          "side_effects": 0,
+          "expectation_met": 22,
+          "succeeded": 0
+        },
+        "resource": {
+          "n": 18,
+          "blocked": 11,
+          "error": 0,
+          "ok": 2,
+          "timeout": 5,
+          "side_effects": 0,
+          "expectation_met": 18,
+          "max_elapsed_s": 3.135,
+          "max_peak_rss_delta_mb": 0.0
+        }
+      },
+      "benign_cases": {
+        "n": 40,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": 0,
+        "side_effects": 0
+      },
+      "benign_gold": {
+        "n": 500,
+        "false_blocks": 0,
+        "false_block_rate": 0.0,
+        "errors": 0,
+        "rows_differ_from_readonly_only": 0,
+        "side_effects": 0
+      }
+    }
+  }
+}
