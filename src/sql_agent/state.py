@@ -13,7 +13,8 @@ class Verdict(BaseModel):
 
     kind: Literal["ok", "fix", "unparsed"]
     sql: str = ""  # the corrected query, for "fix"
-    note: str = ""  # free text of the reviewer (first line before the SQL block)
+    note: str = ""  # free text of the reviewer (before the SQL block; 200 chars if unparsed)
+    text: str = ""  # the full, untruncated answer of the reviewer
 
     @property
     def unparsed(self) -> bool:

@@ -184,6 +184,7 @@ class TestEndToEnd:
         assert [a["row_count"] for a in r["attempts"]] == ["0", "1"]
         assert r["attempts"][0]["n_columns"] == 1 and r["attempts"][0]["error"] is None
         assert [v["kind"] for v in r["verdicts"]] == ["fix", "ok"]
+        assert all(isinstance(v["text"], str) and v["text"] for v in r["verdicts"])  # full text
         v2 = summary["systems"]["agent_v2"]["v2"]
         assert v2["flips"] == {
             "wrong_to_right": 2,

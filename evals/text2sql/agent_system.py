@@ -69,7 +69,8 @@ def predict_agent_v2(
     """Run SQL agent v2 on one question. Returns ``(sql, n_llm_calls, details)``.
 
     ``details`` holds the attempts (sql, error, row count, number of columns), the check
-    verdicts and the number of fixes, for the runner to record.
+    verdicts (each with the full reviewer answer in ``text``) and the number of fixes, for
+    the runner to record.
     """
     database = database or db_path(question.db_id)
     counting = CountingClient(client)
@@ -96,7 +97,8 @@ def predict_agent_v2(
             for a in result.attempts
         ],
         "verdicts": [
-            {"kind": v.kind, "unparsed": v.unparsed, "note": v.note} for v in result.verdicts
+            {"kind": v.kind, "unparsed": v.unparsed, "note": v.note, "text": v.text}
+            for v in result.verdicts
         ],
         "fixes_used": result.fixes_used,
     }

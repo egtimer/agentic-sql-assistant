@@ -63,7 +63,7 @@ def run(llm: ScriptedLLM, db: Path, **kwargs: object):  # type: ignore[no-untype
 class TestParseCheck:
     def test_ok(self) -> None:
         assert parse_check("OK").kind == "ok"
-        assert parse_check("  ok, looks right\n").kind == "ok"
+        assert parse_check("  ok.\n").kind == "ok"
 
     def test_fix_with_note(self) -> None:
         v = parse_check("Extra column.\n```sql\nSELECT 2;\n```", "SELECT 1")
@@ -76,7 +76,33 @@ class TestParseCheck:
         v = parse_check("hmm, not sure")
         assert v.kind == "unparsed" and v.unparsed
         assert parse_check("").kind == "unparsed"
-        assert parse_check("```\nSELECT 1\n```").kind == "unparsed"  # only ```sql counts
+        assert parse_check("ok, looks right").kind == "unparsed"  # OK must be a whole line
+        assert parse_check("```\nnot sql\n```").kind == "unparsed"
+
+    def test_trailing_ok(self) -> None:
+        text = "The query joins correctly and matches the external knowledge.\n\nOK"
+        v = parse_check(text, "SELECT 1")
+        assert v.kind == "ok" and v.text == text
+
+    def test_formatted_ok(self) -> None:
+        for text in ("**OK**", "`OK`", "Fine.\n\n**OK.**", "OK.\nExplanation", "Notes\nok\n\n"):
+            assert parse_check(text).kind == "ok", text
+
+    def test_sqlite_fence_is_a_fix_even_with_ok(self) -> None:
+        text = "Mostly fine.\n\n```SQLite\nSELECT 2\n```\n\nOK"
+        v = parse_check(text, "SELECT 1")
+        assert (v.kind, v.sql, v.text) == ("fix", "SELECT 2", text)
+
+    def test_untagged_fence_with_select_or_with(self) -> None:
+        assert parse_check("```\nSELECT 2\n```", "SELECT 1").kind == "fix"
+        v = parse_check("```\n-- better\n/* x */ WITH a AS (SELECT 1) SELECT * FROM a\n```")
+        assert v.kind == "fix" and v.sql.endswith("SELECT * FROM a")
+        assert parse_check("```\nSELECT 1\n```", "SELECT 1").kind == "ok"
+
+    def test_prose_without_ok_is_unparsed_and_text_kept(self) -> None:
+        text = "x" * 500 + "\nThis is not OK at all, I think."
+        v = parse_check(text)
+        assert v.kind == "unparsed" and v.text == text and len(v.note) == 200
 
 
 class TestRouting:

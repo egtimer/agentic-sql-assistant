@@ -4,7 +4,7 @@ from typing import Any
 
 from src.llm import get_client
 from src.sql_agent.executor import run_query, select_final_sql
-from src.sql_agent.extract import extract_fenced_sql, extract_sql
+from src.sql_agent.extract import extract_check_sql, extract_sql
 from src.sql_agent.introspect import schema_block, schema_context
 from src.sql_agent.prompts import (
     CHECK_SYSTEM,
@@ -18,20 +18,37 @@ from src.sql_agent.state import SqlAgentState, Verdict
 
 
 def parse_check(text: str, current_sql: str = "") -> Verdict:
-    """Reviewer answer -> verdict. A ```sql block is a fix, text starting with OK is ok.
+    """Reviewer answer -> verdict. Rules, in order:
 
-    Anything else is treated as ok but flagged ``unparsed``. A "fix" identical to the
-    current query changes nothing, so it counts as ok.
+    1. A fenced block with a query is a fix (``sql``/``sqlite`` tag, or untagged and
+       starting with SELECT/WITH). It wins over an OK anywhere in the text: a reviewer that
+       says "OK" but also proposes a query is changing the query, and the proposal is what
+       the model actually wrote. A fix identical to the current query counts as ok.
+    2. Otherwise the first or the last non-empty line, stripped of markdown emphasis,
+       backticks and trailing punctuation, equal to OK (any case) is ok. Reviewers often
+       explain first and end with "OK", so a leading OK is not required.
+    3. Anything else is treated as ok but flagged ``unparsed``.
+
+    ``Verdict.text`` always keeps the full answer.
     """
-    fixed = extract_fenced_sql(text)
+    fixed = extract_check_sql(text)
     if fixed:
         note = text.split("```", 1)[0].strip()
         if _normalized(fixed) == _normalized(current_sql):
-            return Verdict(kind="ok", note=note)
-        return Verdict(kind="fix", sql=fixed, note=note)
-    if text.strip().upper().startswith("OK"):
-        return Verdict(kind="ok")
-    return Verdict(kind="unparsed", note=text.strip()[:200])
+            return Verdict(kind="ok", note=note, text=text)
+        return Verdict(kind="fix", sql=fixed, note=note, text=text)
+    if _says_ok(text):
+        return Verdict(kind="ok", text=text)
+    return Verdict(kind="unparsed", note=text.strip()[:200], text=text)
+
+
+def _says_ok(text: str) -> bool:
+    lines = [line for line in text.splitlines() if line.strip()]
+    return any(_is_ok_line(line) for line in (lines[:1] + lines[-1:]))
+
+
+def _is_ok_line(line: str) -> bool:
+    return line.strip().strip("*_`~ \t").rstrip(".!:;,").strip("*_`~ \t").upper() == "OK"
 
 
 def _normalized(sql: str) -> str:

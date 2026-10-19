@@ -46,9 +46,24 @@ def extract_sql(text: str) -> str:
     return ""
 
 
-def extract_fenced_sql(text: str) -> str:
-    """Body of the first non-empty ```sql fenced block, or "" (no fallback)."""
+_LEADING_COMMENTS = re.compile(r"(?:\s+|--[^\n]*(?:\n|$)|/\*.*?\*/)*", re.DOTALL)
+_SQL_START = re.compile(r"(?:SELECT|WITH)\b", re.IGNORECASE)
+_SQL_TAGS = frozenset({"sql", "sqlite"})
+
+
+def extract_check_sql(text: str) -> str:
+    """Body of the first fenced block that holds a query, or "" (no fallback).
+
+    A block counts when it is tagged ``sql`` or ``sqlite`` (any case), or when it is
+    untagged and its body starts, after whitespace and SQL comments, with SELECT or WITH.
+    """
     for lang, body in _FENCE.findall(text):
-        if lang.lower() == "sql" and body.strip():
+        if not body.strip():
+            continue
+        if lang.lower() in _SQL_TAGS:
             return _clean(body)
+        if not lang:
+            start = _LEADING_COMMENTS.match(body)
+            if start and _SQL_START.match(body, start.end()):
+                return _clean(body)
     return ""
