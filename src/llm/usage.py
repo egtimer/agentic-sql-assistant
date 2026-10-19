@@ -49,6 +49,8 @@ def cost_of(usage: CallUsage, pricing: Pricing) -> float:
     prompt_tokens = usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens
     input_rate = pricing.input_per_mtok
     output_rate = pricing.output_per_mtok
+    cache_read_rate = pricing.cache_read_per_mtok
+    cache_write_rate = pricing.cache_write_per_mtok
     if (
         pricing.long_context_threshold is not None
         and prompt_tokens > pricing.long_context_threshold
@@ -57,11 +59,15 @@ def cost_of(usage: CallUsage, pricing: Pricing) -> float:
             input_rate = pricing.long_input_per_mtok
         if pricing.long_output_per_mtok is not None:
             output_rate = pricing.long_output_per_mtok
+        if pricing.long_cache_read_per_mtok is not None:
+            cache_read_rate = pricing.long_cache_read_per_mtok
+        if pricing.long_cache_write_per_mtok is not None:
+            cache_write_rate = pricing.long_cache_write_per_mtok
     total = (
         usage.input_tokens * input_rate
         + usage.output_tokens * output_rate
-        + usage.cache_read_tokens * pricing.cache_read_per_mtok
-        + usage.cache_write_tokens * pricing.cache_write_per_mtok
+        + usage.cache_read_tokens * cache_read_rate
+        + usage.cache_write_tokens * cache_write_rate
     )
     return total / 1_000_000
 

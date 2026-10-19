@@ -17,6 +17,8 @@ HAIKU = Pricing(
     long_context_threshold=100_000,
     long_input_per_mtok=0.50,
     long_output_per_mtok=2.50,
+    long_cache_read_per_mtok=0.05,
+    long_cache_write_per_mtok=0.625,
 )
 
 
@@ -41,7 +43,12 @@ class TestCostOf:
 
     def test_cache_tokens_count_towards_threshold(self) -> None:
         usage = CallUsage(tag="t", input_tokens=10, cache_read_tokens=100_000)
-        expected = (10 * 0.50 + 100_000 * 0.01) / 1_000_000
+        expected = (10 * 0.50 + 100_000 * 0.05) / 1_000_000
+        assert cost_of(usage, HAIKU) == pytest.approx(expected)
+
+    def test_long_context_tier_reprices_cache_tokens(self) -> None:
+        usage = CallUsage(tag="t", cache_read_tokens=90_000, cache_write_tokens=20_000)
+        expected = (90_000 * 0.05 + 20_000 * 0.625) / 1_000_000
         assert cost_of(usage, HAIKU) == pytest.approx(expected)
 
     def test_zero_pricing(self) -> None:

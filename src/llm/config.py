@@ -9,8 +9,8 @@ class Pricing(BaseModel):
     """Token prices in USD per million tokens.
 
     When ``long_context_threshold`` is set and a call's prompt (input plus cache tokens)
-    exceeds it, ``long_input_per_mtok`` and ``long_output_per_mtok`` replace the standard
-    input and output rates for that call. Cache rates are the same in both tiers.
+    exceeds it, the ``long_*`` rates that are set replace the standard input, output and
+    cache rates for that call (on Claude Haiku 5.5 the whole request is repriced).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -22,6 +22,8 @@ class Pricing(BaseModel):
     long_context_threshold: int | None = None
     long_input_per_mtok: float | None = None
     long_output_per_mtok: float | None = None
+    long_cache_read_per_mtok: float | None = None
+    long_cache_write_per_mtok: float | None = None
 
 
 class LLMConfig(BaseModel):

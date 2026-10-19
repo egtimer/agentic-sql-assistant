@@ -16,3 +16,5 @@ pricing:
   long_context_threshold: 100000
   long_input_per_mtok: 0.50
   long_output_per_mtok: 2.50
+  long_cache_read_per_mtok: 0.05
+  long_cache_write_per_mtok: 0.625
