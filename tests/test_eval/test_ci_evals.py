@@ -56,19 +56,25 @@ class TestCheckSummary:
         assert run_sql.check_summary({"guards": {}}) == ["guard 'sql_guard' was not run"]
 
 
-def test_run_sql_skips_missing_bird_data_and_checks(
+def test_run_sql_uses_the_stand_in_when_bird_data_is_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     import evals.guardrails.cases as cases
 
     monkeypatch.setattr(cases, "QUESTIONS_PATH", tmp_path / "missing.json")
-    monkeypatch.setattr(run_sql, "db_path", lambda db, *a, **k: tmp_path / "missing" / db)
+    monkeypatch.setattr(cases, "db_path", lambda db, *a, **k: tmp_path / "missing" / db)
     run_sql.main(["--out", str(tmp_path / "out"), "--guards", "sql_guard", "--check"])
-    err = capsys.readouterr().err
-    assert "BIRD databases missing: skipped" in err and "gold queries skipped" in err
+    captured = capsys.readouterr()
+    assert 'databases: {"student_club": "stand-in"}' in captured.out
+    assert "CHECK PASSED" in captured.out and "gold queries skipped" in captured.err
     summary = json.loads((tmp_path / "out" / "summary.json").read_text())
-    assert summary["skipped"]["gold"] is True and summary["skipped"]["attacks"] > 0
-    assert summary["guards"]["sql_guard"]["attacks"]["n"] > 0
+    assert summary["databases"] == {"student_club": "stand-in"}
+    assert summary["skipped"] == {"attacks": 0, "benign": 0, "gold": True}
+    block = summary["guards"]["sql_guard"]
+    assert block["attacks"]["n"] == len(cases.read_jsonl(cases.ATTACKS_PATH))
+    assert block["attacks"]["expectation_met"] == block["attacks"]["n"]
+    assert block["benign_cases"]["n"] == len(cases.read_jsonl(cases.BENIGN_PATH))
+    assert block["benign_cases"]["false_blocks"] == 0
 
 
 def test_smoke_passes(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

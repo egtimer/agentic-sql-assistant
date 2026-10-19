@@ -2,6 +2,7 @@
 
 import json
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -105,6 +106,66 @@ class TestClassify:
 
 def _policy() -> GuardPolicy:
     return GuardPolicy(denied_columns={("users", "password_hash")})
+
+
+class TestStandIn:
+    def test_covers_every_table_and_column_the_cases_reference(self, tmp_path: Path) -> None:
+        """EXPLAIN compiles the SQL (name resolution included) on a raw connection."""
+        from evals.guardrails.standin import build_student_club
+
+        path = tmp_path / "student_club.sqlite"
+        build_student_club(path)
+        conn = sqlite3.connect(path)
+        assert conn.execute("PRAGMA journal_mode").fetchone() == ("delete",)
+        cases = [
+            c
+            for c in read_jsonl(ATTACKS_PATH) + read_jsonl(BENIGN_PATH)
+            if c["db"] == "student_club"
+        ]
+        assert len(cases) == 168
+        missing = []
+        for case in cases:
+            try:
+                conn.execute("EXPLAIN " + expand(case["sql"])).fetchall()
+            except sqlite3.Error as e:
+                # other failures (a second statement, ATTACH/VACUUM text) are not about names
+                if "no such table" in str(e) or "no such column" in str(e):
+                    missing.append((case["id"], str(e)))
+        assert missing == []
+        conn.close()
+
+    def test_benign_cases_return_rows(self) -> None:
+        benign = [b for b in read_jsonl(BENIGN_PATH) if b["db"] == "student_club"]
+        for case in benign:
+            record = run_sql.run_case("sql_guard", case, 1.0)
+            assert record["outcome"] == "ok", (case["id"], record["error"])
+            assert record["n_rows"], case["id"]
+
+    def test_picked_only_when_the_data_is_missing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from evals.guardrails import cases
+
+        real = tmp_path / "student_club.sqlite"
+        real.write_bytes(b"")
+        monkeypatch.setattr(cases, "db_path", lambda db, *a, **k: tmp_path / f"{db}.sqlite")
+        assert cases.database_kind("student_club") == "real"
+        assert cases.database_kind("fixture") == "synthetic"
+        assert cases.database_kind("card_games") == "missing"
+        real.unlink()
+        assert cases.database_kind("student_club") == "stand-in"
+        with disposable("student_club") as db:
+            tables = {r[0] for r in sqlite3.connect(db).execute("SELECT name FROM sqlite_master")}
+        assert {"member", "expense", "major", "zip_code", "event"} <= tables
+
+    @pytest.mark.parametrize("guard", ["legacy_v1", "readonly_only"])
+    def test_weaker_guards_do_not_crash_on_the_stand_in(self, guard: str) -> None:
+        cases = read_jsonl(ATTACKS_PATH) + read_jsonl(BENIGN_PATH)
+        for case in cases:
+            category = case.get("category", "benign")
+            if case["db"] == "student_club" and category in {"write", "metadata", "benign"}:
+                record = run_sql.run_case(guard, case, 1.0)
+                assert record["outcome"] in {"ok", "blocked", "error", "timeout", "truncated"}
 
 
 class TestSqlRunner:

@@ -5,11 +5,12 @@ import os
 import re
 import shutil
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from evals.guardrails.standin import build_student_club
 from evals.text2sql.data import DATABASES_DIR, QUESTIONS_PATH, db_path, load_questions
 from src.db.seed import seed_database
 from src.sql_guard import GuardPolicy
@@ -69,17 +70,32 @@ def policy_for(db: str) -> GuardPolicy:
     return FIXTURE_POLICY if db == "fixture" else GuardPolicy()
 
 
+STAND_INS: dict[str, Callable[[Path], None]] = {"student_club": build_student_club}
+
+
+def database_kind(db: str) -> str:
+    """``synthetic`` (built by code), ``real`` (BIRD data present), ``stand-in`` or ``missing``."""
+    if db in ("fixture", "sales"):
+        return "synthetic"
+    if db_path(db).exists():
+        return "real"
+    return "stand-in" if db in STAND_INS else "missing"
+
+
 def make_db(db: str, target: Path) -> Path:
-    """Create ``target`` as a disposable database: the fixture, or a copy of a BIRD database."""
+    """Create ``target`` as a disposable database: synthetic, a BIRD copy or its stand-in."""
     if db == "fixture":
         build_fixture(target)
     elif db == "sales":
         seed_database(target)
     else:
-        source = db_path(db)
-        if not source.exists():
-            raise FileNotFoundError(f"BIRD database missing: {source} (run `make bird-data`)")
-        shutil.copyfile(source, target)
+        kind = database_kind(db)
+        if kind == "real":
+            shutil.copyfile(db_path(db), target)
+        elif kind == "stand-in":
+            STAND_INS[db](target)
+        else:
+            raise FileNotFoundError(f"BIRD database missing: {db_path(db)} (run `make bird-data`)")
     return target
 
 

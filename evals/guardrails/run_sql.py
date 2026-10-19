@@ -6,8 +6,9 @@ lands there and nowhere else. Usage:
 
     python -m evals.guardrails.run_sql --out evals/reports/2026-10-19-guardrails-sql/
 
-Without the BIRD data (CI), cases on a BIRD database and the 500 gold queries are skipped
-and counted in the summary (``skipped``); the synthetic fixture cases still run. ``--check``
+Without the BIRD data (CI), the cases on ``student_club`` run on a synthetic stand-in
+(``standin.py``; ``databases`` in the summary says which databases were real or stand-ins)
+and the 500 gold queries are skipped (``skipped.gold``). ``--check``
 makes the exit code depend on the ``sql_guard`` results (see ``check_summary``).
 """
 
@@ -29,6 +30,7 @@ from evals.guardrails.cases import (
     ATTACKS_PATH,
     BENIGN_PATH,
     DB_NAME,
+    database_kind,
     disposable,
     expand,
     gold_cases,
@@ -285,8 +287,8 @@ def summarize(
 
 
 def available(case: dict[str, Any]) -> bool:
-    """Cases on the synthetic databases always run; BIRD ones need the extracted data."""
-    return case["db"] in ("fixture", "sales") or db_path(case["db"]).exists()
+    """Cases run on the real BIRD database, its synthetic stand-in, or a synthetic database."""
+    return database_kind(case["db"]) != "missing"
 
 
 def check_summary(summary: dict[str, Any], guard: str = "sql_guard") -> list[str]:
@@ -390,6 +392,9 @@ def main(argv: list[str] | None = None) -> None:
             f"{skipped['benign']} benign cases (run `make bird-data`)",
             file=sys.stderr,
         )
+    kinds = {c["db"]: database_kind(c["db"]) for c in attacks + benign}
+    databases = {d: k for d, k in sorted(kinds.items()) if k in ("real", "stand-in")}
+    print(f"databases: {json.dumps(databases)}", flush=True)
     gold = None if args.skip_gold else gold_cases()
     if gold is None and not args.skip_gold:
         print("BIRD data not found: gold queries skipped (run `make bird-data`)", file=sys.stderr)
@@ -412,6 +417,7 @@ def main(argv: list[str] | None = None) -> None:
                 records.extend(run_gold(guard, copies, gold))
 
     summary = summarize(records, guards, args.timeout_s, bool(gold))
+    summary["databases"] = databases
     summary["skipped"] = {**skipped, "gold": gold is None and not args.skip_gold}
     args.out.mkdir(parents=True, exist_ok=True)
     with open(args.out / "results.jsonl", "w", encoding="utf-8") as f:
