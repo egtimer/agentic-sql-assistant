@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
 from src.observability import tracing
@@ -20,9 +21,23 @@ from src.sql_agent.state import SqlAgentResult, SqlAgentState
 from src.sql_guard import GuardPolicy
 
 
+def build_graph(checkpointer: BaseCheckpointSaver[Any] | None = None) -> Any:
+    """Compile the graph: introspect -> generate -> execute <-> check -> respond.
+
+    Without a checkpointer the compiled graph is cached; with one (conversations) a new graph
+    is compiled around it.
+    """
+    if checkpointer is None:
+        return _default_graph()
+    return _state_graph().compile(checkpointer=checkpointer)
+
+
 @lru_cache(maxsize=1)
-def build_graph() -> Any:
-    """Compile the graph: introspect -> generate -> execute <-> check -> respond."""
+def _default_graph() -> Any:
+    return _state_graph().compile()
+
+
+def _state_graph() -> StateGraph[SqlAgentState]:
     graph = StateGraph(SqlAgentState)
     graph.add_node("introspect", introspect_node)
     graph.add_node("generate", generate_node)
@@ -35,7 +50,7 @@ def build_graph() -> Any:
     graph.add_conditional_edges("execute", route_after_execute, ["check", "respond"])
     graph.add_conditional_edges("check", route_after_check, ["execute", "respond"])
     graph.add_edge("respond", END)
-    return graph.compile()
+    return graph
 
 
 def run_sql_agent(
@@ -48,6 +63,8 @@ def run_sql_agent(
     max_fixes: int = 2,
     skip_respond: bool = False,
     policy: GuardPolicy | None = None,
+    thread_id: str | None = None,
+    checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> SqlAgentResult:
     """Answer ``question`` over the SQLite file at ``db_path`` with one final SQL query.
 
@@ -55,7 +72,15 @@ def run_sql_agent(
     fix), plus ``respond`` unless ``skip_respond``. Every candidate runs under the SQL
     guard with ``policy`` (tables and columns it denies are also hidden from the schema
     context); a blocked attempt reaches ``check`` as an error starting with ``blocked:``.
+
+    Conversations: with ``thread_id`` and a ``checkpointer`` the turns that share a thread id
+    form one conversation. Every per-turn field starts from scratch on each turn; only the
+    ``history`` (question, final SQL, row count and columns per turn, no rows) is carried over
+    and shown to ``generate`` and ``check`` as "Earlier in this conversation:". Without them
+    nothing is remembered and the prompts are those of a single question.
     """
+    if (thread_id is None) != (checkpointer is None):
+        raise ValueError("thread_id and checkpointer go together")
     initial = SqlAgentState(
         question=question,
         evidence=evidence,
@@ -70,8 +95,11 @@ def run_sql_agent(
         "sql_agent_v2",
         input={"question": question, "evidence": evidence},
         metadata={"use_check": use_check, "max_fixes": max_fixes, "skip_respond": skip_respond},
+        session_id=thread_id,
     ) as handle:
-        out = SqlAgentState.model_validate(build_graph().invoke(initial))
+        out = SqlAgentState.model_validate(
+            build_graph(checkpointer).invoke(_turn_input(initial), _config(thread_id))
+        )
         handle.update(
             output={
                 "final_sql": out.final_sql,
@@ -87,4 +115,17 @@ def run_sql_agent(
         fixes_used=out.fixes_used,
         response=out.response,
         schema_context=out.schema_context,
+        history=out.history,
     )
+
+
+def _turn_input(initial: SqlAgentState) -> dict[str, Any]:
+    """Every field of the state except ``history``: the turn starts clean, the conversation
+    (stored by the checkpointer) is not touched."""
+    return {
+        name: getattr(initial, name) for name in SqlAgentState.model_fields if name != "history"
+    }
+
+
+def _config(thread_id: str | None) -> dict[str, Any] | None:
+    return None if thread_id is None else {"configurable": {"thread_id": thread_id}}

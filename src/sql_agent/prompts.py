@@ -4,7 +4,10 @@ Every node shares the same stable prefix (the schema block of one database) and 
 per-question text in the user part, so the prefix can be cached by providers that support it.
 """
 
+from collections.abc import Sequence
+
 from src.sql_agent.executor import Attempt, format_result
+from src.sql_agent.state import Turn
 
 GENERATE_SYSTEM = """\
 You are an expert SQLite analyst. Write exactly one SQLite query whose result IS the answer \
@@ -49,9 +52,30 @@ RESPOND_SYSTEM = (
 )
 
 
-def question_block(question: str, evidence: str) -> str:
-    """Per-question text of the generate prompt (evidence first, question last)."""
+HISTORY_TURNS = 3  # earlier turns shown in the prompts
+HISTORY_HEADER = "Earlier in this conversation:"
+
+
+def history_block(history: Sequence[Turn]) -> str:
+    """The last ``HISTORY_TURNS`` turns (question and final SQL); "" for an empty history."""
+    if not history:
+        return ""
+    lines = [HISTORY_HEADER]
+    for turn in history[-HISTORY_TURNS:]:
+        sql = " ".join(turn.final_sql.split()) or "(no query)"
+        lines.append(f"- Question: {turn.question.strip()}")
+        lines.append(f"  SQL: {sql}")
+    return "\n".join(lines)
+
+
+def question_block(question: str, evidence: str, history: Sequence[Turn] = ()) -> str:
+    """Per-question text of the generate prompt (history, evidence, question last).
+
+    Without history the text is exactly what it was before conversations existed.
+    """
     parts = []
+    if history:
+        parts.append(history_block(history) + "\n")
     if evidence.strip():
         parts.append(f"-- External Knowledge: {evidence.strip()}")
     parts.append(f"Question: {question.strip()}")
@@ -72,9 +96,12 @@ def signals(attempt: Attempt) -> list[str]:
     return out
 
 
-def check_user(question: str, evidence: str, attempt: Attempt) -> str:
+def check_user(question: str, evidence: str, attempt: Attempt, history: Sequence[Turn] = ()) -> str:
     """Per-question text of the check prompt."""
-    parts = [question_block(question, evidence), f"Candidate query:\n```sql\n{attempt.sql}\n```"]
+    parts = [
+        question_block(question, evidence, history),
+        f"Candidate query:\n```sql\n{attempt.sql}\n```",
+    ]
     parts.append("Execution result:\n" + format_result(attempt))
     sig = signals(attempt)
     if sig:
@@ -90,8 +117,11 @@ def respond_user(question: str, attempt: Attempt | None) -> str:
 __all__ = [
     "CHECK_SYSTEM",
     "GENERATE_SYSTEM",
+    "HISTORY_HEADER",
+    "HISTORY_TURNS",
     "RESPOND_SYSTEM",
     "check_user",
+    "history_block",
     "question_block",
     "respond_user",
     "signals",

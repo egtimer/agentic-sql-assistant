@@ -17,7 +17,7 @@ from src.sql_agent.prompts import (
     question_block,
     respond_user,
 )
-from src.sql_agent.state import SqlAgentState, Verdict
+from src.sql_agent.state import SqlAgentState, Turn, Verdict
 
 
 def parse_check(text: str, current_sql: str = "") -> Verdict:
@@ -122,7 +122,7 @@ def introspect_node(state: SqlAgentState) -> dict[str, Any]:
 def generate_node(state: SqlAgentState) -> dict[str, Any]:
     completion = get_client().complete(
         GENERATE_SYSTEM,
-        question_block(state.question, state.evidence),
+        question_block(state.question, state.evidence, state.history),
         tag="generate",
         prefix=schema_block(state.schema_context),
     )
@@ -148,7 +148,7 @@ def check_node(state: SqlAgentState) -> dict[str, Any]:
     attempt = state.attempts[-1]
     completion = get_client().complete(
         CHECK_SYSTEM,
-        check_user(state.question, state.evidence, attempt),
+        check_user(state.question, state.evidence, attempt, state.history),
         tag="check",
         prefix=schema_block(state.schema_context),
     )
@@ -166,14 +166,22 @@ def check_node(state: SqlAgentState) -> dict[str, Any]:
     lambda s, u: {"final_sql": u["final_sql"], "response": u["response"]},
 )
 def respond_node(state: SqlAgentState) -> dict[str, Any]:
+    """Pick the final SQL, write the answer and add this turn to the conversation history."""
     final_sql = select_final_sql(state.attempts)
-    if state.skip_respond:
-        return {"final_sql": final_sql, "response": ""}
     final = next((a for a in reversed(state.attempts) if a.sql == final_sql), None)
+    turn = Turn(
+        question=state.question,
+        final_sql=final_sql,
+        row_count=final.row_count if final is not None and final.ok else None,
+        columns=list(final.columns) if final is not None and final.ok else [],
+    )
+    history = [*state.history, turn]
+    if state.skip_respond:
+        return {"final_sql": final_sql, "response": "", "history": history}
     completion = get_client().complete(
         RESPOND_SYSTEM, respond_user(state.question, final), tag="respond"
     )
-    return {"final_sql": final_sql, "response": completion.text.strip()}
+    return {"final_sql": final_sql, "response": completion.text.strip(), "history": history}
 
 
 def route_after_execute(state: SqlAgentState) -> str:

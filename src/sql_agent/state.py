@@ -21,6 +21,15 @@ class Verdict(BaseModel):
         return self.kind == "unparsed"
 
 
+class Turn(BaseModel):
+    """What the conversation remembers of one answered question (never the result rows)."""
+
+    question: str
+    final_sql: str
+    row_count: int | None = None  # capped like ``Attempt.row_count``; None if the query failed
+    columns: list[str] = Field(default_factory=list)
+
+
 class SqlAgentState(BaseModel):
     """Graph state: inputs, options and everything the nodes produce."""
 
@@ -41,6 +50,10 @@ class SqlAgentState(BaseModel):
     final_sql: str = ""
     response: str = ""
 
+    # Conversation memory: survives between the turns of one thread (checkpointer), and is
+    # the only field that does. Everything above is reset explicitly on every turn.
+    history: list[Turn] = Field(default_factory=list)
+
 
 class SqlAgentResult(BaseModel):
     """What :func:`run_sql_agent` returns."""
@@ -51,6 +64,7 @@ class SqlAgentResult(BaseModel):
     fixes_used: int
     response: str = ""
     schema_context: str = ""
+    history: list[Turn] = Field(default_factory=list)  # including the turn just answered
 
     @property
     def n_unparsed(self) -> int:
