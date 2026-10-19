@@ -8,7 +8,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
-- SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are pending.
+- SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
 
 ## Architecture
@@ -247,7 +247,7 @@ make langfuse-down
 
 Tracing overhead with a scripted client (no LLM latency), measured with `python -m evals.observability.measure_overhead`: 5.1 ms per question and system on the calling thread (2.6 ms without tracing, 7.7 ms with; sd 2.5 ms of the paired difference, n=160), plus about 1 s to deliver 8 traces at the end of a pass. Details and limits in the ADR.
 
-Real-model verification of a traced run: _pending (to be filled after the owner's run)_.
+Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-trace-check/)): 5 dev questions with Claude Haiku 5.5, `baseline` and `agent_v2`; `verify_traces` found 10 of 10 traces with the expected node spans, 15 generations with tokens (including cache reads and writes) and cost, and both scores on every trace; the cost stored in Langfuse ($0.008050) equals the run's own call log.
 
 ## Architecture Decision Records
 
