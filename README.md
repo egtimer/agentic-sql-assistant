@@ -7,7 +7,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 ## Status
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
-- Langfuse per-node spans are not working yet.
+- Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are pending.
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
 
@@ -51,7 +51,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 | Retrieval | Dense candidates re-scored with BM25, fused with RRF (k=60) |
 | Sample data | 10 products, 20 customers, 150 sales |
 | Documents | 3 policy files for RAG |
-| Observability | Langfuse integration in progress (per-node spans not yet working) |
+| Observability | Langfuse 2.95.11 (self-hosted): per-node spans, LLM generations with tokens and cost, eval runs linked to traces |
 
 ## Quick Start
 
@@ -222,6 +222,33 @@ Results ([report](evals/reports/2026-10-19-guardrails-injection/), Claude Haiku 
 
 The model followed 12 of the 31 direct injections and never refused outright; it answered the legitimate part of the other 19. It tried `DELETE` and `INSERT`, `CREATE TEMP TABLE`, a transaction wrapping a `DELETE`, `VACUUM INTO` a new file, `ATTACH` of a new file, a second statement after the answer, and reading the database file path through `pragma_database_list`. All 15 attempts were blocked and returned to the check step as execution errors; the model sometimes retried the same request, and was blocked again. With only the read-only connection used before A4, the `VACUUM INTO` copy and the three path leaks would have run (the writes fail on a read-only connection, and Python rejects multi-statement strings). None of the 8 instructions planted in database values changed the model's SQL. "Harmful" means rejected by the guard's policy, which also covers milder metadata reads. Reproduce: `uv run python -m evals.guardrails.run_injection --llm-config configs/llm/claude-haiku-5-5.yaml --budget-usd 0.25 --out evals/reports/<date>-guardrails-injection/` (spends money).
 
+## Observability
+
+Every request, agent node and LLM call can be inspected in Langfuse (self-hosted v2, pinned in `docker-compose.yml`; design and limits in [ADR-006](docs/ADR-006-observability.md)).
+
+What you see:
+
+- **API:** one trace per `POST /agent/query` (optional `session_id` and `user_id` in the request body groups a conversation); the response carries `trace_id`.
+- **Agent v1:** spans `reason`, `execute`, `validate`, `respond`. **Agent v2:** spans `introspect`, `generate`, `execute` (SQL, columns, row count, error, guard block reason and layer, elapsed), `check` (verdict and fix), `respond`.
+- **LLM calls:** a generation per call with the full prompt and answer, model, tokens (cache read and write in the metadata), cost, latency and stop reason.
+- **Evaluation runs:** with `--trace` each (question, system) pair is one trace in the session named after the run id, tagged with system, database, difficulty and split, scored with `execution_accuracy` and `cost_usd`; `trace_id` is stored in `predictions.jsonl`.
+
+Without Langfuse keys tracing is a no-op (no network); eval runs only send traces with `--trace`.
+
+```bash
+cp .env.example .env    # local-only Langfuse keys
+make langfuse-up        # http://localhost:3000, login dev@example.com / local-dev-password
+uv run python -m evals.text2sql.smoke --run-id smoke-1 --trace --out /tmp/smoke-1   # scripted LLM, free
+uv run python -m evals.observability.verify_traces --session smoke-1 --predictions /tmp/smoke-1
+make langfuse-down
+```
+
+`verify_traces` checks that every trace has its node spans nested under one root, that the generations match the LLM calls in `predictions.jsonl`, that each has tokens and cost, and that the scores exist; it writes a JSON report and exits 1 on any failure. A traced real-model run: `uv run python -m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --limit 5 --skip-respond --budget-usd 0.05 --run-id <new-id> --trace`, then `verify_traces --session <new-id> --predictions evals/results/text2sql/<new-id>`.
+
+Tracing overhead with a scripted client (no LLM latency), measured with `python -m evals.observability.measure_overhead`: 5.1 ms per question and system on the calling thread (2.6 ms without tracing, 7.7 ms with; sd 2.5 ms of the paired difference, n=160), plus about 1 s to deliver 8 traces at the end of a pass. Details and limits in the ADR.
+
+Real-model verification of a traced run: _pending (to be filled after the owner's run)_.
+
 ## Architecture Decision Records
 
 - [ADR-001: Agent Architecture](docs/ADR-001-agent-architecture.md) — LangGraph StateGraph with 4 nodes
@@ -229,6 +256,7 @@ The model followed 12 of the 31 direct injections and never refused outright; it
 - [ADR-003: Text-to-SQL Evaluation](docs/ADR-003-text-to-sql-evaluation.md) — BIRD Mini-Dev, execution accuracy, budgets and caching
 - [ADR-004: SQL Agent v2](docs/ADR-004-sql-agent-v2.md) — code-driven generate, execute, check loop for text-to-SQL
 - [ADR-005: SQL Guardrails](docs/ADR-005-sql-guardrails.md) — layered guard for model-written SQL and its adversarial evaluation
+- [ADR-006: Observability](docs/ADR-006-observability.md) — context-variable tracing, Langfuse v2, eval-trace linkage and overhead
 
 ## Stack
 
@@ -240,7 +268,7 @@ Python 3.12 · LangGraph · Claude (Anthropic SDK) · Ollama · Qdrant · FastAP
 docker compose up -d   # app + Ollama + Qdrant + Langfuse + PostgreSQL (CPU only)
 ```
 
-Langfuse server secrets in `docker-compose.yml` have local-development defaults and can be overridden through the variables documented in `.env.example`.
+Langfuse server secrets in `docker-compose.yml` have local-development defaults and can be overridden through the variables documented in `.env.example`. `make langfuse-up` starts only Postgres and Langfuse (headless initialisation creates a project with the local-only keys of `.env.example`).
 
 ## Development
 
