@@ -1,0 +1,52 @@
+{
+  "run_id": "a5-trace-check-1",
+  "argv": [
+    "/workspaces/portfolio/agentic-sql-assistant/evals/text2sql/run.py",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--system",
+    "baseline,agent_v2",
+    "--split",
+    "dev",
+    "--limit",
+    "5",
+    "--seed",
+    "0",
+    "--skip-respond",
+    "--budget-usd",
+    "0.05",
+    "--workers",
+    "1",
+    "--run-id",
+    "a5-trace-check-1",
+    "--trace",
+    "--launched-by",
+    "owner-approved A5 trace verification"
+  ],
+  "started_at": "2026-10-19T10:26:29.632148+00:00",
+  "finished_at": "2026-10-19T10:27:57.508239+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "2d23e22a22c238b9851f55e167805d71d1fe4a64",
+    "dirty": true
+  },
+  "user": "vscode",
+  "hostname": "codespaces-43f2bb",
+  "pid": 22375,
+  "ppid": 22372,
+  "parent_cmdline": "uv run python -m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split dev --limit 5 --seed 0 --skip-respond --budget-usd 0.05 --workers 1 --run-id a5-trace-check-1 --trace --launched-by owner-approved A5 trace verification",
+  "python": "3.12.11",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.05
+  },
+  "launched_by": "owner-approved A5 trace verification",
+  "resumes": [],
+  "langfuse": {
+    "host": "http://localhost:3000",
+    "session_id": "a5-trace-check-1",
+    "traced": true
+  }
+}

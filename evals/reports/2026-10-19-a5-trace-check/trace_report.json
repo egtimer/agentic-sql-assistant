@@ -1,0 +1,194 @@
+{
+  "session": "a5-trace-check-1",
+  "n_traces_found": 10,
+  "n_traces_expected": 10,
+  "n_checked": 10,
+  "n_ok": 10,
+  "passed": true,
+  "problems": [],
+  "totals": {
+    "generations": 15,
+    "generation_cost_usd": 0.008049835,
+    "by_system": {
+      "agent_v2": 5,
+      "baseline": 5
+    }
+  },
+  "traces": [
+    {
+      "trace_id": "1b4ef795-31e5-4043-b2d6-c479668e3868",
+      "system": "agent_v2",
+      "question_id": 904,
+      "spans": {
+        "check": 1,
+        "execute": 1,
+        "generate": 1,
+        "introspect": 1,
+        "respond": 1,
+        "sql_agent_v2": 1
+      },
+      "generations": 2,
+      "generation_cost_usd": 0.001185525,
+      "scores": {
+        "cost_usd": 0.001185525,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "254a6283-5747-4fc0-80e1-03fed87d3401",
+      "system": "agent_v2",
+      "question_id": 1025,
+      "spans": {
+        "check": 1,
+        "execute": 1,
+        "generate": 1,
+        "introspect": 1,
+        "respond": 1,
+        "sql_agent_v2": 1
+      },
+      "generations": 2,
+      "generation_cost_usd": 0.0013624750000000001,
+      "scores": {
+        "cost_usd": 0.001362475,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "7e6df096-091d-47c5-a664-21c6e974563e",
+      "system": "agent_v2",
+      "question_id": 412,
+      "spans": {
+        "check": 1,
+        "execute": 1,
+        "generate": 1,
+        "introspect": 1,
+        "respond": 1,
+        "sql_agent_v2": 1
+      },
+      "generations": 2,
+      "generation_cost_usd": 0.001559675,
+      "scores": {
+        "cost_usd": 0.001559675,
+        "execution_accuracy": 0
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "851e2b68-fb02-4aea-b96d-2978778e782b",
+      "system": "agent_v2",
+      "question_id": 424,
+      "spans": {
+        "check": 1,
+        "execute": 1,
+        "generate": 1,
+        "introspect": 1,
+        "respond": 1,
+        "sql_agent_v2": 1
+      },
+      "generations": 2,
+      "generation_cost_usd": 0.00040169,
+      "scores": {
+        "cost_usd": 0.00040169,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "888c227a-1328-4365-8928-9a805ab7c4fe",
+      "system": "baseline",
+      "question_id": 1025,
+      "spans": {},
+      "generations": 1,
+      "generation_cost_usd": 0.000557325,
+      "scores": {
+        "cost_usd": 0.000557325,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "a44f4ebf-5b3f-49d6-9e63-c39d93b10c6d",
+      "system": "baseline",
+      "question_id": 587,
+      "spans": {},
+      "generations": 1,
+      "generation_cost_usd": 0.0004871,
+      "scores": {
+        "cost_usd": 0.0004871,
+        "execution_accuracy": 0
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "ae4187cb-1bfd-48ff-aa4c-dfef32dd22fd",
+      "system": "baseline",
+      "question_id": 424,
+      "spans": {},
+      "generations": 1,
+      "generation_cost_usd": 0.00024312000000000002,
+      "scores": {
+        "cost_usd": 0.00024312,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "c74e52c9-2acb-47ff-9df7-d6df5f4cb836",
+      "system": "baseline",
+      "question_id": 412,
+      "spans": {},
+      "generations": 1,
+      "generation_cost_usd": 0.000405,
+      "scores": {
+        "cost_usd": 0.000405,
+        "execution_accuracy": 0
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "d6291c54-d7cf-41fe-95b5-b09fa6a9404c",
+      "system": "agent_v2",
+      "question_id": 587,
+      "spans": {
+        "check": 1,
+        "execute": 1,
+        "generate": 1,
+        "introspect": 1,
+        "respond": 1,
+        "sql_agent_v2": 1
+      },
+      "generations": 2,
+      "generation_cost_usd": 0.001357175,
+      "scores": {
+        "cost_usd": 0.001357175,
+        "execution_accuracy": 0
+      },
+      "ok": true,
+      "problems": []
+    },
+    {
+      "trace_id": "fea352e2-dcf0-44ef-bed6-a6d482b20b1e",
+      "system": "baseline",
+      "question_id": 904,
+      "spans": {},
+      "generations": 1,
+      "generation_cost_usd": 0.00049075,
+      "scores": {
+        "cost_usd": 0.00049075,
+        "execution_accuracy": 1
+      },
+      "ok": true,
+      "problems": []
+    }
+  ]
+}
