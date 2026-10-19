@@ -90,7 +90,14 @@ def select_longterm_questions(
 def summarize_teaching(records: list[dict[str, Any]], stores: dict[str, InMemoryStore]) -> Any:
     n = len(records)
     stored = [r["n_memories"] for r in records]
-    in_store = sum(len(load_memories(s, USER_ID, db)) for db, s in stores.items())
+    # distinct memory keys per database, from the teaching log (a later definition of the same
+    # term replaces the earlier one in the store); this also works after a resume, when the
+    # in-process stores of the first invocation are gone
+    keys_by_db: dict[str, set[str]] = defaultdict(set)
+    for r in records:
+        keys_by_db[r["db_id"]].update(r.get("keys") or [])
+    in_store = sum(len(k) for k in keys_by_db.values())
+    del stores
     return {
         "n_turns": n,
         "n_errors": sum(1 for r in records if r["error"]),
@@ -144,10 +151,16 @@ def run_longterm(
     extra_meta: dict[str, Any] | None = None,
     argv: list[str] | None = None,
     launched_by: str | None = None,
+    resume: bool = False,
 ) -> dict[str, Any]:
     """Teach, then answer ``questions`` under the three conditions; write the run directory.
 
-    The run directory must be new (no resume). ``run.json`` is written first.
+    The run directory must be new unless ``resume`` is set. ``run.json`` is written first.
+    A resume skips every (question, condition) already in ``predictions.jsonl`` and the
+    teaching of databases whose teaching is complete; it refuses to start when questions of
+    the ``memory`` condition are still pending for a database whose teaching already ran,
+    because that store lived in the process that stopped and teaching again would give
+    different memories.
     """
     box: dict[str, Any] = {}
     with provenance(
@@ -159,6 +172,7 @@ def run_longterm(
         budget_usd=budget_usd,
         launched_by=launched_by,
         summary_box=box,
+        resume=resume,
     ):
         box["summary"] = _run(
             config=config,
@@ -177,6 +191,7 @@ def run_longterm(
             bootstrap_resamples=bootstrap_resamples,
             bootstrap_seed=bootstrap_seed,
             extra_meta=extra_meta,
+            resume=resume,
         )
     summary: dict[str, Any] = box["summary"]
     return summary
@@ -200,6 +215,7 @@ def _run(
     bootstrap_resamples: int,
     bootstrap_seed: int,
     extra_meta: dict[str, Any] | None,
+    resume: bool = False,
 ) -> dict[str, Any]:
     started_at = datetime.now(UTC).isoformat()
     tracker = new_tracker(budget_usd, run_dir)
@@ -214,6 +230,32 @@ def _run(
     for q in ordered:
         by_db[q.db_id].append(q)
     stores: dict[str, InMemoryStore] = {}
+    done = set(read_predictions(predictions_path)) if resume else set()
+    taught = {r["question_id"] for r in read_jsonl(teaching_path)} if resume else set()
+    to_teach = sorted(
+        db for db, qs in by_db.items() if any(q.question_id not in taught for q in qs)
+    )
+    partial = [db for db in to_teach if any(q.question_id in taught for q in by_db[db])]
+    if partial:
+        raise RuntimeError(
+            f"cannot resume: the teaching of {partial} stopped half way and its store is gone"
+        )
+    pending = {c: [q for q in ordered if (q.question_id, c) not in done] for c in CONDITIONS}
+    lost = sorted({q.db_id for q in pending["memory"] if q.db_id not in to_teach})
+    if lost:
+        raise RuntimeError(
+            f"cannot resume: memory questions are pending for {lost}, whose teaching ran in the "
+            "stopped process; its store is gone and teaching again would give different "
+            "memories. Start a new run id."
+        )
+    if resume:
+        print(
+            "resume: "
+            + ", ".join(
+                f"{c} {len(ordered) - len(pending[c])}/{len(ordered)} done" for c in CONDITIONS
+            )
+            + f"; teaching to run for {len(to_teach)} database(s)"
+        )
 
     def teach_database(db_id: str) -> dict[str, Any]:
         """One teaching turn per question of the database, in id order, into a fresh store."""
@@ -292,12 +334,15 @@ def _run(
         )
 
     try:
-        engine.run_pass("teaching", sorted(by_db), teach_database, None)
+        engine.run_pass("teaching", to_teach, teach_database, None)
         for condition in CONDITIONS:
             if engine.abort.is_set():
                 break
             engine.run_pass(
-                condition, ordered, functools.partial(answer, condition=condition), predictions
+                condition,
+                pending[condition],
+                functools.partial(answer, condition=condition),
+                predictions,
             )
     except KeyboardInterrupt:
         print("Interrupted. Saving partial results.")
@@ -369,6 +414,7 @@ def _run(
         "aborted": engine.reason,
         "tracker": {"cost_usd_this_invocation": tracker.total_cost, "budget_usd": budget_usd},
         "workers": workers,
+        "resumed": resume,
         "skip_respond": skip_respond,
         "max_fixes": max_fixes,
         "conditions_order": list(CONDITIONS),
@@ -436,6 +482,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--launched-by", help=f"free text recorded in run.json (default: env {LAUNCHED_BY_ENV})"
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="continue a stopped run with the same --run-id and options: skips every finished "
+        "(question, condition) and complete teaching; refuses if memory questions are pending "
+        "for a database already taught (its store is gone)",
+    )
     return parser.parse_args(argv)
 
 
@@ -471,8 +524,9 @@ def main(argv: list[str] | None = None) -> None:
                 },
                 argv=raw_argv,
                 launched_by=args.launched_by,
+                resume=args.resume,
             )
-    except FileExistsError as e:
+    except (FileExistsError, FileNotFoundError, RuntimeError) as e:
         raise SystemExit(str(e)) from e
     print()
     print(format_report(summary))

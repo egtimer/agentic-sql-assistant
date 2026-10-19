@@ -53,9 +53,11 @@ TEST_SPLIT_WARNING = (
 
 
 def check_new_run_dir(run_dir: Path) -> None:
-    """Memory runs are never resumed: an existing, non-empty directory is refused."""
+    """A fresh memory run needs a new directory: an existing, non-empty one is refused."""
     if run_dir.exists() and any(run_dir.iterdir()):
-        raise FileExistsError(f"{run_dir} exists; memory runs have no --resume: use a new --run-id")
+        raise FileExistsError(
+            f"{run_dir} exists; use a new --run-id (or --resume for run_longterm)"
+        )
 
 
 @contextlib.contextmanager
@@ -69,13 +71,18 @@ def provenance(
     budget_usd: float | None,
     launched_by: str | None,
     summary_box: dict[str, Any],
+    resume: bool = False,
 ) -> Iterator[None]:
     """Write ``run.json`` before the first case and finish it with a status afterwards.
 
     The caller stores the summary in ``summary_box['summary']`` before leaving the block;
     its ``aborted`` field decides the status. Tracing is switched off for the whole run.
     """
-    check_new_run_dir(run_dir)
+    if resume:
+        if not (run_dir / "run.json").exists():
+            raise FileNotFoundError(f"{run_dir} has no run.json to resume")
+    else:
+        check_new_run_dir(run_dir)
     run_file = start_run(
         run_dir,
         run_id=run_id,
@@ -84,6 +91,7 @@ def provenance(
         config=config,
         budget_usd=budget_usd,
         launched_by=launched_by,
+        resume=resume,
     )
     try:
         with tracing.use_tracer(NoopTracer()):

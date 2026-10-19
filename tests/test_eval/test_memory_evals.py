@@ -274,7 +274,7 @@ class TestLongtermRunner:
         run_dir = tmp_path / "run"
         longterm(fixture, run_dir)
         before = (run_dir / "predictions.jsonl").read_text()
-        with pytest.raises(FileExistsError, match="no --resume"):
+        with pytest.raises(FileExistsError, match="use a new --run-id"):
             longterm(fixture, run_dir)
         assert (run_dir / "predictions.jsonl").read_text() == before
 
@@ -504,3 +504,73 @@ class TestFollowupEvidenceMode:
     ) -> None:
         with pytest.raises(ValueError):
             followups(fixture, tmp_path / "run", evidence="some")
+
+
+class TestLongtermResume:
+    def _cut(self, run_dir: Path, drop: Any) -> list[dict[str, Any]]:
+        """Simulate a run stopped half way: remove some prediction lines, return them."""
+        path = run_dir / "predictions.jsonl"
+        rows = [json.loads(x) for x in path.read_text().split("\n") if x]
+        kept, dropped = [r for r in rows if not drop(r)], [r for r in rows if drop(r)]
+        path.write_text("".join(json.dumps(r) + "\n" for r in kept))
+        (run_dir / "summary.json").unlink(missing_ok=True)
+        return dropped
+
+    def test_resume_runs_only_what_is_missing_and_gives_the_same_results(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        full = longterm(fixture, tmp_path / "full")
+        run_dir = tmp_path / "cut"
+        longterm(fixture, run_dir)
+        oracle_ids = sorted(
+            json.loads(x)["question_id"]
+            for x in (run_dir / "predictions.jsonl").read_text().split("\n")
+            if x and json.loads(x)["system"] == "oracle"
+        )
+        dropped = self._cut(
+            run_dir, lambda r: r["system"] == "oracle" and r["question_id"] in oracle_ids[1:]
+        )
+        assert dropped
+        calls_before = len((run_dir / "llm_calls.jsonl").read_text().split("\n")) - 1
+        teaching_before = (run_dir / "teaching.jsonl").read_text()
+
+        resumed = longterm(fixture, run_dir, resume=True)
+
+        calls_after = len((run_dir / "llm_calls.jsonl").read_text().split("\n")) - 1
+        assert calls_after - calls_before == sum(r["n_llm_calls"] for r in dropped)
+        assert (run_dir / "teaching.jsonl").read_text() == teaching_before  # not taught again
+        for c in ("no_memory", "memory", "oracle"):
+            assert resumed["systems"][c]["n"] == full["systems"][c]["n"]
+            assert resumed["systems"][c]["ex"] == full["systems"][c]["ex"]
+
+        def no_latency(d: dict[str, Any]) -> dict[str, Any]:
+            return {k: v for k, v in d.items() if not k.startswith("latency")}
+
+        assert no_latency(resumed["teaching"]) == no_latency(full["teaching"])
+        assert resumed["resumed"] is True
+        run_json = json.loads((run_dir / "run.json").read_text())
+        assert len(run_json["resumes"]) == 1 and run_json["status"] == "completed"
+
+    def test_resume_refuses_pending_memory_questions(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        run_dir = tmp_path / "cut"
+        longterm(fixture, run_dir)
+        self._cut(run_dir, lambda r: r["system"] == "memory")
+        calls_before = (run_dir / "llm_calls.jsonl").read_text()
+        with pytest.raises(RuntimeError, match="memory questions are pending"):
+            longterm(fixture, run_dir, resume=True)
+        assert (run_dir / "llm_calls.jsonl").read_text() == calls_before  # nothing spent
+
+    def test_resume_needs_an_existing_run(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        with pytest.raises(FileNotFoundError):
+            longterm(fixture, tmp_path / "missing", resume=True)
+
+    def test_a_fresh_run_still_refuses_an_existing_directory(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        longterm(fixture, tmp_path / "run")
+        with pytest.raises(FileExistsError):
+            longterm(fixture, tmp_path / "run")
