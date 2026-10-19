@@ -1,0 +1,16 @@
+# Prices: USD per million tokens, platform.claude.com/docs/en/about-claude/pricing, checked
+# 2026-10-19: input $2, 5-minute cache write $2.50, cache hit $0.10 (0.05x input), output $10.
+# No long-context surcharge on this model. Same settings as the Haiku config (effort low,
+# prompt caching on the stable schema prefix) so the two models are compared like for like.
+# Refusal fallbacks are not enabled: a fallback would answer with another model and mix models
+# in one measurement; refusals are recorded as failures instead.
+provider: anthropic
+model: claude-sonnet-5-5
+max_tokens: 16000
+effort: low
+prompt_caching: true
+pricing:
+  input_per_mtok: 2.00
+  output_per_mtok: 10.00
+  cache_read_per_mtok: 0.10
+  cache_write_per_mtok: 2.50
