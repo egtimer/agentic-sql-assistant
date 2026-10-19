@@ -7,7 +7,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 ## Status
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
-- Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On dev with Claude Haiku 5.5, recalled definitions add +7 to +8 points of execution accuracy and match giving the definition in the question, and conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)); the run on test is pending. The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
+- Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -195,7 +195,19 @@ Agent v2 has two optional kinds of memory; without them its prompts are byte-ide
 - **Short-term (conversation).** `run_sql_agent(..., thread_id=..., checkpointer=...)`: the turns of a thread share a history (question, final SQL, row count, columns; never result rows). `generate` and `check` see the last 3 turns as "Earlier in this conversation:" after the cached schema prefix. Everything else is reset on each turn.
 - **Long-term (across sessions).** `teach(text, user_id=..., db_id=..., store=...)` extracts durable definitions from what the user wrote (one LLM call) into a LangGraph store (`InMemoryStore`, or `open_memory_store(path)` for SQLite); `run_sql_agent(..., store=..., user_id=...)` recalls the 12 most relevant by BM25 and shows them as "Definitions this user gave in earlier sessions:". Memories come only from `teach`, are isolated per user and database, and never bypass the SQL guard.
 
-Evaluation on the dev split (Claude Haiku 5.5, effort `low`; prompts frozen after the first iteration; the long-term run on test is pending):
+Long-term memory on the **test split** (349 questions with evidence, single run with the frozen prompts, Claude Haiku 5.5, $0.50; [report](evals/reports/2026-10-19-a6-longterm-test/)):
+
+| Condition | EX [95% CI] |
+|---|---|
+| Without memory (evidence removed) | 54.4% [49.0, 59.6] |
+| With memory (definitions taught in an earlier session) | 60.7% [55.6, 65.9] |
+| With the evidence given in the question (oracle) | 62.8% [57.6, 67.9] |
+| memory - no memory | +6.3 pts [+2.6, +10.0] |
+| oracle - memory | +2.0 pts [-0.6, +4.6] |
+| Gap closed | 75.9% [44.4%, 110.0%] |
+| Retrieval recall (own definition among the 12 shown, of 60 stored per database) | 92.3% (98.8% when it was stored) |
+
+Development runs on the dev split (prompts frozen after the first iteration):
 
 | Long-term (149 dev questions with evidence) | [Iteration 1](evals/reports/2026-10-19-a6-longterm-dev-it1/) | [Replication](evals/reports/2026-10-19-a6-longterm-dev-rep/) |
 |---|---|---|

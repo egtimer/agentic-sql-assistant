@@ -1,0 +1,40 @@
+{
+  "run_id": "a6-longterm-test",
+  "argv": [
+    "/workspaces/portfolio/agentic-sql-assistant/evals/memory/run_longterm.py",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--split",
+    "test",
+    "--skip-respond",
+    "--workers",
+    "4",
+    "--budget-usd",
+    "0.80",
+    "--run-id",
+    "a6-longterm-test",
+    "--launched-by",
+    "owner-approved A6 long-term test run, single run"
+  ],
+  "started_at": "2026-10-19T12:49:06.215511+00:00",
+  "finished_at": "2026-10-19T13:11:58.049780+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "3d5777215112d5b4635627636b6be0af9deb8a72",
+    "dirty": false
+  },
+  "user": "vscode",
+  "hostname": "codespaces-43f2bb",
+  "pid": 19518,
+  "ppid": 19515,
+  "parent_cmdline": "uv run python -m evals.memory.run_longterm --llm-config configs/llm/claude-haiku-5-5.yaml --split test --skip-respond --workers 4 --budget-usd 0.80 --run-id a6-longterm-test --launched-by owner-approved A6 long-term test run, single run",
+  "python": "3.12.11",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.8
+  },
+  "launched_by": "owner-approved A6 long-term test run, single run",
+  "resumes": []
+}
