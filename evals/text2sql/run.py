@@ -36,6 +36,13 @@ from evals.text2sql.data import (
 )
 from evals.text2sql.sampling import stratified_sample, stratum_label
 from evals.text2sql.scorer import GoldCache, score_prediction
+from evals.text2sql.stats import (
+    DEFAULT_RESAMPLES,
+    DEFAULT_SEED,
+    bootstrap_ci,
+    bootstrap_meta,
+    paired_bootstrap,
+)
 from src.llm import BudgetExceeded, LLMClient, LLMConfig, UsageTracker, build_client, call_context
 
 RESULTS_ROOT = REPO_ROOT / "evals" / "results" / "text2sql"
@@ -227,7 +234,12 @@ def evaluate_question(
 
 
 def summarize_system(
-    records: list[dict[str, Any]], n_planned: int, aborted: str | None
+    records: list[dict[str, Any]],
+    n_planned: int,
+    aborted: str | None,
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    bootstrap_seed: int = DEFAULT_SEED,
 ) -> dict[str, Any]:
     """Aggregate prediction records of one system."""
     n = len(records)
@@ -237,7 +249,13 @@ def summarize_system(
 
     def ex(rows: list[dict[str, Any]]) -> dict[str, Any]:
         correct = sum(1 for r in rows if r["correct"])
-        return {"n": len(rows), "correct": correct, "ex": correct / len(rows) if rows else None}
+        ci = bootstrap_ci([r["correct"] for r in rows], resamples=resamples, seed=bootstrap_seed)
+        return {
+            "n": len(rows),
+            "correct": correct,
+            "ex": correct / len(rows) if rows else None,
+            "ex_ci95": list(ci) if ci else None,
+        }
 
     latencies = [r["latency_ms"] for r in records]
     input_total = sum(r["input_tokens"] for r in records)
@@ -275,10 +293,39 @@ def summarize_system(
     }
 
 
+def compare_systems(
+    system_records: dict[str, list[dict[str, Any]]],
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    bootstrap_seed: int = DEFAULT_SEED,
+) -> dict[str, Any] | None:
+    """Paired bootstrap of agent EX minus baseline EX on the questions both systems ran."""
+    if "agent" not in system_records or "baseline" not in system_records:
+        return None
+    outcomes = {
+        s: {r["question_id"]: bool(r["correct"]) for r in system_records[s]}
+        for s in ("agent", "baseline")
+    }
+    result = paired_bootstrap(
+        outcomes["agent"], outcomes["baseline"], resamples=resamples, seed=bootstrap_seed
+    )
+    return None if result is None else {"agent_minus_baseline": result}
+
+
+def format_ci(block: dict[str, Any]) -> str:
+    """``30.0% [12.0, 48.0]`` (percent); "-" when there are no questions."""
+    if block["ex"] is None:
+        return "-"
+    ci = block.get("ex_ci95")
+    if not ci:
+        return f"{block['ex']:.1%}"
+    return f"{block['ex']:.1%} [{ci[0] * 100:.1f}, {ci[1] * 100:.1f}]"
+
+
 def format_table(summary: dict[str, Any]) -> str:
     """Short text table of the per-system results."""
     header = (
-        f"{'system':<10}{'n':>5}{'EX':>8}{'simple':>9}{'moderate':>10}{'challeng.':>11}"
+        f"{'system':<10}{'n':>5}{'EX [95% CI]':>22}{'simple':>9}{'moderate':>10}{'challeng.':>11}"
         f"{'cost $':>10}{'in tok/q':>10}{'out tok/q':>11}{'lat s/q':>9}"
     )
     lines = [header, "-" * len(header)]
@@ -290,7 +337,7 @@ def format_table(summary: dict[str, Any]) -> str:
         tokens = s["tokens"]
         latency = s["latency_ms"]["mean"]
         lines.append(
-            f"{name:<10}{s['n']:>5}{pct(s):>8}"
+            f"{name:<10}{s['n']:>5}{format_ci(s):>22}"
             f"{pct(s['by_difficulty']['simple']):>9}{pct(s['by_difficulty']['moderate']):>10}"
             f"{pct(s['by_difficulty']['challenging']):>11}"
             f"{s['cost_usd']['total']:>10.4f}"
@@ -300,8 +347,20 @@ def format_table(summary: dict[str, Any]) -> str:
         )
         if s["aborted"]:
             lines.append(f"  {name}: aborted ({s['aborted']}), {s['n']}/{s['n_planned']} done")
+        by_difficulty = ", ".join(
+            f"{d} {format_ci(s['by_difficulty'][d])}" for d in s["by_difficulty"]
+        )
+        lines.append(f"  {name} EX by difficulty [95% CI]: {by_difficulty}")
         if s["failures"]:
             lines.append(f"  {name} failures: {s['failures']}")
+    paired = (summary.get("comparison") or {}).get("agent_minus_baseline")
+    if paired:
+        lines.append(
+            f"agent - baseline EX: {paired['diff'] * 100:+.1f} pts "
+            f"[{paired['ci_low'] * 100:+.1f}, {paired['ci_high'] * 100:+.1f}] "
+            f"(95% paired bootstrap, n={paired['n']}, "
+            f"resamples with diff <= 0: {paired['frac_resamples_le_zero']:.1%})"
+        )
     return "\n".join(lines)
 
 
@@ -321,6 +380,8 @@ def run_experiment(
     databases_dir: Path | None = None,
     timeout_s: float = 30,
     skip_respond: bool = False,
+    bootstrap_resamples: int = DEFAULT_RESAMPLES,
+    bootstrap_seed: int = DEFAULT_SEED,
     extra_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the systems over the questions and write predictions, LLM calls and summary."""
@@ -392,6 +453,7 @@ def run_experiment(
     final = read_predictions(predictions_path)
     selected_ids = {q.question_id for q in questions}
     system_summaries: dict[str, Any] = {}
+    system_records: dict[str, list[dict[str, Any]]] = {}
     for system in systems:
         records = sorted(
             (r for (qid, s), r in final.items() if s == system and qid in selected_ids),
@@ -400,13 +462,24 @@ def run_experiment(
         aborted = aborted_systems.get(system)
         if aborted is None and len(records) < n_planned and abort.is_set():
             aborted = next(iter(abort_reason.values()), "interrupted")
-        system_summaries[system] = summarize_system(records, n_planned, aborted)
+        system_records[system] = records
+        system_summaries[system] = summarize_system(
+            records,
+            n_planned,
+            aborted,
+            resamples=bootstrap_resamples,
+            bootstrap_seed=bootstrap_seed,
+        )
 
     summary: dict[str, Any] = {
         "run_id": run_id,
         "split": split,
         "n_questions": n_planned,
         "systems": system_summaries,
+        "comparison": compare_systems(
+            system_records, resamples=bootstrap_resamples, bootstrap_seed=bootstrap_seed
+        ),
+        "bootstrap": bootstrap_meta(bootstrap_resamples, bootstrap_seed),
         "aborted": next(iter(aborted_systems.values()), None),
         "tracker": {"cost_usd_this_invocation": tracker.total_cost, "budget_usd": budget_usd},
         "resumed": resume,

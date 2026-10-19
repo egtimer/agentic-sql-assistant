@@ -458,3 +458,26 @@ class TestSkipRespond:
     def test_flag_parsed(self) -> None:
         assert parse_args(["--llm-config", "x.yaml"]).skip_respond is False
         assert parse_args(["--llm-config", "x.yaml", "--skip-respond"]).skip_respond is True
+
+
+class TestBootstrapInSummary:
+    def test_cis_comparison_and_meta(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(tmp_path, databases, questions)
+        for system in ("baseline", "agent"):
+            s = summary["systems"][system]
+            low, high = s["ex_ci95"]
+            assert low <= s["ex"] <= high
+            assert all("ex_ci95" in d for d in s["by_difficulty"].values())
+        paired = summary["comparison"]["agent_minus_baseline"]
+        assert paired["n"] == 6 and paired["diff"] == 0.0
+        assert summary["bootstrap"]["B"] == 10000 and summary["bootstrap"]["seed"] == 0
+        on_disk = json.loads((tmp_path / "run" / "summary.json").read_text())
+        assert on_disk["bootstrap"] == summary["bootstrap"]
+
+    def test_no_comparison_for_one_system(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(tmp_path, databases, questions, systems=["baseline"])
+        assert summary["comparison"] is None
