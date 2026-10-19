@@ -1,6 +1,7 @@
 """Tests for the text-to-SQL runner (temp sqlite databases, fake LLM client)."""
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -217,6 +218,96 @@ class TestEndToEnd:
         run(tmp_path, databases, questions, systems=["baseline"])
         with pytest.raises(FileExistsError):
             run(tmp_path, databases, questions, systems=["baseline"])
+
+
+class TestProvenance:
+    def run_json(self, tmp_path: Path) -> dict[str, Any]:
+        data: dict[str, Any] = json.loads((tmp_path / "run" / "run.json").read_text())
+        return data
+
+    def test_run_json_is_written_before_the_first_call_and_completed(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        seen: list[dict[str, Any]] = []
+
+        class Spy(FakeLLM):
+            def complete(self, system, user, *, tag, prefix=None):  # type: ignore[no-untyped-def]
+                seen.append(json.loads((tmp_path / "run" / "run.json").read_text()))
+                return super().complete(system, user, tag=tag, prefix=prefix)
+
+        def factory(config: LLMConfig, tracker: UsageTracker) -> Spy:
+            return Spy(tracker)
+
+        run(
+            tmp_path,
+            databases,
+            questions,
+            client_factory=factory,
+            argv=["run.py", "--x"],
+            launched_by="me",
+            llm_config_name="configs/x.yaml",
+            budget_usd=5.0,
+        )
+        first = seen[0]
+        assert first["status"] == "running" and first["finished_at"] is None
+        assert first["argv"] == ["run.py", "--x"] and first["launched_by"] == "me"
+        assert first["llm_config"] == {
+            "path": "configs/x.yaml",
+            "provider": "anthropic",
+            "model": "fake",
+            "budget_usd": 5.0,
+        }
+        assert first["run_id"] == "test-run" and first["resumes"] == []
+        final = self.run_json(tmp_path)
+        assert final["status"] == "completed" and final["finished_at"]
+
+    def test_existing_run_dir_is_refused_without_resume(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        (tmp_path / "run").mkdir()
+        (tmp_path / "run" / "something").write_text("x")
+        with pytest.raises(FileExistsError):
+            run(tmp_path, databases, questions)
+        assert not (tmp_path / "run" / "run.json").exists()
+
+    def test_resume_appends_an_entry(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        run(tmp_path, databases, questions, budget_usd=0.003, argv=["first"])
+        assert self.run_json(tmp_path)["status"] == "aborted:budget"
+        started = self.run_json(tmp_path)["started_at"]
+        run(tmp_path, databases, questions, resume=True, argv=["second", "--resume"])
+        data = self.run_json(tmp_path)
+        assert data["argv"] == ["first"] and data["started_at"] == started
+        assert len(data["resumes"]) == 1
+        assert data["resumes"][0]["argv"] == ["second", "--resume"]
+        assert data["resumes"][0]["pid"] == os.getpid() and data["resumes"][0]["resumed_at"]
+        assert data["status"] == "completed"
+
+    def test_keyboard_interrupt_is_recorded(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        class Boom(FakeLLM):
+            def complete(self, system, user, *, tag, prefix=None):  # type: ignore[no-untyped-def]
+                raise KeyboardInterrupt
+
+        def factory(config: LLMConfig, tracker: UsageTracker) -> Boom:
+            return Boom(tracker)
+
+        summary = run(tmp_path, databases, questions, client_factory=factory)
+        assert summary["aborted"] == "interrupted"
+        assert self.run_json(tmp_path)["status"] == "interrupted"
+
+    def test_launched_by_falls_back_to_the_environment(
+        self,
+        tmp_path: Path,
+        databases: Path,
+        questions: list[Question],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("EVAL_LAUNCHED_BY", "github-actions:wf#1")
+        run(tmp_path, databases, questions)
+        assert self.run_json(tmp_path)["launched_by"] == "github-actions:wf#1"
 
 
 class TestBudget:

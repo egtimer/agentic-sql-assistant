@@ -270,8 +270,11 @@ class TestInjectionRunner:
         )
         out = tmp_path / "report"
         run_injection.main(
-            ["--llm-config", str(cfg), "--out", str(out), "--ids", "inj-31", "--max-fixes", "0"]
-        )
+            [
+                "--llm-config", str(cfg), "--run-id", "t", "--out", str(out),
+                "--ids", "inj-31", "--max-fixes", "0",
+            ]
+        )  # fmt: skip
         summary = json.loads((out / "summary.json").read_text())
         assert summary["questions"] == 1 and summary["harmful_executions"] == 0
         assert (out / "results.jsonl").exists()
@@ -308,8 +311,76 @@ class TestInjectionMain:
         monkeypatch.setattr(run_injection, "INJECTION_PATH", cases)
         monkeypatch.setattr(run_injection, "build_client", lambda cfg, tracker: TrackedLLM(tracker))
         monkeypatch.chdir(tmp_path)
-        run_injection.main(["--llm-config", str(config), "--out", "out"])
+        run_injection.main(["--llm-config", str(config), "--run-id", "t", "--out", "out"])
 
         record = json.loads((tmp_path / "out" / "results.jsonl").read_text(encoding="utf-8"))
         assert record["new_files"] == [] and not record["side_effect"]
         assert (tmp_path / "out" / "llm_calls.jsonl").read_text(encoding="utf-8").count("\n") == 2
+
+
+class TestInjectionProvenance:
+    """run.json is written first, run ids are never reused, interrupts are recorded."""
+
+    @pytest.fixture
+    def setup(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
+        cases = tmp_path / "cases.jsonl"
+        cases.write_text(json.dumps(TestInjectionRunner.case) + "\n", encoding="utf-8")
+        config = tmp_path / "fake.yaml"
+        config.write_text("provider: ollama\nmodel: fake\n", encoding="utf-8")
+        monkeypatch.setattr(run_injection, "INJECTION_PATH", cases)
+        monkeypatch.delenv("EVAL_LAUNCHED_BY", raising=False)
+        return config, tmp_path / "root"
+
+    def args(self, config: Path, root: Path, run_id: str = "r1") -> list[str]:
+        return ["--llm-config", str(config), "--run-id", run_id, "--out-root", str(root)]
+
+    def test_run_json_exists_before_the_first_case(
+        self, setup: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        config, root = setup
+        seen: list[dict[str, Any]] = []
+
+        class Spy(FakeLLM):
+            def complete(self, system, user, *, tag, prefix=None):  # type: ignore[no-untyped-def]
+                seen.append(json.loads((root / "r1" / "run.json").read_text()))
+                return super().complete(system, user, tag=tag, prefix=prefix)
+
+        monkeypatch.setattr(run_injection, "build_client", lambda c, t: Spy("SELECT 1", "OK"))
+        run_injection.main([*self.args(config, root), "--launched-by", "tester"])
+        assert seen and seen[0]["status"] == "running" and seen[0]["finished_at"] is None
+        first = seen[0]
+        assert first["run_id"] == "r1" and first["launched_by"] == "tester"
+        assert first["llm_config"]["model"] == "fake" and first["pid"] == os.getpid()
+        assert {"argv", "started_at", "git", "user", "hostname", "ppid", "python"} <= set(first)
+        final = json.loads((root / "r1" / "run.json").read_text())
+        assert final["status"] == "completed" and final["finished_at"]
+
+    def test_run_id_cannot_be_reused(
+        self, setup: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        config, root = setup
+        monkeypatch.setattr(run_injection, "build_client", lambda c, t: FakeLLM("SELECT 1", "OK"))
+        run_injection.main(self.args(config, root))
+        with pytest.raises(SystemExit, match="run.json exists"):
+            run_injection.main(self.args(config, root))
+        with pytest.raises(SystemExit, match="does not exist yet"):
+            run_injection.main(self.args(config, root, "r2") + ["--out", str(root / "r1")])
+
+    def test_run_id_is_mandatory(self, setup: tuple[Path, Path]) -> None:
+        config, _ = setup
+        with pytest.raises(SystemExit):
+            run_injection.main(["--llm-config", str(config)])
+
+    def test_keyboard_interrupt_is_recorded(
+        self, setup: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        config, root = setup
+
+        class Boom(FakeLLM):
+            def complete(self, system, user, *, tag, prefix=None):  # type: ignore[no-untyped-def]
+                raise KeyboardInterrupt
+
+        monkeypatch.setattr(run_injection, "build_client", lambda c, t: Boom("x", "OK"))
+        run_injection.main(self.args(config, root))
+        assert json.loads((root / "r1" / "run.json").read_text())["status"] == "interrupted"
+        assert json.loads((root / "r1" / "summary.json").read_text())["stopped"] == "interrupted"

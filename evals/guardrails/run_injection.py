@@ -6,7 +6,13 @@ whether the attempt was harmful (judged independently of the guard, see ``classi
 and whether the database copy or its directory changed. Usage:
 
     python -m evals.guardrails.run_injection --llm-config configs/llm/claude-haiku-5-5.yaml \\
-        --budget-usd 0.25 --out evals/reports/<date>-guardrails-injection/
+        --budget-usd 0.25 --run-id <new-run-id>
+
+Output goes to ``--out-root`` (default evals/results/guardrails/) / run id. The run id must be
+new: the runner refuses a directory that already holds ``run.json``. ``run.json`` (who
+started the run, argv, git commit, LLM config, budget) is written before the first case and
+completed with a status at the end. To write straight into a report directory pass
+``--out evals/reports/<date>-guardrails-injection/`` (it must not exist yet).
 """
 
 import argparse
@@ -20,6 +26,14 @@ from typing import Any
 from evals.guardrails.cases import DB_NAME, INJECTION_PATH, disposable, policy_for, read_jsonl
 from evals.guardrails.classify import classify_attempt
 from evals.guardrails.run_sql import sha256_file
+from evals.provenance import (
+    LAUNCHED_BY_ENV,
+    REPO_ROOT,
+    finish_run,
+    sigterm_as_interrupt,
+    start_run,
+    status_from_abort,
+)
 from evals.text2sql.baseline import CountingClient
 from evals.text2sql.run import load_llm_config
 from src.llm import (
@@ -35,6 +49,7 @@ from src.sql_agent.executor import NO_SQL_ERROR
 from src.sql_agent.graph import run_sql_agent
 
 DEFAULT_MAX_FIXES = 2
+DEFAULT_OUT_ROOT = REPO_ROOT / "evals" / "results" / "guardrails"
 
 
 def apply_setup(db: Path, setup: dict[str, Any]) -> None:
@@ -155,18 +170,46 @@ def summarize(records: list[dict[str, Any]], cost_usd: float, **meta: Any) -> di
     }
 
 
+def resolve_out_dir(run_id: str, out_root: Path, out: Path | None) -> Path:
+    """Absolute output directory of a run; refuses to reuse an existing one."""
+    if out is not None:
+        path = out.resolve()
+        if path.exists():
+            raise SystemExit(f"{path} exists; --out must be a directory that does not exist yet")
+        return path
+    path = (out_root / run_id).resolve()
+    if (path / "run.json").exists():
+        raise SystemExit(f"{path / 'run.json'} exists; choose a new --run-id")
+    return path
+
+
 def main(argv: list[str] | None = None) -> None:
+    raw_argv = list(sys.argv if argv is None else argv)
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--llm-config", type=Path, required=True)
-    parser.add_argument("--out", type=Path, required=True, help="report directory")
+    parser.add_argument("--run-id", required=True, help="new run id (names the output folder)")
+    parser.add_argument(
+        "--out-root",
+        type=Path,
+        default=DEFAULT_OUT_ROOT,
+        help="parent of the run folder (default evals/results/guardrails/)",
+    )
+    parser.add_argument(
+        "--out", type=Path, default=None, help="explicit report directory; must not exist yet"
+    )
     parser.add_argument("--budget-usd", type=float, default=None)
     parser.add_argument("--max-fixes", type=int, default=DEFAULT_MAX_FIXES)
     parser.add_argument("--limit", type=int, default=None, help="first N cases only")
     parser.add_argument("--ids", default=None, help="comma-separated case ids")
+    parser.add_argument(
+        "--launched-by",
+        default=None,
+        help=f"free text for run.json (default: env {LAUNCHED_BY_ENV})",
+    )
     args = parser.parse_args(argv)
-    # Every case runs with the cwd inside its sandbox; a relative --out would put the call log
-    # (and anything else written there) into the sandbox, where it counts as a side effect.
-    args.out = args.out.resolve()
+    # Every case runs with the cwd inside its sandbox; a relative output path would put the call
+    # log (and anything else written there) into the sandbox, where it counts as a side effect.
+    out_dir = resolve_out_dir(args.run_id, args.out_root, args.out)
 
     config = load_llm_config(args.llm_config)
     if config.provider == "anthropic" and args.budget_usd is None:
@@ -178,28 +221,43 @@ def main(argv: list[str] | None = None) -> None:
     if args.limit:
         cases = cases[: args.limit]
 
-    args.out.mkdir(parents=True, exist_ok=True)
-    results_path = args.out / "results.jsonl"
-    if results_path.exists() and results_path.stat().st_size > 0:
-        raise SystemExit(f"{results_path} exists; choose another --out")
-    tracker = UsageTracker(budget_usd=args.budget_usd, sink_path=args.out / "llm_calls.jsonl")
+    run_file = start_run(
+        out_dir,
+        run_id=args.run_id,
+        argv=raw_argv,
+        llm_config_path=args.llm_config,
+        config=config,
+        budget_usd=args.budget_usd,
+        launched_by=args.launched_by,
+    )
+    results_path = out_dir / "results.jsonl"
+    tracker = UsageTracker(budget_usd=args.budget_usd, sink_path=out_dir / "llm_calls.jsonl")
     client = build_client(config, tracker)
     records: list[dict[str, Any]] = []
     stopped = None
-    with open(results_path, "w", encoding="utf-8") as f:
-        for case in cases:
-            try:
-                record = run_case(case, client, max_fixes=args.max_fixes, tracker=tracker)
-            except BudgetExceeded as e:
-                stopped = f"budget: {e}"
-                print(f"Budget reached: {e}. Stopping with partial results.", file=sys.stderr)
-                break
-            records.append(record)
-            f.write(json.dumps(record, ensure_ascii=True) + "\n")
-            f.flush()
-            print(
-                f"{record['id']} {record['behaviour']} cost ${record['cost_usd']:.4f}", flush=True
-            )
+    reason: str | None = None
+    try:
+        with sigterm_as_interrupt(), open(results_path, "w", encoding="utf-8") as f:
+            for case in cases:
+                try:
+                    record = run_case(case, client, max_fixes=args.max_fixes, tracker=tracker)
+                except BudgetExceeded as e:
+                    stopped, reason = f"budget: {e}", "budget"
+                    print(f"Budget reached: {e}. Stopping with partial results.", file=sys.stderr)
+                    break
+                records.append(record)
+                f.write(json.dumps(record, ensure_ascii=True) + "\n")
+                f.flush()
+                print(
+                    f"{record['id']} {record['behaviour']} cost ${record['cost_usd']:.4f}",
+                    flush=True,
+                )
+    except KeyboardInterrupt:
+        stopped, reason = "interrupted", "interrupted"
+        print("Interrupted. Saving partial results.", file=sys.stderr)
+    except BaseException as e:
+        finish_run(run_file, f"failed:{type(e).__name__}")
+        raise
     summary = summarize(
         records,
         tracker.total_cost,
@@ -210,9 +268,10 @@ def main(argv: list[str] | None = None) -> None:
         cases_planned=len(cases),
         stopped=stopped,
     )
-    (args.out / "summary.json").write_text(
+    (out_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
     )
+    finish_run(run_file, status_from_abort(reason))
     print(json.dumps(summary, indent=2))
 
 

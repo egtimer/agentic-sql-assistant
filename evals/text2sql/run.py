@@ -16,7 +16,7 @@ schema prefix of the prompts. ``--workers > 1`` is meant for the API provider.
 import argparse
 import json
 import statistics
-import subprocess
+import sys
 import threading
 import time
 from collections import Counter
@@ -28,6 +28,14 @@ from typing import Any
 
 import yaml
 
+from evals.provenance import (
+    LAUNCHED_BY_ENV,
+    finish_run,
+    git_info,
+    sigterm_as_interrupt,
+    start_run,
+    status_from_abort,
+)
 from evals.text2sql.agent_system import (
     predict_agent,
     predict_agent_v2,
@@ -104,24 +112,6 @@ def load_llm_config(path: Path) -> LLMConfig:
     """Load an LLM config from YAML."""
     with open(path, encoding="utf-8") as f:
         return LLMConfig.model_validate(yaml.safe_load(f))
-
-
-def git_info() -> dict[str, Any]:
-    """Current commit and whether the working tree has uncommitted changes."""
-    try:
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
-        ).stdout.strip()
-        status = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return {"commit": None, "dirty": None}
-    return {"commit": commit, "dirty": bool(status.strip())}
 
 
 def execution_order(questions: list[Question]) -> list[Question]:
@@ -489,13 +479,80 @@ def run_experiment(
     bootstrap_resamples: int = DEFAULT_RESAMPLES,
     bootstrap_seed: int = DEFAULT_SEED,
     extra_meta: dict[str, Any] | None = None,
+    argv: list[str] | None = None,
+    launched_by: str | None = None,
 ) -> dict[str, Any]:
-    """Run the systems over the questions and write predictions, LLM calls and summary."""
-    run_dir.mkdir(parents=True, exist_ok=True)
-    predictions_path = run_dir / "predictions.jsonl"
-    if predictions_path.exists() and predictions_path.stat().st_size > 0 and not resume:
-        raise FileExistsError(f"{predictions_path} exists; use --resume or another --run-id")
+    """Run the systems over the questions and write predictions, LLM calls and summary.
 
+    ``run.json`` (see ``evals.provenance``) is written before the first question runs. An
+    existing, non-empty ``run_dir`` is refused unless ``resume`` is set; a resume appends an
+    entry to the existing ``run.json``.
+    """
+    if run_dir.exists() and any(run_dir.iterdir()) and not resume:
+        raise FileExistsError(f"{run_dir} exists; use --resume or another --run-id")
+    run_file = start_run(
+        run_dir,
+        run_id=run_id,
+        argv=argv,
+        llm_config_path=llm_config_name,
+        config=config,
+        budget_usd=budget_usd,
+        launched_by=launched_by,
+        resume=resume,
+    )
+    try:
+        summary = _run_experiment(
+            config=config,
+            systems=systems,
+            questions=questions,
+            run_dir=run_dir,
+            run_id=run_id,
+            split=split,
+            budget_usd=budget_usd,
+            workers=workers,
+            resume=resume,
+            llm_config_name=llm_config_name,
+            client_factory=client_factory,
+            databases_dir=databases_dir,
+            timeout_s=timeout_s,
+            skip_respond=skip_respond,
+            max_fixes=max_fixes,
+            bootstrap_resamples=bootstrap_resamples,
+            bootstrap_seed=bootstrap_seed,
+            extra_meta=extra_meta,
+        )
+    except BaseException as e:
+        finish_run(
+            run_file,
+            "interrupted" if isinstance(e, KeyboardInterrupt) else f"failed:{type(e).__name__}",
+        )
+        raise
+    finish_run(run_file, status_from_abort(summary["aborted"]))
+    return summary
+
+
+def _run_experiment(
+    *,
+    config: LLMConfig,
+    systems: list[str],
+    questions: list[Question],
+    run_dir: Path,
+    run_id: str,
+    split: str,
+    budget_usd: float | None,
+    workers: int,
+    resume: bool,
+    llm_config_name: str | None,
+    client_factory: ClientFactory,
+    databases_dir: Path | None,
+    timeout_s: float,
+    skip_respond: bool,
+    max_fixes: int,
+    bootstrap_resamples: int,
+    bootstrap_seed: int,
+    extra_meta: dict[str, Any] | None,
+) -> dict[str, Any]:
+    predictions_path = run_dir / "predictions.jsonl"
     started_at = datetime.now(UTC).isoformat()
     tracker = UsageTracker(budget_usd=budget_usd, sink_path=run_dir / "llm_calls.jsonl")
     client = client_factory(config, tracker)
@@ -643,11 +700,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="agents: skip the final natural-language answer step (EX does not score it);\n"
         "its cost is then excluded from the reported cost; recorded in summary.json",
     )
-    parser.add_argument("--resume", action="store_true", help="skip pairs already predicted")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="continue an existing run dir (skip pairs already predicted); without it an\n"
+        "existing run dir is refused",
+    )
+    parser.add_argument(
+        "--launched-by",
+        help=f"free text recorded in run.json (default: env {LAUNCHED_BY_ENV})",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
+    raw_argv = list(sys.argv if argv is None else argv)
     args = parse_args(argv)
     config = load_llm_config(args.llm_config)
     if config.provider == "anthropic" and args.budget_usd is None:
@@ -661,25 +728,28 @@ def main(argv: list[str] | None = None) -> None:
         load_questions(), load_split(args.split), args.limit, args.question_ids, args.seed
     )
     print(f"Run {run_id}: {len(questions)} questions, systems {systems}, split {args.split}")
-    summary = run_experiment(
-        config=config,
-        systems=systems,
-        questions=questions,
-        run_dir=RESULTS_ROOT / run_id,
-        run_id=run_id,
-        split=args.split,
-        budget_usd=args.budget_usd,
-        workers=args.workers,
-        resume=args.resume,
-        skip_respond=args.skip_respond,
-        max_fixes=args.max_fixes,
-        llm_config_name=str(args.llm_config),
-        extra_meta={
-            "limit": args.limit,
-            "question_ids": args.question_ids,
-            "sampling": sampling_meta(questions, args.limit, args.question_ids, args.seed),
-        },
-    )
+    with sigterm_as_interrupt():
+        summary = run_experiment(
+            config=config,
+            systems=systems,
+            questions=questions,
+            run_dir=RESULTS_ROOT / run_id,
+            run_id=run_id,
+            split=args.split,
+            budget_usd=args.budget_usd,
+            workers=args.workers,
+            resume=args.resume,
+            skip_respond=args.skip_respond,
+            max_fixes=args.max_fixes,
+            llm_config_name=str(args.llm_config),
+            extra_meta={
+                "limit": args.limit,
+                "question_ids": args.question_ids,
+                "sampling": sampling_meta(questions, args.limit, args.question_ids, args.seed),
+            },
+            argv=raw_argv,
+            launched_by=args.launched_by,
+        )
     print()
     print(format_table(summary))
     print(f"\nResults in {RESULTS_ROOT / run_id}")
