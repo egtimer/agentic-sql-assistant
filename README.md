@@ -344,7 +344,7 @@ Databases are addressed by name (file stem) from the allowlist built at startup;
 
 The demo database is [Chinook](https://github.com/lerocha/chinook-database) (release v1.4.5), MIT License, Copyright (c) 2008-2024 Luis Rocha. `python -m src.mcp_server.smoke` starts the real server over stdio on a tiny database and calls the tools that need no model (part of CI).
 
-_Real-model demo: pending._
+Real-model demo ([transcript](docs/examples/mcp-demo.md), `python -m src.mcp_server.demo`): a scripted MCP client session over stdio with Claude Haiku 5.5 on Chinook. It lists the databases, runs a read-only query, asks which 3 genres have the most tracks (Rock, Latin, Metal), resolves the follow-up "how many tracks does the second one have?" from the thread (579), uses a definition taught for one user ("long track" = over 6 minutes) to answer in a new session (623), gets a `DELETE` refused by the guard, and forgets the definition. Every answer matches the database; 10 LLM calls, $0.0017.
 
 ## Architecture Decision Records
 
