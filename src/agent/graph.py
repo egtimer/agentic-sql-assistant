@@ -1,6 +1,5 @@
 """LangGraph agent definition with stateful tool execution."""
 
-import contextlib
 import logging
 from typing import Any
 
@@ -9,7 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from src.agent.nodes import execute_node, reason_node, respond_node, validate_node
 from src.agent.state import AgentState, ToolProfile
-from src.observability.langfuse_setup import create_trace, flush
+from src.observability import tracing
 
 logger = logging.getLogger(__name__)
 
@@ -121,8 +120,6 @@ def run_agent(
     Returns:
         Dictionary with 'response', 'tools_used', and 'tool_results'.
     """
-    trace = create_trace("agent_query", query, trace_metadata)
-
     initial_state = AgentState(
         query=query,
         schema_description=schema_description,
@@ -130,12 +127,18 @@ def run_agent(
         profile=profile,
         skip_respond=skip_respond,
     )
-    if trace is not None:
-        initial_state._trace = trace  # type: ignore[attr-defined]
 
-    graph = get_graph()
-    final_state = graph.invoke(initial_state)
+    with tracing.trace_or_span(
+        "agent_query", input={"query": query}, metadata=trace_metadata
+    ) as handle:
+        final_state = get_graph().invoke(initial_state)
+        result = _collect_result(final_state)
+        handle.update(output={"response": result["response"], "tools_used": result["tools_used"]})
+    logger.info("Agent completed query with tools: %s", result["tools_used"])
+    return result
 
+
+def _collect_result(final_state: Any) -> dict[str, Any]:
     tools_used = []
     tool_details = []
     if isinstance(final_state, dict):
@@ -152,14 +155,6 @@ def run_agent(
             tools_used.append(r.tool)
             tool_details.append(r.model_dump())
         response = final_state.response
-
-    if trace is not None:
-        with contextlib.suppress(Exception):
-            trace.update(output={"response": response, "tools_used": tools_used})
-
-    flush()
-
-    logger.info("Agent completed query with tools: %s", tools_used)
 
     return {
         "response": response,

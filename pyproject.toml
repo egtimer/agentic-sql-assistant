@@ -62,6 +62,7 @@ markers = [
     "requires_bird: needs the BIRD Mini-Dev data in data/external/ (skipped when missing, always in CI)",
     "requires_ollama: needs a running Ollama server (opt-in with RUN_OLLAMA_TESTS=1, never in CI)",
     "requires_api: calls a paid LLM API (opt-in with RUN_API_TESTS=1, never in CI)",
+    "requires_langfuse: needs a running Langfuse server (opt-in with RUN_LANGFUSE_TESTS=1, never in CI)",
 ]
 
 [tool.ruff]

@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 
 from src.agent.graph import run_agent
 from src.llm import CallUsage, Completion
+from src.observability.tracing import NoopTracer
 
 DATASET_PATH = Path(__file__).parent / "golden_dataset.json"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -197,8 +198,7 @@ def run_single_eval(entry: dict[str, Any]) -> EvalResult:
         patch("src.agent.nodes.sql_query") as mock_sql,
         patch("src.agent.nodes.doc_search") as mock_doc,
         patch("src.agent.nodes.calculate") as mock_calc,
-        patch("src.observability.langfuse_setup.create_trace", return_value=None),
-        patch("src.observability.langfuse_setup.flush"),
+        patch("src.observability.tracing._tracer", NoopTracer()),
     ):
         if "sql_query" in tool_mocks:
             mock_sql.return_value = tool_mocks["sql_query"]

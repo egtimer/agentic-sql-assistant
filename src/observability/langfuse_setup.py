@@ -1,162 +1,56 @@
-"""Langfuse tracing integration for agent observability."""
+"""Compatibility layer for the agent v1 nodes: ``trace_node`` and ``flush``.
 
-import contextlib
+All tracing logic lives in :mod:`src.observability.tracing` (context-variable based).
+"""
+
 import functools
 import logging
-import time
 from collections.abc import Callable
 from typing import Any, ParamSpec, TypeVar
 
-from src.config import settings
+from src.observability import tracing
+from src.observability.tracing import flush
+
+__all__ = ["flush", "trace_node"]
 
 logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
-_langfuse_client: Any = None
-
-
-def get_langfuse() -> Any:
-    """Return a shared Langfuse client instance, or None if not configured."""
-    global _langfuse_client
-
-    if _langfuse_client is not None:
-        return _langfuse_client
-
-    if not settings.langfuse_public_key or not settings.langfuse_secret_key:
-        logger.debug("Langfuse not configured — tracing disabled")
-        return None
-
-    try:
-        from langfuse import Langfuse
-
-        _langfuse_client = Langfuse(
-            public_key=settings.langfuse_public_key,
-            secret_key=settings.langfuse_secret_key,
-            host=settings.langfuse_host,
-        )
-        logger.info("Langfuse client initialized at %s", settings.langfuse_host)
-        return _langfuse_client
-    except Exception as e:
-        logger.warning("Failed to initialize Langfuse: %s", e)
-        return None
-
-
-def create_trace(name: str, query: str, metadata: dict[str, Any] | None = None) -> Any:
-    """Create a new Langfuse trace for an agent invocation.
-
-    Args:
-        name: Trace name (e.g., "agent_query").
-        query: The user's input query.
-        metadata: Optional metadata to attach to the trace.
-
-    Returns:
-        A Langfuse trace object, or None if tracing is disabled.
-    """
-    client = get_langfuse()
-    if client is None:
-        return None
-
-    try:
-        return client.trace(
-            name=name,
-            input={"query": query},
-            metadata=metadata or {},
-        )
-    except Exception as e:
-        logger.warning("Failed to create trace: %s", e)
-        return None
-
 
 def trace_node(node_name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """Decorator that wraps a graph node function with Langfuse span tracking.
+    """Decorator that records a graph node as a span of the current trace.
 
-    Each node execution is recorded as a span within the active trace,
-    capturing input state, output, duration, and any errors.
-
-    Args:
-        node_name: Name for the span (e.g., "reason", "execute", "validate").
-
-    Returns:
-        Decorator function.
+    The span input is the node's state (without messages) and its output the dict the node
+    returns. The span nests under whatever observation is open in the current context, so it
+    works across LangGraph nodes without carrying anything on the state. No-op when no trace
+    is active.
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            if not tracing.active():
+                return func(*args, **kwargs)
             state = args[0] if args else kwargs.get("state")
-
-            trace = None
-            if state is not None and hasattr(state, "__dict__"):
-                trace = getattr(state, "_trace", None)
-
-            span = None
-            if trace is not None:
-                try:
-                    span = trace.span(
-                        name=node_name,
-                        input=_safe_serialize_state(state),
-                    )
-                except Exception as e:
-                    logger.debug("Failed to create span for %s: %s", node_name, e)
-
-            start_time = time.perf_counter()
-            error = None
-
-            try:
+            with tracing.span(node_name, input=_state_input(state)) as handle:
                 result = func(*args, **kwargs)
+                handle.update(output=result)
                 return result
-            except Exception as e:
-                error = str(e)
-                raise
-            finally:
-                duration_ms = (time.perf_counter() - start_time) * 1000
-                logger.debug("Node %s completed in %.1fms", node_name, duration_ms)
-
-                if span is not None:
-                    with contextlib.suppress(Exception):
-                        span.end(
-                            output=result if error is None else {"error": error},
-                            level="ERROR" if error else "DEFAULT",
-                        )
 
         return wrapper
 
     return decorator
 
 
-def _safe_serialize_state(state: Any) -> dict[str, Any]:
-    """Extract serializable fields from agent state for tracing."""
+def _state_input(state: Any) -> dict[str, Any]:
+    """Serializable fields of the agent state (messages left out)."""
     if state is None:
         return {}
-
     try:
         if hasattr(state, "model_dump"):
-            data = state.model_dump(exclude={"messages"})
-            return {k: v for k, v in data.items() if _is_serializable(v)}
+            return dict(state.model_dump(exclude={"messages"}, mode="json"))
     except Exception:
-        pass
-
+        logger.debug("could not serialize state", exc_info=True)
     return {"type": type(state).__name__}
-
-
-def _is_serializable(value: Any) -> bool:
-    """Check if a value can be safely serialized to JSON."""
-    if value is None or isinstance(value, (bool, int, float, str)):
-        return True
-    if isinstance(value, (list, tuple)):
-        return all(_is_serializable(v) for v in value)
-    if isinstance(value, dict):
-        return all(isinstance(k, str) and _is_serializable(v) for k, v in value.items())
-    return False
-
-
-def flush() -> None:
-    """Flush any pending Langfuse events. Call before shutdown."""
-    client = get_langfuse()
-    if client is not None:
-        try:
-            client.flush()
-        except Exception as e:
-            logger.warning("Failed to flush Langfuse: %s", e)
