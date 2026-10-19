@@ -16,3 +16,4 @@ htmlcov/
 .ruff_cache/
 .pytest_cache/
 data/external/
+
