@@ -8,6 +8,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
+- MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions and run read-only SQL through the guard, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model; the real-model demo is pending. No authentication for remote HTTP.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -303,6 +304,48 @@ Tracing overhead with a scripted client (no LLM latency), measured with `python 
 
 Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-trace-check/)): 5 dev questions with Claude Haiku 5.5, `baseline` and `agent_v2`; `verify_traces` found 10 of 10 traces with the expected node spans, 15 generations with tokens (including cache reads and writes) and cost, and both scores on every trace; the cost stored in Langfuse ($0.008050) equals the run's own call log.
 
+## MCP server
+
+An [MCP](https://modelcontextprotocol.io) server (official Python SDK, `mcp` 2.x) exposes agent v2 and its SQL guard to any MCP client. Design, safety model and what is out of scope: [ADR-008](docs/ADR-008-mcp-server.md).
+
+```
+make chinook-data                                   # Chinook demo database, sha256-checked
+uv run python -m src.mcp_server                     # stdio (default), Ollama config
+uv run python -m src.mcp_server --transport http    # streamable HTTP on 127.0.0.1:8765/mcp
+uv run python -m src.mcp_server --llm-config configs/llm/claude-haiku-5-5.yaml --budget-usd 1
+```
+
+Flags (each also an environment variable `SQL_MCP_<FLAG>`): `--databases-dir` (directory scanned for `*.sqlite` and `*.db`; default `data/external/chinook/`), `--llm-config` (default the Ollama config), `--budget-usd` (cap for this process; required with an Anthropic config; the key is read from `ANTHROPIC_API_KEY` in the server's environment), `--state-dir` (conversations and memories, default `data/state/`, gitignored), `--transport`, `--host`, `--port`.
+
+Client configuration for stdio (the exact file depends on the client):
+
+```json
+{
+  "mcpServers": {
+    "sql-agent": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/agentic-sql-assistant",
+               "python", "-m", "src.mcp_server", "--databases-dir", "/path/to/databases"]
+    }
+  }
+}
+```
+
+| Tool | What it does |
+|---|---|
+| `list_databases` | database names and table counts |
+| `describe_database` | the schema as the agent sees it (DDL, keys, example values); also the resource `schema://{database}` |
+| `ask` | question in natural language (`evidence`, `thread_id` for follow-ups, `user_id` for taught definitions) to answer, final SQL, first 20 rows, number of LLM calls and cost, trace id |
+| `run_sql` | a query written by the client, through all guard layers: read-only, at most 100 rows; a refused statement is returned as `blocked` with the reason |
+| `teach` | store definitions a user states (`user_id`, database), one LLM call |
+| `forget` | delete one or all definitions of a user for a database |
+
+Databases are addressed by name (file stem) from the allowlist built at startup; the client never sends a path. The SQL guard applies to every query, model-written or client-written, and the budget cap stops `ask` and `teach` while `run_sql` and the schema tools keep working. There is no authentication: the HTTP transport binds to localhost and is not meant to be exposed.
+
+The demo database is [Chinook](https://github.com/lerocha/chinook-database) (release v1.4.5), MIT License, Copyright (c) 2008-2024 Luis Rocha. `python -m src.mcp_server.smoke` starts the real server over stdio on a tiny database and calls the tools that need no model (part of CI).
+
+_Real-model demo: pending._
+
 ## Architecture Decision Records
 
 - [ADR-001: Agent Architecture](docs/ADR-001-agent-architecture.md) — LangGraph StateGraph with 4 nodes
@@ -312,6 +355,7 @@ Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-tr
 - [ADR-005: SQL Guardrails](docs/ADR-005-sql-guardrails.md) — layered guard for model-written SQL and its adversarial evaluation
 - [ADR-006: Observability](docs/ADR-006-observability.md) — context-variable tracing, Langfuse v2, eval-trace linkage and overhead
 - [ADR-007: Memory](docs/ADR-007-memory.md) — conversation history via a checkpointer, per-user definitions via a store, and how both are evaluated
+- [ADR-008: MCP Server](docs/ADR-008-mcp-server.md) — tools, transports, database allowlist, state, budget and safety model of the MCP server
 
 ## Stack
 
