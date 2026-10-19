@@ -61,6 +61,9 @@ jobs:
       # Memory evals: teach -> recall -> answer, and a two-turn thread, with a scripted LLM.
       - name: Memory evals smoke test
         run: uv run python -m evals.memory.smoke --out "$RUNNER_TEMP/memory-smoke"
+      # MCP server: real process over stdio, tiny database, no language-model tool called.
+      - name: MCP server stdio smoke test
+        run: uv run python -m src.mcp_server.smoke
 
   docker:
     runs-on: ubuntu-latest

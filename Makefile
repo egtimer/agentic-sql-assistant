@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data chinook-data lint typecheck format clean docker-build up down langfuse-up langfuse-down
+.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data chinook-data mcp-server mcp-smoke lint typecheck format clean docker-build up down langfuse-up langfuse-down
 
 setup:
 	uv sync
@@ -44,6 +44,14 @@ bird-data:
 # Chinook demo database for the MCP server (MIT, Luis Rocha); downloaded and sha256-checked.
 chinook-data:
 	uv run python -m src.mcp_server.demo_data
+
+# MCP server over stdio on the Chinook demo (`make chinook-data` first). For another model, e.g.
+#   make mcp-server LLM_CONFIG=configs/llm/claude-haiku-5-5.yaml BUDGET_USD=1
+mcp-server:
+	uv run python -m src.mcp_server --llm-config $(LLM_CONFIG) $(if $(BUDGET_USD),--budget-usd $(BUDGET_USD))
+
+mcp-smoke:
+	uv run python -m src.mcp_server.smoke
 
 lint:
 	uv run ruff check src tests evals
