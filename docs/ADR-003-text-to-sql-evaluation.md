@@ -16,6 +16,7 @@ The existing eval runner (`evals/run_eval.py`) mocks the LLM and the tools, so i
   - Databases: `https://bird-bench.oss-cn-beijing.aliyuncs.com/minidev.zip` (linked from the mini_dev repository), sha256 `cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f`. Only `minidev/MINIDEV/dev_databases/*/*.sqlite` is extracted.
   - Downloaded to `data/external/` (gitignored), never committed. `make bird-data` downloads, verifies both hashes and extracts.
 - **Split**: fixed 150 dev / 350 test, stratified by difficulty, seed 0. Only the question ids are committed (`evals/text2sql/splits/{dev,test}.json`). Prompts and code are tuned on dev only; test is reported, never tuned on.
+- **Sampling with `--limit N`**: a stratified sample of the chosen split, not the first N ids. Strata are (`db_id`, difficulty); slots are allocated proportionally with largest-remainder rounding (ties broken by stratum key), and inside a stratum ids are drawn with `random.Random(seed)` over the sorted question ids (`--seed`, default 0). `summary.json` records the method, the seed and the number of sampled questions per stratum. `--question-ids` bypasses sampling. Within each system pass, questions are still ordered by (`db_id`, `question_id`).
 - **Chinook** stays for the interactive demo (later step), not for scoring.
 
 ### Metric
@@ -41,7 +42,9 @@ Provider, model and parameters come from YAML files in `configs/llm/`. The API k
 ### Token usage and cost
 
 - Every LLM call records: run id, system, question id, tag (node name or `baseline`), input tokens, output tokens, cache read and cache write tokens, latency, stop reason. Written as JSONL next to the run results.
-- Cost = tokens x prices from the config. Claude Haiku 5.5 prices (platform.claude.com pricing page, checked 2026-10-18), USD per million tokens, prompts up to 100K tokens: input 0.10, output 0.50, cache read 0.01. Prompts above 100K tokens are priced at 0.50 / 2.50. Prompt caching is not enabled.
+- Cost = tokens x prices from the config. Claude Haiku 5.5 prices (platform.claude.com pricing page, checked 2026-10-18), USD per million tokens, prompts up to 100K tokens: input 0.10, output 0.50, cache read 0.01. Prompts above 100K tokens are priced at 0.50 / 2.50. Prompt caching is described below.
+
+**Prompt caching (API provider only).** `complete(system, user, *, tag, prefix=None)`: the model sees `prefix + user` (plain concatenation). With `prompt_caching: true` in the LLM config and a non-empty `prefix`, the Anthropic client sends the user message as two text blocks, the prefix with `cache_control: {"type": "ephemeral"}` (5-minute TTL, the default) and the per-question part without it; otherwise it sends `prefix + user` as one string. Ollama always sends `prefix + user` as one string, so its KV prefix reuse is unchanged. Placement rule: the prefix is the stable part of the prompt and the per-question part comes last. For the baseline the prefix is the schema block; for the agent's `sql_only` profile it is everything in the tool-selection prompt before `User question: ` (the default profile sends the whole prompt with no prefix, byte-identical to before). Cache write tokens are priced at 1.25x input and cache reads at the config's cache rates. Claude Haiku 5.5 has a minimum cacheable prefix of 512 tokens; shorter prefixes are silently not cached (Anthropic prompt caching docs, checked 2026-10-19). Per system, `summary.json` reports cache read and write token totals and `cache_hit_ratio` = cache read / (input + cache read + cache write) over all calls.
 - **Hard budget**: every run takes `--budget-usd`. The tracker refuses to start a call once spending has reached the cap and aborts the run with partial results saved. The overshoot is at most one call.
 
 ### Final answer step in EX runs
@@ -50,7 +53,7 @@ The respond step produces the natural-language answer, which EX does not score. 
 
 ### Outputs
 
-`evals/results/text2sql/<run_id>/`: `predictions.jsonl` (per question and system: pred SQL, correct, error, tokens, cost, latency, LLM calls), `llm_calls.jsonl`, `summary.json` (EX overall and per difficulty, totals of tokens and cost, mean latency, config, git commit, split, timestamps). Summaries quoted in the README are copied to `evals/reports/` and committed.
+`evals/results/text2sql/<run_id>/`: `predictions.jsonl` (per question and system: pred SQL, correct, error, tokens, cost, latency, LLM calls), `llm_calls.jsonl`, `summary.json` (EX overall and per difficulty, totals of tokens and cost, mean latency, config, git commit, split, timestamps). Each system also reports a 95% percentile bootstrap confidence interval for EX, overall and per difficulty (B = 10,000 resamples of questions with replacement, `random.Random(seed)`, pure Python). When both systems ran on the same questions, `summary.json` has `comparison.agent_minus_baseline`: a paired bootstrap of agent EX minus baseline EX (resampling question ids), with its 95% CI and the fraction of resamples where the difference is <= 0. B, seed and method are recorded under `bootstrap`; the stdout table shows the CIs. With small samples the intervals are wide, and per-difficulty intervals more so. Summaries quoted in the README are copied to `evals/reports/` and committed.
 
 ## Alternatives considered
 
