@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data lint typecheck format clean docker-build up down
+.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data lint typecheck format clean docker-build up down langfuse-up langfuse-down
 
 setup:
 	uv sync
@@ -60,6 +60,16 @@ up:
 
 down:
 	docker compose down
+
+# Local Langfuse only (Postgres + server, pinned in docker-compose.yml): http://localhost:3000
+# Login and API keys are the local defaults of .env.example. `langfuse-down` keeps the data
+# volume; add `docker compose down -v` to wipe it.
+langfuse-up:
+	docker compose up -d langfuse-db langfuse
+
+langfuse-down:
+	docker compose stop langfuse langfuse-db
+	docker compose rm -f langfuse langfuse-db
 
 clean:
 	rm -f src/db/sample.db
