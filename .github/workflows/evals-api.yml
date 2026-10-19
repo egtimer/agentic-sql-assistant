@@ -31,6 +31,10 @@ permissions:
   contents: read
 
 env:
+  # Committed report the weekly run is compared with (evals/text2sql/check_regression.py). It must
+  # come from the weekly configuration: --split dev --limit 30 --seed 0 --system baseline,agent_v2
+  # --skip-respond with configs/llm/claude-haiku-5-5.yaml. Until it exists the check is skipped.
+  REFERENCE_DIR: 2026-10-19-ci-reference-dev-30
   # sha256 of the two BIRD Mini-Dev files (docs/ADR-003, evals/text2sql/prepare.py)
   BIRD_CACHE_KEY: bird-88ceb0710163cae46a256ecea8f0a8c98286599530b60587fda5c3cfe57d45d2-cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f
 
@@ -88,6 +92,24 @@ jobs:
             --llm-config "$LLM_CONFIG" --system "$SYSTEMS" --split dev \
             --limit "$LIMIT" --seed 0 --skip-respond \
             --budget-usd "$BUDGET_USD" --run-id "$RUN_ID"
+      - name: Check for a regression against the committed reference
+        if: steps.key.outputs.present == 'true'
+        env:
+          LLM_CONFIG: ${{ inputs.llm_config || 'configs/llm/claude-haiku-5-5.yaml' }}
+          SYSTEMS: ${{ inputs.systems || 'baseline,agent_v2' }}
+          RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          reference="evals/reports/$REFERENCE_DIR"
+          if [ ! -d "$reference" ]; then
+            echo "::notice title=Regression check skipped::$reference does not exist yet, nothing to compare with."
+            exit 0
+          fi
+          if [ "$LLM_CONFIG" != "configs/llm/claude-haiku-5-5.yaml" ] || ! echo ",$SYSTEMS," | grep -q ",agent_v2,"; then
+            echo "::notice title=Regression check skipped::the reference was made with configs/llm/claude-haiku-5-5.yaml and agent_v2; this run used $LLM_CONFIG and $SYSTEMS."
+            exit 0
+          fi
+          uv run python -m evals.text2sql.check_regression \
+            --reference "$reference" --current "evals/results/text2sql/$RUN_ID" --system agent_v2
       - name: Upload the run directory
         if: always() && steps.key.outputs.present == 'true'
         uses: actions/upload-artifact@v4
