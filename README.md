@@ -7,6 +7,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 ## Status
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
+- Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). Implemented and tested offline; the real-model evaluation is pending (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -187,6 +188,34 @@ API runs need `ANTHROPIC_API_KEY` and spend money; `--budget-usd` is a hard cap.
 | single-tool-calculator | 2 | Queries that require only `calculator` |
 | multi-tool | 5 | Queries requiring 2+ tools in sequence |
 
+## Memory
+
+Agent v2 has two optional kinds of memory; without them its prompts are byte-identical to the frozen ones (a snapshot test checks it). Design, safety, evaluation method and limits: [ADR-007](docs/ADR-007-memory.md).
+
+- **Short-term (conversation).** `run_sql_agent(..., thread_id=..., checkpointer=...)`: the turns of a thread share a history (question, final SQL, row count, columns; never result rows). `generate` and `check` see the last 3 turns as "Earlier in this conversation:" after the cached schema prefix. Everything else is reset on each turn.
+- **Long-term (across sessions).** `teach(text, user_id=..., db_id=..., store=...)` extracts durable definitions from what the user wrote (one LLM call) into a LangGraph store (`InMemoryStore`, or `open_memory_store(path)` for SQLite); `run_sql_agent(..., store=..., user_id=...)` recalls the 12 most relevant by BM25 and shows them as "Definitions this user gave in earlier sessions:". Memories come only from `teach`, are isolated per user and database, and never bypass the SQL guard.
+
+Evaluation on the dev split (Claude Haiku 5.5; the numbers are filled in after the owner runs them):
+
+| Evaluation | Result |
+|---|---|
+| Long-term: EX without memory / with memory / with the evidence given (oracle) | _pending_ |
+| Long-term: share of the oracle's gain recovered by memory ("gap closed") [95% CI] | _pending_ |
+| Long-term: retrieval recall; memories extracted per teaching turn | _pending_ |
+| Long-term: cost, teaching and total | _pending_ |
+| Follow-ups (30 conversations, all from dev): EX turn 2 alone / with history / original question | _pending_ |
+
+The long-term evaluation teaches BIRD's own evidence to the agent as if a user had said it and removes it from the question, so it measures storing and recalling definitions, not a user's free phrasing. The follow-up set is small (n = 30), written by hand from dev questions. Reproduce (spends money; both need `--run-id` and, with Anthropic, `--budget-usd`):
+
+```
+uv run python -m evals.memory.run_longterm --llm-config configs/llm/claude-haiku-5-5.yaml \
+  --split dev --skip-respond --workers 4 --budget-usd <usd> --run-id <new-id> --launched-by <who>
+uv run python -m evals.memory.run_followups --llm-config configs/llm/claude-haiku-5-5.yaml \
+  --skip-respond --workers 4 --budget-usd <usd> --run-id <new-id> --launched-by <who>
+```
+
+Results go to `evals/results/memory/<run-id>/`. `python -m evals.memory.smoke` runs both with a scripted client (no network; part of CI).
+
 ## Guardrails
 
 Every SQL statement a model writes is untrusted input (direct and indirect prompt injection, files, metadata, resource exhaustion, writes), and all of it now runs through one guard, `src/sql_guard/`: a lexical check, a SQLite authorizer used as an allowlist, a read-only connection with engine limits, and a timeout plus row cap. Agent v1's `sql_query` tool, agent v2's executor and the eval scorer use it, so the old keyword blocklist is gone and `REPLACE()` works. Design, probe findings and limitations: [ADR-005](docs/ADR-005-sql-guardrails.md).
@@ -257,6 +286,7 @@ Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-tr
 - [ADR-004: SQL Agent v2](docs/ADR-004-sql-agent-v2.md) — code-driven generate, execute, check loop for text-to-SQL
 - [ADR-005: SQL Guardrails](docs/ADR-005-sql-guardrails.md) — layered guard for model-written SQL and its adversarial evaluation
 - [ADR-006: Observability](docs/ADR-006-observability.md) — context-variable tracing, Langfuse v2, eval-trace linkage and overhead
+- [ADR-007: Memory](docs/ADR-007-memory.md) — conversation history via a checkpointer, per-user definitions via a store, and how both are evaluated
 
 ## Stack
 
