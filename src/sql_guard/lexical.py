@@ -66,6 +66,13 @@ def _has_second_statement(sql: str, start: int) -> bool:
     return False
 
 
+def first_keyword(sql: str) -> str | None:
+    """Upper-cased first word of ``sql`` after whitespace and comments, if it is one."""
+    start = _skip_trivia(sql, 0)
+    match = _KEYWORD.match(sql, start)
+    return match.group(0).upper() if match else None
+
+
 def check_sql(sql: str, max_length: int = MAX_SQL_LENGTH) -> str | None:
     """Reason why ``sql`` must not run, or None when it passes layer 1."""
     if "\x00" in sql:

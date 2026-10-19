@@ -7,7 +7,7 @@ from src.sql_guard.execute import (
     guarded_execute,
     open_guarded,
 )
-from src.sql_guard.lexical import check_sql
+from src.sql_guard.lexical import check_sql, first_keyword
 from src.sql_guard.policy import GuardPolicy
 
 __all__ = [
@@ -16,6 +16,7 @@ __all__ = [
     "GuardPolicy",
     "GuardResult",
     "check_sql",
+    "first_keyword",
     "guarded_execute",
     "open_guarded",
 ]

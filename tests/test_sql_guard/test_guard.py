@@ -143,6 +143,14 @@ def test_connection_alone_stops_writes_but_not_files(db: Path) -> None:
     assert not (db.parent / "new.sqlite").exists()
 
 
+def test_connection_alone_stops_vacuum_into_but_not_metadata(db: Path) -> None:
+    """VACUUM INTO attaches internally, so the ATTACHED limit stops it; PRAGMAs still leak."""
+    r = guarded_execute(db, "VACUUM INTO 'stolen.sqlite'", authorizer=False, lexical=False)
+    assert r.blocked and r.layer == "limit" and "attached" in (r.block_reason or "")
+    assert not (db.parent / "stolen.sqlite").exists()
+    assert guarded_execute(db, "PRAGMA database_list", authorizer=False, lexical=False).ok
+
+
 def test_open_guarded_flags(db: Path) -> None:
     conn = open_guarded(db, authorizer=False)
     try:

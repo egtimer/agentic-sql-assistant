@@ -1,0 +1,40 @@
+{"id": "benign-literal-drop", "sql": "SELECT 'DROP TABLE member; DELETE FROM expense' AS s", "db": "student_club"}
+{"id": "benign-literal-semicolon", "sql": "SELECT 'a;b;c' AS s", "db": "student_club"}
+{"id": "benign-literal-semicolon-end", "sql": "SELECT 'ends with;' AS s;", "db": "student_club"}
+{"id": "benign-literal-create", "sql": "SELECT 'CREATE TABLE t (a)' AS ddl", "db": "student_club"}
+{"id": "benign-literal-escaped-quote", "sql": "SELECT 'it''s; fine' AS s", "db": "student_club"}
+{"id": "benign-literal-comment-markers", "sql": "SELECT '--; /* DROP */' AS s", "db": "student_club"}
+{"id": "benign-replace-function", "sql": "SELECT REPLACE(first_name, 'a', 'b') FROM member ORDER BY member_id LIMIT 5", "db": "student_club"}
+{"id": "benign-replace-nested", "sql": "SELECT replace(replace(last_name, 'a', ''), 'e', '') FROM member ORDER BY member_id LIMIT 5", "db": "student_club"}
+{"id": "benign-like-keyword-text", "sql": "SELECT count(*) FROM member WHERE last_name LIKE '%delete%' OR email LIKE '%update%'", "db": "student_club"}
+{"id": "benign-quoted-keyword-alias", "sql": "SELECT first_name AS \"delete\", last_name AS \"drop\" FROM member ORDER BY member_id LIMIT 3", "db": "student_club"}
+{"id": "benign-quoted-keyword-subquery", "sql": "SELECT \"update\" FROM (SELECT 1 AS \"update\")", "db": "student_club"}
+{"id": "benign-bracket-keyword", "sql": "SELECT [insert] FROM (SELECT 2 AS [insert])", "db": "student_club"}
+{"id": "benign-comment-line", "sql": "-- count the members\nSELECT count(*) FROM member", "db": "student_club"}
+{"id": "benign-comment-block", "sql": "/* DROP TABLE x; */ SELECT count(*) FROM member", "db": "student_club"}
+{"id": "benign-comment-trailing", "sql": "SELECT count(*) FROM member -- DELETE FROM member", "db": "student_club"}
+{"id": "benign-trailing-semicolon-comment", "sql": "SELECT 1; -- done", "db": "student_club"}
+{"id": "benign-cte", "sql": "WITH t AS (SELECT position, count(*) AS n FROM member GROUP BY position) SELECT * FROM t ORDER BY n DESC, position", "db": "student_club"}
+{"id": "benign-cte-recursive", "sql": "WITH RECURSIVE c(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM c WHERE n < 10) SELECT sum(n) FROM c", "db": "student_club"}
+{"id": "benign-window-row-number", "sql": "SELECT member_id, row_number() OVER (PARTITION BY position ORDER BY member_id) AS rn FROM member", "db": "student_club"}
+{"id": "benign-window-sum", "sql": "SELECT expense_id, sum(cost) OVER (ORDER BY expense_id) FROM expense", "db": "student_club"}
+{"id": "benign-union", "sql": "SELECT first_name FROM member UNION SELECT major_name FROM major ORDER BY 1 LIMIT 10", "db": "student_club"}
+{"id": "benign-except", "sql": "SELECT member_id FROM member EXCEPT SELECT link_to_member FROM expense", "db": "student_club"}
+{"id": "benign-values", "sql": "VALUES (1, 'a'), (2, 'b')", "db": "student_club"}
+{"id": "benign-values-in-cte", "sql": "WITH v(a, b) AS (VALUES (1, 2), (3, 4)) SELECT a + b FROM v", "db": "student_club"}
+{"id": "benign-sqlite-master", "sql": "SELECT name, type FROM sqlite_master WHERE type = 'table' ORDER BY name", "db": "student_club"}
+{"id": "benign-sqlite-master-sql", "sql": "SELECT sql FROM sqlite_master WHERE name = 'member'", "db": "student_club"}
+{"id": "benign-sqlite-version", "sql": "SELECT sqlite_version() IS NOT NULL", "db": "student_club"}
+{"id": "benign-case-when", "sql": "SELECT CASE WHEN cost > 50 THEN 'high' ELSE 'low' END, count(*) FROM expense GROUP BY 1", "db": "student_club"}
+{"id": "benign-join-aggregate", "sql": "SELECT m.first_name, sum(e.cost) FROM member m JOIN expense e ON e.link_to_member = m.member_id GROUP BY m.member_id ORDER BY 2 DESC", "db": "student_club"}
+{"id": "benign-group-concat", "sql": "SELECT group_concat(first_name, ', ') FROM (SELECT first_name FROM member ORDER BY member_id LIMIT 5)", "db": "student_club"}
+{"id": "benign-json", "sql": "SELECT json_extract('{\"a\": [1, 2, 3]}', '$.a[1]')", "db": "student_club"}
+{"id": "benign-strftime", "sql": "SELECT strftime('%Y', event_date), count(*) FROM event GROUP BY 1", "db": "student_club"}
+{"id": "benign-printf-small", "sql": "SELECT printf('%05d|%.2f', 42, 3.14159)", "db": "student_club"}
+{"id": "benign-randomblob-small", "sql": "SELECT length(randomblob(1000)), length(zeroblob(1000))", "db": "student_club"}
+{"id": "benign-blob-literal", "sql": "SELECT x'414243', hex(x'0102')", "db": "student_club"}
+{"id": "benign-limit-offset", "sql": "SELECT member_id FROM member ORDER BY member_id LIMIT 3 OFFSET 2", "db": "student_club"}
+{"id": "benign-leading-whitespace", "sql": "\n\t  SELECT 1", "db": "student_club"}
+{"id": "benign-upper-case", "sql": "SELECT COUNT(*) FROM MEMBER", "db": "student_club"}
+{"id": "benign-policy-compatible", "sql": "SELECT id, name FROM users ORDER BY id", "db": "fixture"}
+{"id": "benign-policy-aggregate", "sql": "SELECT count(*) FROM orders", "db": "fixture"}

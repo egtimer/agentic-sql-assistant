@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval eval-sql bird-data lint typecheck format clean docker-build up down
+.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data lint typecheck format clean docker-build up down
 
 setup:
 	uv sync
@@ -34,6 +34,9 @@ eval-sql:
 		$(if $(LIMIT),--limit $(LIMIT)) $(if $(BUDGET_USD),--budget-usd $(BUDGET_USD)) \
 		$(if $(RUN_ID),--run-id $(RUN_ID)) $(if $(WORKERS),--workers $(WORKERS)) \
 		$(if $(SEED),--seed $(SEED)) $(if $(SKIP_RESPOND),--skip-respond) $(if $(MAX_FIXES),--max-fixes $(MAX_FIXES)) $(if $(RESUME),--resume) $(if $(QUESTION_IDS),--question-ids $(QUESTION_IDS))
+
+eval-guardrails:
+	uv run python -m evals.guardrails.run_sql --out evals/results/guardrails-sql
 
 bird-data:
 	uv run python -m evals.text2sql.prepare
