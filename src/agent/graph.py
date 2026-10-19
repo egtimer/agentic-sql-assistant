@@ -106,6 +106,7 @@ def run_agent(
     schema_description: str | None = None,
     db_path: str | None = None,
     profile: ToolProfile = ToolProfile.DEFAULT,
+    skip_respond: bool = False,
 ) -> dict[str, Any]:
     """Execute the agent pipeline for a user query.
 
@@ -115,6 +116,7 @@ def run_agent(
         schema_description: Database schema shown to the LLM (non-default profiles).
         db_path: SQLite file for ``sql_query``; None uses the sample sales database.
         profile: Tool set and prompt wording; the default is the sales assistant.
+        skip_respond: Skip the final answer LLM call (response is empty); for EX evals.
 
     Returns:
         Dictionary with 'response', 'tools_used', and 'tool_results'.
@@ -122,7 +124,11 @@ def run_agent(
     trace = create_trace("agent_query", query, trace_metadata)
 
     initial_state = AgentState(
-        query=query, schema_description=schema_description, db_path=db_path, profile=profile
+        query=query,
+        schema_description=schema_description,
+        db_path=db_path,
+        profile=profile,
+        skip_respond=skip_respond,
     )
     if trace is not None:
         initial_state._trace = trace  # type: ignore[attr-defined]

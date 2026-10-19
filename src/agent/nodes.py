@@ -306,6 +306,9 @@ def respond_node(state: AgentState) -> dict[str, Any]:
     Sends all collected tool results to the LLM along with the
     original query to produce a natural language answer.
     """
+    if state.skip_respond:
+        return {"response": ""}
+
     neutral = state.profile is not ToolProfile.DEFAULT
 
     if state.error:

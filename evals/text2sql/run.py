@@ -170,6 +170,7 @@ def evaluate_question(
     run_id: str,
     databases_dir: Path | None,
     timeout_s: float,
+    skip_respond: bool = False,
 ) -> dict[str, Any]:
     """Predict and score one (question, system) pair. Raises BudgetExceeded on the cap."""
     database = db_path(question.db_id, databases_dir)
@@ -181,7 +182,8 @@ def evaluate_question(
     start = time.perf_counter()
     with call_context(run_id=run_id, system=system, question_id=question.question_id):
         try:
-            pred_sql, n_calls = PREDICTORS[system](question, recorder, database=database)
+            options = {"skip_respond": True} if skip_respond and system == "agent" else {}
+            pred_sql, n_calls = PREDICTORS[system](question, recorder, database=database, **options)
         except BudgetExceeded:
             raise
         except Exception as e:  # API or agent failure: record it and keep going
@@ -318,6 +320,7 @@ def run_experiment(
     client_factory: ClientFactory = build_client,
     databases_dir: Path | None = None,
     timeout_s: float = 30,
+    skip_respond: bool = False,
     extra_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the systems over the questions and write predictions, LLM calls and summary."""
@@ -349,6 +352,7 @@ def run_experiment(
                 run_id=run_id,
                 databases_dir=databases_dir,
                 timeout_s=timeout_s,
+                skip_respond=skip_respond,
             )
         except BudgetExceeded as e:
             abort_reason.setdefault(system, "budget")
@@ -407,6 +411,7 @@ def run_experiment(
         "tracker": {"cost_usd_this_invocation": tracker.total_cost, "budget_usd": budget_usd},
         "resumed": resume,
         "workers": workers,
+        "skip_respond": skip_respond,
         "llm_config_file": llm_config_name,
         "llm_config": config.model_dump(),
         "git": git_info(),
@@ -439,6 +444,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--run-id", help="output folder name under evals/results/text2sql/")
     parser.add_argument("--workers", type=int, default=1, help="threads; intended for the API")
+    parser.add_argument(
+        "--skip-respond",
+        action="store_true",
+        help="agent: skip the final natural-language answer step (EX does not score it);\n"
+        "its cost is then excluded from the reported cost; recorded in summary.json",
+    )
     parser.add_argument("--resume", action="store_true", help="skip pairs already predicted")
     return parser.parse_args(argv)
 
@@ -464,6 +475,7 @@ def main(argv: list[str] | None = None) -> None:
         budget_usd=args.budget_usd,
         workers=args.workers,
         resume=args.resume,
+        skip_respond=args.skip_respond,
         llm_config_name=str(args.llm_config),
         extra_meta={
             "limit": args.limit,

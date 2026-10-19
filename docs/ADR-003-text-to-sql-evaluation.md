@@ -44,6 +44,10 @@ Provider, model and parameters come from YAML files in `configs/llm/`. The API k
 - Cost = tokens x prices from the config. Claude Haiku 5.5 prices (platform.claude.com pricing page, checked 2026-10-18), USD per million tokens, prompts up to 100K tokens: input 0.10, output 0.50, cache read 0.01. Prompts above 100K tokens are priced at 0.50 / 2.50. Prompt caching is not enabled.
 - **Hard budget**: every run takes `--budget-usd`. The tracker refuses to start a call once spending has reached the cap and aborts the run with partial results saved. The overshoot is at most one call.
 
+### Final answer step in EX runs
+
+The respond step produces the natural-language answer, which EX does not score. EX runs may skip it with `--skip-respond` (`SKIP_RESPOND=1` in `make eval-sql`): `respond_node` then returns an empty response without an LLM call. Costs reported for such runs exclude that step, and `summary.json` records `skip_respond: true/false`. Runs with and without the flag are not cost-comparable.
+
 ### Outputs
 
 `evals/results/text2sql/<run_id>/`: `predictions.jsonl` (per question and system: pred SQL, correct, error, tokens, cost, latency, LLM calls), `llm_calls.jsonl`, `summary.json` (EX overall and per difficulty, totals of tokens and cost, mean latency, config, git commit, split, timestamps). Summaries quoted in the README are copied to `evals/reports/` and committed.

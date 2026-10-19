@@ -194,6 +194,50 @@ class TestRespondNodeProfiles:
         assert "€" not in mock_get_client.return_value.complete.call_args.args[1]
 
 
+class TestSkipRespond:
+    @patch("src.agent.nodes.get_client")
+    def test_no_llm_call_when_skipped(self, mock_get_client: MagicMock) -> None:
+        state = AgentState(
+            query="q",
+            profile=ToolProfile.SQL_ONLY,
+            skip_respond=True,
+            tool_results=[ToolResult(tool="sql_query", input="s", output={}, success=True)],
+        )
+        assert respond_node(state) == {"response": ""}
+        mock_get_client.assert_not_called()
+
+    @patch("src.agent.nodes.get_client")
+    def test_default_still_calls_llm(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _client("answer")
+        state = AgentState(
+            query="q",
+            tool_results=[ToolResult(tool="sql_query", input="s", output={}, success=True)],
+        )
+        assert AgentState(query="q").skip_respond is False
+        assert respond_node(state) == {"response": "answer"}
+        mock_get_client.return_value.complete.assert_called_once()
+
+    @patch("src.agent.nodes.get_client")
+    def test_run_agent_skips_final_call(self, mock_get_client: MagicMock, tmp_path: Path) -> None:
+        db = tmp_path / "t.sqlite"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY, val TEXT)")
+        conn.commit()
+        conn.close()
+        mock_get_client.return_value = _client(
+            '[{"tool": "sql_query", "input": "SELECT val FROM t", "reason": "r"}]'
+        )
+        result = run_agent(
+            "q",
+            schema_description=SCHEMA,
+            db_path=str(db),
+            profile=ToolProfile.SQL_ONLY,
+            skip_respond=True,
+        )
+        assert result["response"] == ""
+        assert mock_get_client.return_value.complete.call_count == 1
+
+
 class TestRunAgentEndToEnd:
     @patch("src.agent.nodes.get_client")
     def test_sql_only_run_on_given_database(

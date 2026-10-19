@@ -432,3 +432,29 @@ def test_counting_client_forwards_prefix() -> None:
     counting.complete("s", "u", tag="t", prefix="p")
     assert spy.seen == ("s", "u", "t", "p")
     assert counting.n_calls == 1
+
+
+class TestSkipRespond:
+    def test_default_runs_respond_and_records_flag(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(tmp_path, databases, questions)
+        assert summary["skip_respond"] is False
+        records = read_predictions(tmp_path / "run" / "predictions.jsonl")
+        assert records[3, "agent"]["n_llm_calls"] == 2
+
+    def test_skip_respond_drops_the_respond_call_for_the_agent_only(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        holder: list[FakeLLM] = []
+        summary = run(tmp_path, databases, questions, holder=holder, skip_respond=True)
+        assert summary["skip_respond"] is True
+        records = read_predictions(tmp_path / "run" / "predictions.jsonl")
+        assert records[3, "agent"]["n_llm_calls"] == 1
+        assert records[3, "baseline"]["n_llm_calls"] == 1
+        assert summary["systems"]["agent"]["ex"] == 0.5
+        assert holder[0].n_calls == 12  # 6 baseline + 6 agent reason, no respond
+
+    def test_flag_parsed(self) -> None:
+        assert parse_args(["--llm-config", "x.yaml"]).skip_respond is False
+        assert parse_args(["--llm-config", "x.yaml", "--skip-respond"]).skip_respond is True

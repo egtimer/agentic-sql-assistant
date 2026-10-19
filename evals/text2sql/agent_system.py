@@ -30,9 +30,16 @@ def select_sql(tool_results: list[dict[str, Any]]) -> str:
 
 
 def predict_agent(
-    question: Question, client: LLMClient, *, database: Path | None = None
+    question: Question,
+    client: LLMClient,
+    *,
+    database: Path | None = None,
+    skip_respond: bool = False,
 ) -> tuple[str, int]:
-    """Run the agent (sql_only profile) on one question. Returns ``(sql, n_llm_calls)``."""
+    """Run the agent (sql_only profile) on one question. Returns ``(sql, n_llm_calls)``.
+
+    ``skip_respond`` drops the final natural-language answer call, which EX does not score.
+    """
     database = database or db_path(question.db_id)
     counting = CountingClient(client)
     token = set_client(counting)
@@ -42,6 +49,7 @@ def predict_agent(
             schema_description=cached_schema(str(database)),
             db_path=str(database),
             profile=ToolProfile.SQL_ONLY,
+            skip_respond=skip_respond,
         )
     finally:
         reset_client(token)

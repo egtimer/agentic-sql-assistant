@@ -93,6 +93,10 @@ class AgentState(BaseModel):
         description="Database schema (CREATE TABLE statements) shown to the LLM; "
         "used by non-default profiles",
     )
+    skip_respond: bool = Field(
+        default=False,
+        description="Skip the final answer step (no LLM call); used by execution-accuracy evals",
+    )
     db_path: str | None = Field(
         default=None,
         description="SQLite file for sql_query; None uses the sample sales database",

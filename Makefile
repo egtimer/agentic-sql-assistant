@@ -33,7 +33,7 @@ eval-sql:
 	uv run python -m evals.text2sql.run --llm-config $(LLM_CONFIG) --system $(SYSTEM) --split $(SPLIT) \
 		$(if $(LIMIT),--limit $(LIMIT)) $(if $(BUDGET_USD),--budget-usd $(BUDGET_USD)) \
 		$(if $(RUN_ID),--run-id $(RUN_ID)) $(if $(WORKERS),--workers $(WORKERS)) \
-		$(if $(SEED),--seed $(SEED)) $(if $(RESUME),--resume) $(if $(QUESTION_IDS),--question-ids $(QUESTION_IDS))
+		$(if $(SEED),--seed $(SEED)) $(if $(SKIP_RESPOND),--skip-respond) $(if $(RESUME),--resume) $(if $(QUESTION_IDS),--question-ids $(QUESTION_IDS))
 
 bird-data:
 	uv run python -m evals.text2sql.prepare
