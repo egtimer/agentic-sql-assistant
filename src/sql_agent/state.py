@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.sql_agent.executor import Attempt
+from src.sql_agent.memory import Memory
 from src.sql_guard import GuardPolicy
 
 
@@ -41,6 +42,7 @@ class SqlAgentState(BaseModel):
     max_fixes: int = 2
     skip_respond: bool = False
     policy: GuardPolicy = Field(default_factory=GuardPolicy)
+    user_id: str | None = None  # whose long-term memories ``recall`` reads (needs a store)
 
     schema_context: str = ""
     candidate_sql: str = ""
@@ -49,6 +51,8 @@ class SqlAgentState(BaseModel):
     verdicts: list[Verdict] = Field(default_factory=list)
     final_sql: str = ""
     response: str = ""
+    recalled: list[Memory] = Field(default_factory=list)  # memories shown to generate/check
+    n_memories: int = 0  # memories the user has for this database
 
     # Conversation memory: survives between the turns of one thread (checkpointer), and is
     # the only field that does. Everything above is reset explicitly on every turn.
@@ -65,6 +69,8 @@ class SqlAgentResult(BaseModel):
     response: str = ""
     schema_context: str = ""
     history: list[Turn] = Field(default_factory=list)  # including the turn just answered
+    recalled: list[Memory] = Field(default_factory=list)  # long-term memories that were shown
+    n_memories: int = 0
 
     @property
     def n_unparsed(self) -> int:

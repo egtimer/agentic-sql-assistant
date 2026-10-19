@@ -7,6 +7,7 @@ per-question text in the user part, so the prefix can be cached by providers tha
 from collections.abc import Sequence
 
 from src.sql_agent.executor import Attempt, format_result
+from src.sql_agent.memory import Memory
 from src.sql_agent.state import Turn
 
 GENERATE_SYSTEM = """\
@@ -68,14 +69,32 @@ def history_block(history: Sequence[Turn]) -> str:
     return "\n".join(lines)
 
 
-def question_block(question: str, evidence: str, history: Sequence[Turn] = ()) -> str:
-    """Per-question text of the generate prompt (history, evidence, question last).
+MEMORY_HEADER = "Definitions this user gave in earlier sessions:"
 
-    Without history the text is exactly what it was before conversations existed.
+
+def memory_block(memories: Sequence[Memory]) -> str:
+    """One ``term: definition`` line per memory; "" when there are none."""
+    if not memories:
+        return ""
+    return "\n".join([MEMORY_HEADER, *(f"- {m.term}: {m.definition}" for m in memories)])
+
+
+def question_block(
+    question: str,
+    evidence: str,
+    history: Sequence[Turn] = (),
+    memories: Sequence[Memory] = (),
+) -> str:
+    """Per-question text of the generate prompt: the conversation, the user's remembered
+    definitions, the evidence, and the question last.
+
+    Without history and memories the text is exactly what it was before they existed.
     """
     parts = []
     if history:
         parts.append(history_block(history) + "\n")
+    if memories:
+        parts.append(memory_block(memories) + "\n")
     if evidence.strip():
         parts.append(f"-- External Knowledge: {evidence.strip()}")
     parts.append(f"Question: {question.strip()}")
@@ -96,10 +115,16 @@ def signals(attempt: Attempt) -> list[str]:
     return out
 
 
-def check_user(question: str, evidence: str, attempt: Attempt, history: Sequence[Turn] = ()) -> str:
+def check_user(
+    question: str,
+    evidence: str,
+    attempt: Attempt,
+    history: Sequence[Turn] = (),
+    memories: Sequence[Memory] = (),
+) -> str:
     """Per-question text of the check prompt."""
     parts = [
-        question_block(question, evidence, history),
+        question_block(question, evidence, history, memories),
         f"Candidate query:\n```sql\n{attempt.sql}\n```",
     ]
     parts.append("Execution result:\n" + format_result(attempt))
@@ -119,9 +144,11 @@ __all__ = [
     "GENERATE_SYSTEM",
     "HISTORY_HEADER",
     "HISTORY_TURNS",
+    "MEMORY_HEADER",
     "RESPOND_SYSTEM",
     "check_user",
     "history_block",
+    "memory_block",
     "question_block",
     "respond_user",
     "signals",

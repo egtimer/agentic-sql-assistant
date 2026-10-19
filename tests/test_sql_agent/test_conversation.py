@@ -4,12 +4,15 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.checkpoint.sqlite import SqliteSaver
 
 from src.llm import CallUsage, Completion, reset_client, set_client
 from src.sql_agent.executor import Attempt
-from src.sql_agent.graph import build_graph, run_sql_agent
+from src.sql_agent.graph import (
+    build_graph,
+    memory_checkpointer,
+    open_checkpointer,
+    run_sql_agent,
+)
 from src.sql_agent.prompts import (
     HISTORY_HEADER,
     HISTORY_TURNS,
@@ -106,7 +109,7 @@ class TestHistoryBlock:
 class TestThreads:
     def test_second_turn_sees_the_first(self, db: Path) -> None:
         llm = ScriptedLLM(generate=[sql(ALL), sql(BIG)], check=["OK"])
-        saver = InMemorySaver()
+        saver = memory_checkpointer()
         first = ask(llm, db, "Which cities?", thread_id="t1", checkpointer=saver)
         second = ask(
             llm, db, "Only the big ones?", "big is pop > 5", thread_id="t1", checkpointer=saver
@@ -124,7 +127,7 @@ class TestThreads:
 
     def test_turn_stores_shape_not_rows(self, db: Path) -> None:
         llm = ScriptedLLM(generate=[sql(ALL)], check=["OK"])
-        result = ask(llm, db, "Which cities?", thread_id="t", checkpointer=InMemorySaver())
+        result = ask(llm, db, "Which cities?", thread_id="t", checkpointer=memory_checkpointer())
         (turn,) = result.history
         assert (turn.final_sql, turn.row_count, turn.columns) == (ALL, 2, ["name"])
         assert "Oslo" not in turn.model_dump_json()
@@ -132,7 +135,7 @@ class TestThreads:
     def test_per_turn_state_is_reset(self, db: Path) -> None:
         # turn 1: error, one fix; turn 2: right at once
         llm = ScriptedLLM(generate=[sql(BAD), sql(BIG)], check=[sql(ALL), "OK"])
-        saver = InMemorySaver()
+        saver = memory_checkpointer()
         first = ask(llm, db, "Which cities?", "e1", thread_id="t", checkpointer=saver)
         assert first.fixes_used == 1 and len(first.attempts) == 2 and len(first.verdicts) == 2
         second = ask(llm, db, "Big ones?", "", thread_id="t", checkpointer=saver)
@@ -144,7 +147,7 @@ class TestThreads:
 
     def test_threads_do_not_share_history(self, db: Path) -> None:
         llm = ScriptedLLM(generate=[sql(ALL)], check=["OK"])
-        saver = InMemorySaver()
+        saver = memory_checkpointer()
         ask(llm, db, "Which cities?", thread_id="a", checkpointer=saver)
         other = ask(llm, db, "Another?", thread_id="b", checkpointer=saver)
         assert HISTORY_HEADER not in llm.of("generate")[1][1]
@@ -159,7 +162,7 @@ class TestThreads:
 
     def test_only_the_last_three_turns_reach_the_prompt(self, db: Path) -> None:
         llm = ScriptedLLM(generate=[sql(ALL)], check=["OK"])
-        saver = InMemorySaver()
+        saver = memory_checkpointer()
         for i in range(5):
             result = ask(llm, db, f"question {i}?", thread_id="t", checkpointer=saver)
         prompt = llm.of("generate")[4][1]
@@ -170,7 +173,7 @@ class TestThreads:
 
     def test_respond_prompt_is_unchanged_by_history(self, db: Path) -> None:
         llm = ScriptedLLM(generate=[sql(ALL)], check=["OK"], respond=["Two."])
-        saver = InMemorySaver()
+        saver = memory_checkpointer()
         token = set_client(llm)
         try:
             for q in ("Which cities?", "And again?"):
@@ -183,10 +186,8 @@ class TestThreads:
     def test_history_survives_a_new_sqlite_saver(self, db: Path, tmp_path: Path) -> None:
         path = tmp_path / "checkpoints.sqlite"
         llm = ScriptedLLM(generate=[sql(ALL)], check=["OK"])
-        with SqliteSaver.from_conn_string(str(path)) as saver:
-            ask(llm, db, "Which cities?", thread_id="t", checkpointer=saver)
-        with SqliteSaver.from_conn_string(str(path)) as saver:
-            result = ask(llm, db, "Again?", thread_id="t", checkpointer=saver)
+        ask(llm, db, "Which cities?", thread_id="t", checkpointer=open_checkpointer(path))
+        result = ask(llm, db, "Again?", thread_id="t", checkpointer=open_checkpointer(path))
         assert f"- Question: Which cities?\n  SQL: {ALL}" in llm.of("generate")[1][1]
         assert len(result.history) == 2
 
@@ -195,8 +196,20 @@ class TestThreads:
         with pytest.raises(ValueError):
             ask(llm, db, "q", thread_id="t")
         with pytest.raises(ValueError):
-            ask(llm, db, "q", checkpointer=InMemorySaver())
+            ask(llm, db, "q", checkpointer=memory_checkpointer())
 
     def test_default_graph_stays_cached_and_checkpointed_graphs_are_separate(self) -> None:
         assert build_graph() is build_graph()
-        assert build_graph(InMemorySaver()) is not build_graph()
+        assert build_graph(memory_checkpointer()) is not build_graph()
+
+
+def test_checkpoints_use_only_registered_types(
+    db: Path, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """LangGraph warns about (and will block) types it was not told about; ours are listed."""
+    llm = ScriptedLLM(generate=[sql(BAD), sql(ALL)], check=[sql(ALL), "OK"])
+    for saver in (memory_checkpointer(), open_checkpointer(tmp_path / "c.sqlite")):
+        for question in ("first?", "second?"):
+            result = ask(llm, db, question, thread_id="reg", checkpointer=saver)
+        assert len(result.history) == 2
+    assert "unregistered" not in caplog.text

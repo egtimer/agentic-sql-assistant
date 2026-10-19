@@ -2,13 +2,17 @@
 
 import functools
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, TypeVar, cast
+
+from langgraph.store.base import BaseStore
 
 from src.llm import get_client
 from src.observability import tracing
 from src.sql_agent.executor import Attempt, format_result, run_query, select_final_sql
 from src.sql_agent.extract import extract_check_sql, extract_sql
 from src.sql_agent.introspect import schema_block, schema_context
+from src.sql_agent.memory import recall
 from src.sql_agent.prompts import (
     CHECK_SYSTEM,
     GENERATE_SYSTEM,
@@ -114,6 +118,28 @@ def introspect_node(state: SqlAgentState) -> dict[str, Any]:
     }
 
 
+def recall_node(state: SqlAgentState, *, store: BaseStore | None = None) -> dict[str, Any]:
+    """Read this user's memories for the database and keep the ones relevant to the question.
+
+    ``store`` is injected by LangGraph (the store the graph was compiled with). Without a
+    store or a ``user_id`` nothing is recalled and the prompts stay what they were.
+    """
+    db_id = Path(state.db_path).stem
+    if store is None or not state.user_id:
+        return {"recalled": [], "n_memories": 0}
+    with tracing.span(
+        "recall", input={"user_id": state.user_id, "db_id": db_id, "question": state.question}
+    ) as handle:
+        memories, available = recall(store, state.user_id, db_id, state.question, state.evidence)
+        handle.update(
+            output={
+                "available": available,
+                "injected": [{"key": m.key, "definition": m.definition} for m in memories],
+            }
+        )
+    return {"recalled": memories, "n_memories": available}
+
+
 @_traced(
     "generate",
     lambda s: {"question": s.question, "evidence": s.evidence},
@@ -122,7 +148,7 @@ def introspect_node(state: SqlAgentState) -> dict[str, Any]:
 def generate_node(state: SqlAgentState) -> dict[str, Any]:
     completion = get_client().complete(
         GENERATE_SYSTEM,
-        question_block(state.question, state.evidence, state.history),
+        question_block(state.question, state.evidence, state.history, state.recalled),
         tag="generate",
         prefix=schema_block(state.schema_context),
     )
@@ -148,7 +174,7 @@ def check_node(state: SqlAgentState) -> dict[str, Any]:
     attempt = state.attempts[-1]
     completion = get_client().complete(
         CHECK_SYSTEM,
-        check_user(state.question, state.evidence, attempt, state.history),
+        check_user(state.question, state.evidence, attempt, state.history, state.recalled),
         tag="check",
         prefix=schema_block(state.schema_context),
     )
