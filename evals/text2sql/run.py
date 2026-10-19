@@ -2,9 +2,13 @@
 
 Example:
     python -m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml \\
-        --system both --split dev --limit 20 --budget-usd 1.00 --run-id smoke
+        --system baseline,agent_v2 --split dev --limit 20 --budget-usd 1.00 --run-id smoke
 
-Systems run in separate passes (all baseline questions, then all agent questions) and
+Systems (comma-separated, run in the order given): baseline, baseline_ctx, agent_v1,
+agent_v2_nocheck, agent_v2. ``agent`` is an alias of agent_v1 and ``both`` of
+``baseline,agent_v1``.
+
+Systems run in separate passes (all questions of one system, then the next) and
 questions are ordered by (db_id, question_id), so a local server can reuse the cached
 schema prefix of the prompts. ``--workers > 1`` is meant for the API provider.
 """
@@ -24,8 +28,12 @@ from typing import Any
 
 import yaml
 
-from evals.text2sql.agent_system import predict_agent
-from evals.text2sql.baseline import CountingClient, predict_baseline
+from evals.text2sql.agent_system import (
+    predict_agent,
+    predict_agent_v2,
+    predict_agent_v2_nocheck,
+)
+from evals.text2sql.baseline import CountingClient, predict_baseline, predict_baseline_ctx
 from evals.text2sql.data import (
     DIFFICULTIES,
     REPO_ROOT,
@@ -49,8 +57,46 @@ RESULTS_ROOT = REPO_ROOT / "evals" / "results" / "text2sql"
 FAILURE_STOP_REASONS = ("refusal", "max_tokens")
 MAX_CONSECUTIVE_EXCEPTIONS = 3
 
-Predictor = Callable[..., tuple[str, int]]
-PREDICTORS: dict[str, Predictor] = {"baseline": predict_baseline, "agent": predict_agent}
+# A predictor returns ``(sql, n_llm_calls)`` or ``(sql, n_llm_calls, details)``.
+Predictor = Callable[..., tuple[Any, ...]]
+PREDICTORS: dict[str, Predictor] = {
+    "baseline": predict_baseline,
+    "baseline_ctx": predict_baseline_ctx,
+    "agent": predict_agent,  # alias of agent_v1 (name used by older summaries)
+    "agent_v1": predict_agent,
+    "agent_v2_nocheck": predict_agent_v2_nocheck,
+    "agent_v2": predict_agent_v2,
+}
+V1_SYSTEMS = frozenset({"agent", "agent_v1"})
+V2_SYSTEMS = frozenset({"agent_v2", "agent_v2_nocheck"})
+SYSTEM_ALIASES = {"agent": "agent_v1", "both": "baseline,agent_v1"}
+DEFAULT_MAX_FIXES = 2
+
+
+def parse_systems(value: str) -> list[str]:
+    """``--system`` value -> ordered, de-duplicated list of system names."""
+    names: list[str] = []
+    for raw in value.split(","):
+        name = raw.strip()
+        for part in SYSTEM_ALIASES.get(name, name).split(","):
+            if part not in PREDICTORS or part == "agent":
+                raise ValueError(
+                    f"unknown system {name!r}; choose from {sorted(set(PREDICTORS) - {'agent'})}"
+                )
+            if part not in names:
+                names.append(part)
+    return names
+
+
+def system_options(system: str, *, skip_respond: bool, max_fixes: int) -> dict[str, Any]:
+    """Keyword options passed to the predictor of ``system``."""
+    if system in V1_SYSTEMS:
+        return {"skip_respond": True} if skip_respond else {}
+    if system in V2_SYSTEMS:
+        return {"skip_respond": skip_respond, "max_fixes": max_fixes}
+    return {}
+
+
 ClientFactory = Callable[[LLMConfig, UsageTracker], LLMClient]
 
 
@@ -178,6 +224,7 @@ def evaluate_question(
     databases_dir: Path | None,
     timeout_s: float,
     skip_respond: bool = False,
+    max_fixes: int = DEFAULT_MAX_FIXES,
 ) -> dict[str, Any]:
     """Predict and score one (question, system) pair. Raises BudgetExceeded on the cap."""
     database = db_path(question.db_id, databases_dir)
@@ -185,12 +232,15 @@ def evaluate_question(
     pred_sql = ""
     n_calls = 0
     error: str | None = None
+    details: dict[str, Any] | None = None
     exception = False
     start = time.perf_counter()
     with call_context(run_id=run_id, system=system, question_id=question.question_id):
         try:
-            options = {"skip_respond": True} if skip_respond and system == "agent" else {}
-            pred_sql, n_calls = PREDICTORS[system](question, recorder, database=database, **options)
+            options = system_options(system, skip_respond=skip_respond, max_fixes=max_fixes)
+            out = PREDICTORS[system](question, recorder, database=database, **options)
+            pred_sql, n_calls = out[0], out[1]
+            details = out[2] if len(out) > 2 else None
         except BudgetExceeded:
             raise
         except Exception as e:  # API or agent failure: record it and keep going
@@ -208,6 +258,17 @@ def evaluate_question(
         error = score.error
         failure_type = classify(score.correct, score.error, stop_reasons)
         correct = score.correct and failure_type is None
+
+    extra: dict[str, Any] = {}
+    if details is not None and not exception:
+        first_sql = details["attempts"][0]["sql"] if details["attempts"] else ""
+        if first_sql == pred_sql:
+            first_correct = score.correct
+        else:
+            first_correct = score_prediction(
+                question.question_id, database, first_sql, question.sql, gold_cache, timeout_s
+            ).correct
+        extra = {**details, "first_sql": first_sql, "first_sql_correct": first_correct}
 
     usages = recorder.usages
     return {
@@ -230,6 +291,33 @@ def evaluate_question(
         "cost_usd": sum(u.cost_usd for u in usages),
         "latency_ms": latency_ms,
         "llm_latency_ms": sum(u.latency_ms for u in usages),
+        **extra,
+    }
+
+
+def summarize_v2(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Agent v2 extras: what the fix loop changed, relative to the first generated SQL."""
+    rows = [r for r in records if "first_sql_correct" in r]
+    if not rows:
+        return None
+    flips = {"wrong_to_right": 0, "right_to_wrong": 0, "wrong_to_wrong": 0, "right_to_right": 0}
+    for r in rows:
+        if r["first_sql"] == r["pred_sql"]:
+            continue
+        before = "right" if r["first_sql_correct"] else "wrong"
+        after = "right" if r["correct"] else "wrong"
+        flips[f"{before}_to_{after}"] += 1
+    n = len(rows)
+    first_correct = sum(1 for r in rows if r["first_sql_correct"])
+    return {
+        "n": n,
+        "flips": flips,
+        "n_final_differs_from_first": sum(flips.values()),
+        "frac_with_fix": sum(1 for r in rows if r["fixes_used"] >= 1) / n,
+        "llm_calls_mean": sum(r["n_llm_calls"] for r in rows) / n,
+        "unparsed_checks": sum(1 for r in rows for v in r["verdicts"] if v["unparsed"]),
+        "first_sql_correct": first_correct,
+        "first_sql_ex": first_correct / n,
     }
 
 
@@ -262,11 +350,13 @@ def summarize_system(
     cache_read = sum(r["cache_read_tokens"] for r in records)
     cache_write = sum(r["cache_write_tokens"] for r in records)
     prompt_total = input_total + cache_read + cache_write
+    v2 = summarize_v2(records)
     return {
         "n": n,
         "n_planned": n_planned,
         "aborted": aborted,
         **ex(records),
+        **({"v2": v2} if v2 else {}),
         "by_difficulty": {
             d: ex([r for r in records if r["difficulty"] == d]) for d in DIFFICULTIES
         },
@@ -299,17 +389,21 @@ def compare_systems(
     resamples: int = DEFAULT_RESAMPLES,
     bootstrap_seed: int = DEFAULT_SEED,
 ) -> dict[str, Any] | None:
-    """Paired bootstrap of agent EX minus baseline EX on the questions both systems ran."""
-    if "agent" not in system_records or "baseline" not in system_records:
-        return None
-    outcomes = {
-        s: {r["question_id"]: bool(r["correct"]) for r in system_records[s]}
-        for s in ("agent", "baseline")
-    }
-    result = paired_bootstrap(
-        outcomes["agent"], outcomes["baseline"], resamples=resamples, seed=bootstrap_seed
-    )
-    return None if result is None else {"agent_minus_baseline": result}
+    """Paired bootstrap of EX(j) - EX(i) for every pair i < j, in the order the systems ran.
+
+    Keys look like ``agent_v2_minus_baseline``; only questions both systems ran are used.
+    """
+    names = list(system_records)
+    outcomes = {s: {r["question_id"]: bool(r["correct"]) for r in system_records[s]} for s in names}
+    comparison: dict[str, Any] = {}
+    for i, first in enumerate(names):
+        for second in names[i + 1 :]:
+            result = paired_bootstrap(
+                outcomes[second], outcomes[first], resamples=resamples, seed=bootstrap_seed
+            )
+            if result is not None:
+                comparison[f"{second}_minus_{first}"] = result
+    return comparison or None
 
 
 def format_ci(block: dict[str, Any]) -> str:
@@ -325,7 +419,7 @@ def format_ci(block: dict[str, Any]) -> str:
 def format_table(summary: dict[str, Any]) -> str:
     """Short text table of the per-system results."""
     header = (
-        f"{'system':<10}{'n':>5}{'EX [95% CI]':>22}{'simple':>9}{'moderate':>10}{'challeng.':>11}"
+        f"{'system':<18}{'n':>5}{'EX [95% CI]':>22}{'simple':>9}{'moderate':>10}{'challeng.':>11}"
         f"{'cost $':>10}{'in tok/q':>10}{'out tok/q':>11}{'lat s/q':>9}"
     )
     lines = [header, "-" * len(header)]
@@ -337,7 +431,7 @@ def format_table(summary: dict[str, Any]) -> str:
         tokens = s["tokens"]
         latency = s["latency_ms"]["mean"]
         lines.append(
-            f"{name:<10}{s['n']:>5}{format_ci(s):>22}"
+            f"{name:<18}{s['n']:>5}{format_ci(s):>22}"
             f"{pct(s['by_difficulty']['simple']):>9}{pct(s['by_difficulty']['moderate']):>10}"
             f"{pct(s['by_difficulty']['challenging']):>11}"
             f"{s['cost_usd']['total']:>10.4f}"
@@ -353,10 +447,21 @@ def format_table(summary: dict[str, Any]) -> str:
         lines.append(f"  {name} EX by difficulty [95% CI]: {by_difficulty}")
         if s["failures"]:
             lines.append(f"  {name} failures: {s['failures']}")
-    paired = (summary.get("comparison") or {}).get("agent_minus_baseline")
-    if paired:
+    for name, s in summary["systems"].items():
+        v2 = s.get("v2")
+        if v2:
+            f = v2["flips"]
+            lines.append(
+                f"  {name} first-SQL EX: {v2['first_sql_ex']:.1%}; final differs from first in "
+                f"{v2['n_final_differs_from_first']} (wrong->right {f['wrong_to_right']}, "
+                f"right->wrong {f['right_to_wrong']}, wrong->wrong {f['wrong_to_wrong']}, "
+                f"right->right {f['right_to_right']}); with a fix: {v2['frac_with_fix']:.1%}; "
+                f"LLM calls/q: {v2['llm_calls_mean']:.2f}; unparsed checks: {v2['unparsed_checks']}"
+            )
+    for key, paired in (summary.get("comparison") or {}).items():
+        label = key.replace("_minus_", " - ")
         lines.append(
-            f"agent - baseline EX: {paired['diff'] * 100:+.1f} pts "
+            f"{label} EX: {paired['diff'] * 100:+.1f} pts "
             f"[{paired['ci_low'] * 100:+.1f}, {paired['ci_high'] * 100:+.1f}] "
             f"(95% paired bootstrap, n={paired['n']}, "
             f"resamples with diff <= 0: {paired['frac_resamples_le_zero']:.1%})"
@@ -380,6 +485,7 @@ def run_experiment(
     databases_dir: Path | None = None,
     timeout_s: float = 30,
     skip_respond: bool = False,
+    max_fixes: int = DEFAULT_MAX_FIXES,
     bootstrap_resamples: int = DEFAULT_RESAMPLES,
     bootstrap_seed: int = DEFAULT_SEED,
     extra_meta: dict[str, Any] | None = None,
@@ -414,6 +520,7 @@ def run_experiment(
                 databases_dir=databases_dir,
                 timeout_s=timeout_s,
                 skip_respond=skip_respond,
+                max_fixes=max_fixes,
             )
         except BudgetExceeded as e:
             abort_reason.setdefault(system, "budget")
@@ -485,6 +592,8 @@ def run_experiment(
         "resumed": resume,
         "workers": workers,
         "skip_respond": skip_respond,
+        "max_fixes": max_fixes,
+        "systems_order": systems,
         "llm_config_file": llm_config_name,
         "llm_config": config.model_dump(),
         "git": git_info(),
@@ -501,7 +610,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--llm-config", type=Path, required=True, help="YAML in configs/llm/")
-    parser.add_argument("--system", choices=["baseline", "agent", "both"], default="both")
+    parser.add_argument(
+        "--system",
+        default="both",
+        help="comma-separated systems, run in this order: baseline, baseline_ctx, agent_v1,\n"
+        "agent_v2_nocheck, agent_v2 (agent = agent_v1; both = baseline,agent_v1)",
+    )
+    parser.add_argument(
+        "--max-fixes",
+        type=int,
+        default=DEFAULT_MAX_FIXES,
+        help="agent_v2*: maximum number of query fixes after the first SQL (default 2)",
+    )
     parser.add_argument("--split", choices=["dev", "test"], default="dev")
     parser.add_argument(
         "--limit",
@@ -520,7 +640,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--skip-respond",
         action="store_true",
-        help="agent: skip the final natural-language answer step (EX does not score it);\n"
+        help="agents: skip the final natural-language answer step (EX does not score it);\n"
         "its cost is then excluded from the reported cost; recorded in summary.json",
     )
     parser.add_argument("--resume", action="store_true", help="skip pairs already predicted")
@@ -532,7 +652,10 @@ def main(argv: list[str] | None = None) -> None:
     config = load_llm_config(args.llm_config)
     if config.provider == "anthropic" and args.budget_usd is None:
         raise SystemExit("--budget-usd is required for the anthropic provider")
-    systems = ["baseline", "agent"] if args.system == "both" else [args.system]
+    try:
+        systems = parse_systems(args.system)
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
     run_id = args.run_id or f"{datetime.now(UTC):%Y%m%d-%H%M%S}-{args.llm_config.stem}"
     questions = select_questions(
         load_questions(), load_split(args.split), args.limit, args.question_ids, args.seed
@@ -549,6 +672,7 @@ def main(argv: list[str] | None = None) -> None:
         workers=args.workers,
         resume=args.resume,
         skip_respond=args.skip_respond,
+        max_fixes=args.max_fixes,
         llm_config_name=str(args.llm_config),
         extra_meta={
             "limit": args.limit,

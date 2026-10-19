@@ -6,6 +6,7 @@ from pathlib import Path
 from evals.text2sql.data import Question, db_path, schema_ddl
 from src.llm import CallUsage, Completion, LLMClient
 from src.sql_agent.extract import extract_sql
+from src.sql_agent.introspect import schema_context
 
 BASELINE_SYSTEM = (
     "You are an expert SQLite analyst. Given a database schema, optional external knowledge "
@@ -68,4 +69,16 @@ def predict_baseline(
     schema = cached_schema(str(database or db_path(question.db_id)))
     system, prefix, suffix = build_baseline_parts(question, schema)
     completion = counting.complete(system, suffix, tag="baseline", prefix=prefix)
+    return extract_sql(completion.text), counting.n_calls
+
+
+def predict_baseline_ctx(
+    question: Question, client: LLMClient, *, database: Path | None = None
+) -> tuple[str, int]:
+    """Single shot with the baseline prompt, but with the v2 schema context (DDL, keys and
+    example values) instead of the plain DDL. Isolates the effect of the context."""
+    counting = CountingClient(client)
+    context = schema_context(database or db_path(question.db_id), sample_values=True)
+    system, prefix, suffix = build_baseline_parts(question, context)
+    completion = counting.complete(system, suffix, tag="baseline_ctx", prefix=prefix)
     return extract_sql(completion.text), counting.n_calls

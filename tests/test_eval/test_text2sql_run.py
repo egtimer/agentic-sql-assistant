@@ -352,7 +352,14 @@ class TestHelpers:
         assert [q.question_id for q in execution_order(questions)] == [1, 2, 4, 3, 5, 9]
 
     def test_predictors_registered(self) -> None:
-        assert set(PREDICTORS) == {"baseline", "agent"}
+        assert set(PREDICTORS) == {
+            "baseline",
+            "baseline_ctx",
+            "agent",
+            "agent_v1",
+            "agent_v2_nocheck",
+            "agent_v2",
+        }
 
     def test_parse_args_defaults(self) -> None:
         args = parse_args(["--llm-config", "x.yaml"])
