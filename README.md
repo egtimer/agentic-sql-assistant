@@ -102,6 +102,7 @@ The project includes a golden dataset of 15 queries across 4 categories. The cur
 
 - [ADR-001: Agent Architecture](docs/ADR-001-agent-architecture.md) — LangGraph StateGraph with 4 nodes
 - [ADR-002: Tool Selection](docs/ADR-002-tool-selection.md) — LLM-based tool selection with JSON output
+- [ADR-004: SQL Agent v2](docs/ADR-004-sql-agent-v2.md) — code-driven generate, execute, check loop for text-to-SQL
 
 ## Stack
 
