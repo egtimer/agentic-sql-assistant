@@ -1,0 +1,316 @@
+{
+  "run_id": "a6-followups-dev-it1",
+  "kind": "followup_memory",
+  "split": "dev",
+  "n_questions": 30,
+  "systems": {
+    "turn2_alone": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 15,
+      "ex": 0.5,
+      "ex_ci95": [
+        0.3333333333333333,
+        0.6666666666666666
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 0,
+          "wrong_to_wrong": 4,
+          "right_to_right": 1
+        },
+        "n_final_differs_from_first": 5,
+        "frac_with_fix": 0.16666666666666666,
+        "llm_calls_mean": 2.1666666666666665,
+        "unparsed_checks": 0,
+        "first_sql_correct": 15,
+        "first_sql_ex": 0.5
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 3,
+          "ex": 0.42857142857142855,
+          "ex_ci95": [
+            0.14285714285714285,
+            0.8571428571428571
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 10,
+          "ex": 0.5,
+          "ex_ci95": [
+            0.3,
+            0.7
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 2,
+          "ex": 0.6666666666666666,
+          "ex_ci95": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 12918,
+        "output_total": 20837,
+        "cache_read_total": 147405,
+        "cache_write_total": 75878,
+        "cache_hit_ratio": 0.6240659438359702,
+        "input_mean_per_question": 430.6,
+        "output_mean_per_question": 694.5666666666667
+      },
+      "cost_usd": {
+        "total": 0.0226691,
+        "mean_per_question": 0.0007556366666666667
+      },
+      "llm_calls_mean_per_question": 2.1666666666666665,
+      "latency_ms": {
+        "mean": 9374.357656466676,
+        "median": 6024.9885825003275
+      },
+      "failures": {
+        "wrong_result": 15
+      }
+    },
+    "with_history": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 18,
+      "ex": 0.6,
+      "ex_ci95": [
+        0.43333333333333335,
+        0.7666666666666667
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 1,
+          "wrong_to_wrong": 3,
+          "right_to_right": 1
+        },
+        "n_final_differs_from_first": 5,
+        "frac_with_fix": 0.16666666666666666,
+        "llm_calls_mean": 4.166666666666667,
+        "unparsed_checks": 0,
+        "first_sql_correct": 19,
+        "first_sql_ex": 0.6333333333333333
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 6,
+          "ex": 0.8571428571428571,
+          "ex_ci95": [
+            0.5714285714285714,
+            1.0
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 10,
+          "ex": 0.5,
+          "ex_ci95": [
+            0.3,
+            0.7
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 2,
+          "ex": 0.6666666666666666,
+          "ex_ci95": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 35360,
+        "output_total": 29150,
+        "cache_read_total": 431074,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.9241907751150217,
+        "input_mean_per_question": 1178.6666666666667,
+        "output_mean_per_question": 971.6666666666666
+      },
+      "cost_usd": {
+        "total": 0.02242174,
+        "mean_per_question": 0.0007473913333333333
+      },
+      "llm_calls_mean_per_question": 4.166666666666667,
+      "latency_ms": {
+        "mean": 7390.73863086666,
+        "median": 6897.182359999988
+      },
+      "failures": {
+        "wrong_result": 12
+      }
+    },
+    "original": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 18,
+      "ex": 0.6,
+      "ex_ci95": [
+        0.43333333333333335,
+        0.7666666666666667
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 0,
+          "wrong_to_wrong": 4,
+          "right_to_right": 0
+        },
+        "n_final_differs_from_first": 4,
+        "frac_with_fix": 0.13333333333333333,
+        "llm_calls_mean": 2.1333333333333333,
+        "unparsed_checks": 0,
+        "first_sql_correct": 18,
+        "first_sql_ex": 0.6
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 5,
+          "ex": 0.7142857142857143,
+          "ex_ci95": [
+            0.2857142857142857,
+            1.0
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 11,
+          "ex": 0.55,
+          "ex_ci95": [
+            0.35,
+            0.75
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 2,
+          "ex": 0.6666666666666666,
+          "ex_ci95": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 14166,
+        "output_total": 16399,
+        "cache_read_total": 217929,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.9389646480966846,
+        "input_mean_per_question": 472.2,
+        "output_mean_per_question": 546.6333333333333
+      },
+      "cost_usd": {
+        "total": 0.01179539,
+        "mean_per_question": 0.00039317966666666665
+      },
+      "llm_calls_mean_per_question": 2.1333333333333333,
+      "latency_ms": {
+        "mean": 4029.164353799979,
+        "median": 3447.7417909999986
+      },
+      "failures": {
+        "wrong_result": 12
+      }
+    }
+  },
+  "comparison": {
+    "with_history_minus_turn2_alone": {
+      "n": 30,
+      "diff": 0.1,
+      "ci_low": -0.03333333333333333,
+      "ci_high": 0.23333333333333334,
+      "frac_resamples_le_zero": 0.1132
+    },
+    "original_minus_turn2_alone": {
+      "n": 30,
+      "diff": 0.1,
+      "ci_low": 0.0,
+      "ci_high": 0.23333333333333334,
+      "frac_resamples_le_zero": 0.0421
+    },
+    "original_minus_with_history": {
+      "n": 30,
+      "diff": 0.0,
+      "ci_low": -0.13333333333333333,
+      "ci_high": 0.13333333333333333,
+      "frac_resamples_le_zero": 0.6108
+    }
+  },
+  "totals": {
+    "cost_usd": 0.056886229999999996,
+    "n_llm_calls": 254
+  },
+  "notes": [
+    "n = 30 conversations and every one comes from the dev split: the intervals are wide, treat the point estimates as indicative.",
+    "with_history scores turn 2 only; turn 1 cost and calls are in its totals.",
+    "Every condition gets the evidence of the source question; the history is the only variable between turn2_alone and with_history."
+  ],
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.05688623000000002,
+    "budget_usd": 0.15
+  },
+  "workers": 4,
+  "skip_respond": true,
+  "max_fixes": 2,
+  "conditions_order": [
+    "turn2_alone",
+    "with_history",
+    "original"
+  ],
+  "llm_config_file": "configs/llm/claude-haiku-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "prompt_caching": true,
+    "pricing": {
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "cache_read_per_mtok": 0.01,
+      "cache_write_per_mtok": 0.125,
+      "long_context_threshold": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5,
+      "long_cache_read_per_mtok": 0.05,
+      "long_cache_write_per_mtok": 0.625
+    }
+  },
+  "git": {
+    "commit": "bc05247941db49ec62fbcb037ad480dbd3ad3f52",
+    "dirty": false
+  },
+  "started_at": "2026-10-19T11:18:29.007328+00:00",
+  "finished_at": "2026-10-19T11:21:17.474115+00:00"
+}

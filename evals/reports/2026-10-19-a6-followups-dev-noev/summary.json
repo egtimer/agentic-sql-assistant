@@ -1,0 +1,317 @@
+{
+  "run_id": "a6-followups-dev-noev",
+  "kind": "followup_memory",
+  "split": "dev",
+  "n_questions": 30,
+  "systems": {
+    "turn2_alone": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 2,
+      "ex": 0.06666666666666667,
+      "ex_ci95": [
+        0.0,
+        0.16666666666666666
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 0,
+          "wrong_to_wrong": 5,
+          "right_to_right": 0
+        },
+        "n_final_differs_from_first": 5,
+        "frac_with_fix": 0.16666666666666666,
+        "llm_calls_mean": 2.1666666666666665,
+        "unparsed_checks": 0,
+        "first_sql_correct": 2,
+        "first_sql_ex": 0.06666666666666667
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 1,
+          "ex": 0.14285714285714285,
+          "ex_ci95": [
+            0.0,
+            0.42857142857142855
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 1,
+          "ex": 0.05,
+          "ex_ci95": [
+            0.0,
+            0.15
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 0,
+          "ex": 0.0,
+          "ex_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 10470,
+        "output_total": 24530,
+        "cache_read_total": 216115,
+        "cache_write_total": 10159,
+        "cache_hit_ratio": 0.9128636839793194,
+        "input_mean_per_question": 349.0,
+        "output_mean_per_question": 817.6666666666666
+      },
+      "cost_usd": {
+        "total": 0.016743025,
+        "mean_per_question": 0.0005581008333333334
+      },
+      "llm_calls_mean_per_question": 2.1666666666666665,
+      "latency_ms": {
+        "mean": 5675.266183733341,
+        "median": 5263.486463999925
+      },
+      "failures": {
+        "wrong_result": 28
+      }
+    },
+    "with_history": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 14,
+      "ex": 0.4666666666666667,
+      "ex_ci95": [
+        0.3,
+        0.6333333333333333
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 2,
+          "wrong_to_wrong": 4,
+          "right_to_right": 0
+        },
+        "n_final_differs_from_first": 6,
+        "frac_with_fix": 0.2,
+        "llm_calls_mean": 4.233333333333333,
+        "unparsed_checks": 0,
+        "first_sql_correct": 16,
+        "first_sql_ex": 0.5333333333333333
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 5,
+          "ex": 0.7142857142857143,
+          "ex_ci95": [
+            0.2857142857142857,
+            1.0
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 7,
+          "ex": 0.35,
+          "ex_ci95": [
+            0.15,
+            0.55
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 2,
+          "ex": 0.6666666666666666,
+          "ex_ci95": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 33189,
+        "output_total": 28401,
+        "cache_read_total": 431986,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.9286526576019778,
+        "input_mean_per_question": 1106.3,
+        "output_mean_per_question": 946.7
+      },
+      "cost_usd": {
+        "total": 0.02183926,
+        "mean_per_question": 0.0007279753333333333
+      },
+      "llm_calls_mean_per_question": 4.233333333333333,
+      "latency_ms": {
+        "mean": 7377.612559566661,
+        "median": 6980.133002499997
+      },
+      "failures": {
+        "wrong_result": 16
+      }
+    },
+    "original": {
+      "n": 30,
+      "n_planned": 30,
+      "aborted": null,
+      "correct": 17,
+      "ex": 0.5666666666666667,
+      "ex_ci95": [
+        0.4,
+        0.7333333333333333
+      ],
+      "v2": {
+        "n": 30,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 1,
+          "wrong_to_wrong": 1,
+          "right_to_right": 1
+        },
+        "n_final_differs_from_first": 3,
+        "frac_with_fix": 0.1,
+        "llm_calls_mean": 2.1,
+        "unparsed_checks": 0,
+        "first_sql_correct": 18,
+        "first_sql_ex": 0.6
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 4,
+          "ex": 0.5714285714285714,
+          "ex_ci95": [
+            0.14285714285714285,
+            0.8571428571428571
+          ]
+        },
+        "moderate": {
+          "n": 20,
+          "correct": 10,
+          "ex": 0.5,
+          "ex_ci95": [
+            0.3,
+            0.7
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 3,
+          "ex": 1.0,
+          "ex_ci95": [
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 12109,
+        "output_total": 17336,
+        "cache_read_total": 217984,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.9473734533427788,
+        "input_mean_per_question": 403.6333333333333,
+        "output_mean_per_question": 577.8666666666667
+      },
+      "cost_usd": {
+        "total": 0.01205874,
+        "mean_per_question": 0.000401958
+      },
+      "llm_calls_mean_per_question": 2.1,
+      "latency_ms": {
+        "mean": 4027.0529709333155,
+        "median": 3721.7701175
+      },
+      "failures": {
+        "wrong_result": 13
+      }
+    }
+  },
+  "comparison": {
+    "with_history_minus_turn2_alone": {
+      "n": 30,
+      "diff": 0.4,
+      "ci_low": 0.23333333333333334,
+      "ci_high": 0.5666666666666667,
+      "frac_resamples_le_zero": 0.0
+    },
+    "original_minus_turn2_alone": {
+      "n": 30,
+      "diff": 0.5,
+      "ci_low": 0.3333333333333333,
+      "ci_high": 0.6666666666666666,
+      "frac_resamples_le_zero": 0.0
+    },
+    "original_minus_with_history": {
+      "n": 30,
+      "diff": 0.1,
+      "ci_low": -0.03333333333333333,
+      "ci_high": 0.23333333333333334,
+      "frac_resamples_le_zero": 0.1241
+    }
+  },
+  "totals": {
+    "cost_usd": 0.050641025,
+    "n_llm_calls": 255
+  },
+  "notes": [
+    "n = 30 conversations and every one comes from the dev split: the intervals are wide, treat the point estimates as indicative.",
+    "with_history scores turn 2 only; turn 1 cost and calls are in its totals.",
+    "No condition gets any evidence, so the history is the only source of the context that turn 1 introduces; the ceiling (original) is lower than with evidence."
+  ],
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.050641024999999985,
+    "budget_usd": 0.15
+  },
+  "workers": 4,
+  "skip_respond": true,
+  "max_fixes": 2,
+  "evidence": "none",
+  "conditions_order": [
+    "turn2_alone",
+    "with_history",
+    "original"
+  ],
+  "llm_config_file": "configs/llm/claude-haiku-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "prompt_caching": true,
+    "pricing": {
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "cache_read_per_mtok": 0.01,
+      "cache_write_per_mtok": 0.125,
+      "long_context_threshold": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5,
+      "long_cache_read_per_mtok": 0.05,
+      "long_cache_write_per_mtok": 0.625
+    }
+  },
+  "git": {
+    "commit": "83ed9a444d639b1888b1b6513c82df60cde0ecaf",
+    "dirty": false
+  },
+  "started_at": "2026-10-19T11:30:52.981001+00:00",
+  "finished_at": "2026-10-19T11:33:09.204972+00:00"
+}

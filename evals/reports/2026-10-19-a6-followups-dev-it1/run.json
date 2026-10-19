@@ -1,0 +1,38 @@
+{
+  "run_id": "a6-followups-dev-it1",
+  "argv": [
+    "/workspaces/portfolio/agentic-sql-assistant/evals/memory/run_followups.py",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--skip-respond",
+    "--workers",
+    "4",
+    "--budget-usd",
+    "0.15",
+    "--run-id",
+    "a6-followups-dev-it1",
+    "--launched-by",
+    "owner-approved A6 dev iteration 1"
+  ],
+  "started_at": "2026-10-19T11:18:28.999720+00:00",
+  "finished_at": "2026-10-19T11:21:17.475316+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "bc05247941db49ec62fbcb037ad480dbd3ad3f52",
+    "dirty": false
+  },
+  "user": "vscode",
+  "hostname": "codespaces-43f2bb",
+  "pid": 34890,
+  "ppid": 34883,
+  "parent_cmdline": "uv run python -m evals.memory.run_followups --llm-config configs/llm/claude-haiku-5-5.yaml --skip-respond --workers 4 --budget-usd 0.15 --run-id a6-followups-dev-it1 --launched-by owner-approved A6 dev iteration 1",
+  "python": "3.12.11",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.15
+  },
+  "launched_by": "owner-approved A6 dev iteration 1",
+  "resumes": []
+}

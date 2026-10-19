@@ -1,0 +1,391 @@
+{
+  "run_id": "a6-longterm-dev-rep",
+  "kind": "longterm_memory",
+  "split": "dev",
+  "n_questions": 149,
+  "user_id": "eval-user",
+  "systems": {
+    "no_memory": {
+      "n": 149,
+      "n_planned": 149,
+      "aborted": null,
+      "correct": 86,
+      "ex": 0.5771812080536913,
+      "ex_ci95": [
+        0.4966442953020134,
+        0.6510067114093959
+      ],
+      "v2": {
+        "n": 149,
+        "flips": {
+          "wrong_to_right": 0,
+          "right_to_wrong": 2,
+          "wrong_to_wrong": 11,
+          "right_to_right": 0
+        },
+        "n_final_differs_from_first": 13,
+        "frac_with_fix": 0.087248322147651,
+        "llm_calls_mean": 2.087248322147651,
+        "unparsed_checks": 0,
+        "first_sql_correct": 88,
+        "first_sql_ex": 0.5906040268456376
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 43,
+          "correct": 30,
+          "ex": 0.6976744186046512,
+          "ex_ci95": [
+            0.5581395348837209,
+            0.8372093023255814
+          ]
+        },
+        "moderate": {
+          "n": 75,
+          "correct": 43,
+          "ex": 0.5733333333333334,
+          "ex_ci95": [
+            0.4533333333333333,
+            0.68
+          ]
+        },
+        "challenging": {
+          "n": 31,
+          "correct": 13,
+          "ex": 0.41935483870967744,
+          "ex_ci95": [
+            0.25806451612903225,
+            0.6129032258064516
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 48361,
+        "output_total": 99445,
+        "cache_read_total": 968318,
+        "cache_write_total": 24580,
+        "cache_hit_ratio": 0.929949224928668,
+        "input_mean_per_question": 324.5704697986577,
+        "output_mean_per_question": 667.4161073825503
+      },
+      "cost_usd": {
+        "total": 0.06731428,
+        "mean_per_question": 0.0004517736912751678
+      },
+      "llm_calls_mean_per_question": 2.087248322147651,
+      "latency_ms": {
+        "mean": 4403.477082496624,
+        "median": 3749.1806419998284
+      },
+      "failures": {
+        "wrong_result": 63
+      }
+    },
+    "memory": {
+      "n": 149,
+      "n_planned": 149,
+      "aborted": null,
+      "correct": 98,
+      "ex": 0.6577181208053692,
+      "ex_ci95": [
+        0.5771812080536913,
+        0.7315436241610739
+      ],
+      "v2": {
+        "n": 149,
+        "flips": {
+          "wrong_to_right": 1,
+          "right_to_wrong": 1,
+          "wrong_to_wrong": 7,
+          "right_to_right": 1
+        },
+        "n_final_differs_from_first": 10,
+        "frac_with_fix": 0.06711409395973154,
+        "llm_calls_mean": 2.0671140939597317,
+        "unparsed_checks": 0,
+        "first_sql_correct": 98,
+        "first_sql_ex": 0.6577181208053692
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 43,
+          "correct": 35,
+          "ex": 0.813953488372093,
+          "ex_ci95": [
+            0.6976744186046512,
+            0.9302325581395349
+          ]
+        },
+        "moderate": {
+          "n": 75,
+          "correct": 52,
+          "ex": 0.6933333333333334,
+          "ex_ci95": [
+            0.5866666666666667,
+            0.8
+          ]
+        },
+        "challenging": {
+          "n": 31,
+          "correct": 11,
+          "ex": 0.3548387096774194,
+          "ex_ci95": [
+            0.1935483870967742,
+            0.5161290322580645
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 155674,
+        "output_total": 90658,
+        "cache_read_total": 977185,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.8625830752105955,
+        "input_mean_per_question": 1044.7919463087248,
+        "output_mean_per_question": 608.4429530201343
+      },
+      "cost_usd": {
+        "total": 0.07066825,
+        "mean_per_question": 0.00047428355704697987
+      },
+      "llm_calls_mean_per_question": 2.0671140939597317,
+      "latency_ms": {
+        "mean": 4299.65902251676,
+        "median": 3509.408052999788
+      },
+      "failures": {
+        "wrong_result": 51
+      }
+    },
+    "oracle": {
+      "n": 149,
+      "n_planned": 149,
+      "aborted": null,
+      "correct": 100,
+      "ex": 0.6711409395973155,
+      "ex_ci95": [
+        0.5906040268456376,
+        0.7449664429530202
+      ],
+      "v2": {
+        "n": 149,
+        "flips": {
+          "wrong_to_right": 4,
+          "right_to_wrong": 0,
+          "wrong_to_wrong": 8,
+          "right_to_right": 2
+        },
+        "n_final_differs_from_first": 14,
+        "frac_with_fix": 0.09395973154362416,
+        "llm_calls_mean": 2.0939597315436242,
+        "unparsed_checks": 0,
+        "first_sql_correct": 96,
+        "first_sql_ex": 0.6442953020134228
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 43,
+          "correct": 33,
+          "ex": 0.7674418604651163,
+          "ex_ci95": [
+            0.627906976744186,
+            0.8837209302325582
+          ]
+        },
+        "moderate": {
+          "n": 75,
+          "correct": 52,
+          "ex": 0.6933333333333334,
+          "ex_ci95": [
+            0.5866666666666667,
+            0.8
+          ]
+        },
+        "challenging": {
+          "n": 31,
+          "correct": 15,
+          "ex": 0.4838709677419355,
+          "ex_ci95": [
+            0.2903225806451613,
+            0.6451612903225806
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 66759,
+        "output_total": 82136,
+        "cache_read_total": 959370,
+        "cache_write_total": 32519,
+        "cache_hit_ratio": 0.9062218981191104,
+        "input_mean_per_question": 448.0469798657718,
+        "output_mean_per_question": 551.248322147651
+      },
+      "cost_usd": {
+        "total": 0.061402475,
+        "mean_per_question": 0.0004120971476510067
+      },
+      "llm_calls_mean_per_question": 2.0939597315436242,
+      "latency_ms": {
+        "mean": 3925.0897435772126,
+        "median": 3480.1305810001395
+      },
+      "failures": {
+        "wrong_result": 48,
+        "timeout": 1
+      }
+    }
+  },
+  "comparison": {
+    "memory_minus_no_memory": {
+      "n": 149,
+      "diff": 0.08053691275167785,
+      "ci_low": 0.013422818791946308,
+      "ci_high": 0.15436241610738255,
+      "frac_resamples_le_zero": 0.0146
+    },
+    "oracle_minus_no_memory": {
+      "n": 149,
+      "diff": 0.09395973154362416,
+      "ci_low": 0.020134228187919462,
+      "ci_high": 0.16778523489932887,
+      "frac_resamples_le_zero": 0.0058
+    },
+    "oracle_minus_memory": {
+      "n": 149,
+      "diff": 0.013422818791946308,
+      "ci_low": -0.04697986577181208,
+      "ci_high": 0.0738255033557047,
+      "frac_resamples_le_zero": 0.3671
+    }
+  },
+  "gap_closed": {
+    "n": 149,
+    "gap_closed": 0.8571428571428571,
+    "ci_low": 0.2,
+    "ci_high": 2.0,
+    "frac_undefined": 0.0019,
+    "resamples": 10000,
+    "method": "paired percentile bootstrap, questions resampled together; resamples with a zero denominator are excluded"
+  },
+  "teaching": {
+    "n_turns": 149,
+    "n_errors": 0,
+    "memories_extracted": 329,
+    "memories_in_store_after_dedup": 290,
+    "turns_with_zero_memories": 2,
+    "frac_turns_with_zero_memories": 0.013422818791946308,
+    "mean_memories_per_turn": 2.208053691275168,
+    "items_parsed": 329,
+    "items_rejected_term_not_in_text": 0,
+    "cost_usd": 0.0148256,
+    "n_llm_calls": 149,
+    "latency_ms_mean": 1208.1673407718295
+  },
+  "retrieval": {
+    "n": 149,
+    "retrieval_recall": 0.9798657718120806,
+    "n_with_own_memory": 146,
+    "retrieval_recall_given_stored": 1.0,
+    "mean_injected": 11.919463087248323,
+    "mean_available": 30.7248322147651,
+    "note": "a question's own memory is the one stored with source_ref = its id; a term taught by two questions keeps only the later one, so the earlier question has none"
+  },
+  "totals": {
+    "cost_usd": 0.214210605,
+    "cost_usd_teaching": 0.0148256,
+    "cost_usd_conditions": 0.199385005,
+    "cost_usd_memory_with_teaching_per_question": 0.0005737842281879194,
+    "n_llm_calls": 1080
+  },
+  "notes": [
+    "The teaching text is BIRD's own evidence wrapped in one sentence, so this measures storing and recalling definitions, not a user's free-form phrasing.",
+    "no_memory and memory run without the evidence; oracle runs with it."
+  ],
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.025612615000000002,
+    "budget_usd": 0.21
+  },
+  "workers": 4,
+  "resumed": true,
+  "skip_respond": true,
+  "max_fixes": 2,
+  "conditions_order": [
+    "no_memory",
+    "memory",
+    "oracle"
+  ],
+  "llm_config_file": "configs/llm/claude-haiku-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "prompt_caching": true,
+    "pricing": {
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "cache_read_per_mtok": 0.01,
+      "cache_write_per_mtok": 0.125,
+      "long_context_threshold": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5,
+      "long_cache_read_per_mtok": 0.05,
+      "long_cache_write_per_mtok": 0.625
+    }
+  },
+  "git": {
+    "commit": "84ff84394296955976849f73a1148d2a59d51951",
+    "dirty": false
+  },
+  "started_at": "2026-10-19T12:41:55.775614+00:00",
+  "finished_at": "2026-10-19T12:43:00.521857+00:00",
+  "limit": null,
+  "sampling": {
+    "method": "all",
+    "seed": null,
+    "n_sampled": 149,
+    "per_stratum": {
+      "california_schools/challenging": 1,
+      "california_schools/moderate": 3,
+      "california_schools/simple": 2,
+      "card_games/challenging": 2,
+      "card_games/moderate": 13,
+      "card_games/simple": 7,
+      "codebase_community/moderate": 7,
+      "codebase_community/simple": 5,
+      "debit_card_specializing/challenging": 2,
+      "debit_card_specializing/moderate": 5,
+      "debit_card_specializing/simple": 4,
+      "european_football_2/challenging": 5,
+      "european_football_2/moderate": 9,
+      "european_football_2/simple": 5,
+      "financial/challenging": 1,
+      "financial/moderate": 6,
+      "formula_1/challenging": 5,
+      "formula_1/moderate": 10,
+      "formula_1/simple": 7,
+      "student_club/challenging": 1,
+      "student_club/moderate": 7,
+      "student_club/simple": 7,
+      "superhero/challenging": 3,
+      "superhero/moderate": 5,
+      "superhero/simple": 5,
+      "thrombosis_prediction/challenging": 6,
+      "thrombosis_prediction/moderate": 6,
+      "toxicology/challenging": 5,
+      "toxicology/moderate": 4,
+      "toxicology/simple": 1
+    }
+  }
+}
