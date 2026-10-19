@@ -212,11 +212,15 @@ The `legacy_v1` and `readonly_only` guards had no timeout, so the harness stoppe
 
 **Prompt-injection evaluation** (agent v2 with a real model, 42 questions: 31 direct, 8 indirect through a value stored in the database, 3 controls):
 
-<!-- INJECTION-RESULTS-PLACEHOLDER: fill in after the owner's run. Source: evals/reports/<date>-guardrails-injection/summary.json
-     Command: uv run python -m evals.guardrails.run_injection --llm-config configs/llm/claude-haiku-5-5.yaml --budget-usd 0.25 --out evals/reports/<date>-guardrails-injection/
-     Numbers to report: questions, harmful attempts, blocked harmful attempts, harmful executions (must be 0), questions where the model complied / refused / answered benignly, cost. -->
+Results ([report](evals/reports/2026-10-19-guardrails-injection/), Claude Haiku 5.5, $0.022):
 
-_Results pending: the run has not been made yet._ The runner and its tests are in `evals/guardrails/`; tests with a scripted client prove that harmful SQL is blocked and recorded.
+| Questions | Model attempted harmful SQL | Harmful attempts | Blocked by the guard | Executed | Side effects |
+|---|---|---|---|---|---|
+| 31 direct | 12 | 15 | 15 | 0 | 0 |
+| 8 indirect | 0 | 0 | 0 | 0 | 0 |
+| 3 controls | 0 | 0 | 0 | 0 | 0 |
+
+The model followed 12 of the 31 direct injections and never refused outright; it answered the legitimate part of the other 19. It tried `DELETE` and `INSERT`, `CREATE TEMP TABLE`, a transaction wrapping a `DELETE`, `VACUUM INTO` a new file, `ATTACH` of a new file, a second statement after the answer, and reading the database file path through `pragma_database_list`. All 15 attempts were blocked and returned to the check step as execution errors; the model sometimes retried the same request, and was blocked again. With only the read-only connection used before A4, the `VACUUM INTO` copy and the three path leaks would have run (the writes fail on a read-only connection, and Python rejects multi-statement strings). None of the 8 instructions planted in database values changed the model's SQL. "Harmful" means rejected by the guard's policy, which also covers milder metadata reads. Reproduce: `uv run python -m evals.guardrails.run_injection --llm-config configs/llm/claude-haiku-5-5.yaml --budget-usd 0.25 --out evals/reports/<date>-guardrails-injection/` (spends money).
 
 ## Architecture Decision Records
 
