@@ -5,6 +5,10 @@ directory, with that directory as the working directory, so a file written by an
 lands there and nowhere else. Usage:
 
     python -m evals.guardrails.run_sql --out evals/reports/2026-10-19-guardrails-sql/
+
+Without the BIRD data (CI), cases on a BIRD database and the 500 gold queries are skipped
+and counted in the summary (``skipped``); the synthetic fixture cases still run. ``--check``
+makes the exit code depend on the ``sql_guard`` results (see ``check_summary``).
 """
 
 import argparse
@@ -280,6 +284,43 @@ def summarize(
     return summary
 
 
+def available(case: dict[str, Any]) -> bool:
+    """Cases on the synthetic databases always run; BIRD ones need the extracted data."""
+    return case["db"] in ("fixture", "sales") or db_path(case["db"]).exists()
+
+
+def check_summary(summary: dict[str, Any], guard: str = "sql_guard") -> list[str]:
+    """Failures of the CI criteria for ``guard`` (empty list = pass).
+
+    Over the cases that ran: every attack expectation met (blocked without side effect, or
+    bounded for resource cases), 0 side effects, 0 benign false blocks, 0 benign side
+    effects, and the same for the BIRD gold queries when they ran. At least one attack and
+    one benign case must have run, so skipping everything cannot pass.
+    """
+    block = summary["guards"].get(guard)
+    if block is None:
+        return [f"guard {guard!r} was not run"]
+    failures: list[str] = []
+    attacks = block["attacks"]
+    if attacks["n"] == 0:
+        failures.append("no attack case ran")
+    if attacks["expectation_met"] != attacks["n"]:
+        failures.append(f"attack expectations met: {attacks['expectation_met']}/{attacks['n']}")
+    if attacks["side_effects"] != 0:
+        failures.append(f"attacks with side effects: {attacks['side_effects']}")
+    for key in ("benign_cases", "benign_gold"):
+        benign = block[key]
+        if benign is None:
+            continue
+        if benign["n"] == 0:
+            failures.append(f"{key}: no case ran")
+        if benign["false_blocks"] != 0:
+            failures.append(f"{key}: {benign['false_blocks']} false blocks of {benign['n']}")
+        if benign["side_effects"] != 0:
+            failures.append(f"{key}: {benign['side_effects']} side effects")
+    return failures
+
+
 def format_table(summary: dict[str, Any]) -> str:
     guards = list(summary["guards"])
     width = 24
@@ -323,14 +364,32 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--timeout-s", type=float, default=DEFAULT_TIMEOUT_S)
     parser.add_argument("--guards", default=",".join(GUARDS), help="comma-separated subset")
     parser.add_argument("--skip-gold", action="store_true", help="skip the 500 BIRD gold queries")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 1 unless sql_guard meets every attack expectation with 0 side effects and\n"
+        "0 benign false blocks (see check_summary)",
+    )
     args = parser.parse_args(argv)
     guards = [g.strip() for g in args.guards.split(",") if g.strip()]
     unknown = set(guards) - set(GUARDS)
     if unknown:
         raise SystemExit(f"unknown guards: {sorted(unknown)}")
 
-    attacks = read_jsonl(ATTACKS_PATH)
-    benign = read_jsonl(BENIGN_PATH)
+    attacks_all = read_jsonl(ATTACKS_PATH)
+    benign_all = read_jsonl(BENIGN_PATH)
+    attacks = [c for c in attacks_all if available(c)]
+    benign = [c for c in benign_all if available(c)]
+    skipped = {
+        "attacks": len(attacks_all) - len(attacks),
+        "benign": len(benign_all) - len(benign),
+    }
+    if skipped["attacks"] or skipped["benign"]:
+        print(
+            f"BIRD databases missing: skipped {skipped['attacks']} attack and "
+            f"{skipped['benign']} benign cases (run `make bird-data`)",
+            file=sys.stderr,
+        )
     gold = None if args.skip_gold else gold_cases()
     if gold is None and not args.skip_gold:
         print("BIRD data not found: gold queries skipped (run `make bird-data`)", file=sys.stderr)
@@ -353,6 +412,7 @@ def main(argv: list[str] | None = None) -> None:
                 records.extend(run_gold(guard, copies, gold))
 
     summary = summarize(records, guards, args.timeout_s, bool(gold))
+    summary["skipped"] = {**skipped, "gold": gold is None and not args.skip_gold}
     args.out.mkdir(parents=True, exist_ok=True)
     with open(args.out / "results.jsonl", "w", encoding="utf-8") as f:
         for r in records:
@@ -362,6 +422,12 @@ def main(argv: list[str] | None = None) -> None:
     )
     print()
     print(format_table(summary))
+    if args.check:
+        failures = check_summary(summary)
+        if failures:
+            print("\nCHECK FAILED:\n  " + "\n  ".join(failures), file=sys.stderr)
+            raise SystemExit(1)
+        print("\nCHECK PASSED (sql_guard)")
 
 
 if __name__ == "__main__":

@@ -38,6 +38,26 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pytest --cov=src --cov-report=term-missing
 
+  # Evals that need no network, no API key and no BIRD download. The paid evals live in
+  # evals-api.yml (manual and nightly) and never run on push or pull requests.
+  evals-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      # BIRD data is absent here: cases on BIRD databases and the gold queries are skipped
+      # (printed), the synthetic fixture cases run. --check exits 1 unless sql_guard meets
+      # every attack expectation with 0 side effects and 0 benign false blocks.
+      - name: SQL guard adversarial eval
+        run: uv run python -m evals.guardrails.run_sql --out "$RUNNER_TEMP/guardrails-sql" --check
+      # Real runner, scorer and agent v2 graph with a scripted LLM on a tiny database.
+      - name: Text-to-SQL runner smoke test
+        run: uv run python -m evals.text2sql.smoke --out "$RUNNER_TEMP/text2sql-smoke"
+
   docker:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,93 @@
+name: Evals (API)
+
+# Spends real money with the Anthropic API: manual or nightly only, never on push or PR.
+# Needs an Actions secret named ANTHROPIC_API_KEY; without it the run is skipped with a
+# notice. The cost of one run is capped by --budget-usd (default 0.10 manual, 0.05 nightly).
+on:
+  workflow_dispatch:
+    inputs:
+      llm_config:
+        description: Anthropic LLM config
+        default: configs/llm/claude-haiku-5-5.yaml
+      systems:
+        description: Comma-separated systems
+        default: baseline,agent_v2
+      limit:
+        description: Stratified dev sample size
+        default: "30"
+      budget_usd:
+        description: Hard spend cap in USD
+        default: "0.10"
+  schedule:
+    - cron: "17 3 * * *"
+
+# Two API runs never overlap; a queued run waits instead of cancelling the running one.
+concurrency:
+  group: evals-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # sha256 of the two BIRD Mini-Dev files (docs/ADR-003, evals/text2sql/prepare.py)
+  BIRD_CACHE_KEY: bird-88ceb0710163cae46a256ecea8f0a8c98286599530b60587fda5c3cfe57d45d2-cc48ba16838204e4e214512030cb572eeb5f7bcdd999bae4b9b6ff12ec13b92f
+
+jobs:
+  text2sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the API key secret
+        id: key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=API evals skipped::The Actions secret ANTHROPIC_API_KEY is not set, nothing was run."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+      - uses: astral-sh/setup-uv@v5
+        if: steps.key.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+        if: steps.key.outputs.present == 'true'
+      - name: Restore BIRD data
+        id: bird
+        if: steps.key.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/external
+          key: ${{ env.BIRD_CACHE_KEY }}
+      - name: Download BIRD data
+        if: steps.key.outputs.present == 'true' && steps.bird.outputs.cache-hit != 'true'
+        run: make bird-data
+      - name: Run the text-to-SQL eval
+        if: steps.key.outputs.present == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_LAUNCHED_BY: github-actions:${{ github.workflow }}#${{ github.run_id }}
+          LLM_CONFIG: ${{ inputs.llm_config || 'configs/llm/claude-haiku-5-5.yaml' }}
+          SYSTEMS: ${{ inputs.systems || 'baseline,agent_v2' }}
+          LIMIT: ${{ inputs.limit || '30' }}
+          BUDGET_USD: ${{ inputs.budget_usd || '0.05' }}
+          RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          grep -q '^provider: anthropic' "$LLM_CONFIG" || { echo "::error::$LLM_CONFIG is not an anthropic config"; exit 1; }
+          uv run python -m evals.text2sql.run \
+            --llm-config "$LLM_CONFIG" --system "$SYSTEMS" --split dev \
+            --limit "$LIMIT" --seed 0 --skip-respond \
+            --budget-usd "$BUDGET_USD" --run-id "$RUN_ID"
+      - name: Upload the run directory
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: text2sql-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evals/results/text2sql/ci-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
