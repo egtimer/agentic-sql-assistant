@@ -12,6 +12,16 @@ class QueryRequest(BaseModel):
         description="Natural language question to the agent",
         examples=["¿Cuánto vendimos en Q3 2024?"],
     )
+    session_id: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Optional session id: groups the traces of one conversation in Langfuse",
+    )
+    user_id: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Optional user id recorded on the Langfuse trace",
+    )
 
 
 class ToolDetail(BaseModel):
@@ -31,6 +41,10 @@ class QueryResponse(BaseModel):
     tool_details: list[ToolDetail] = Field(
         default_factory=list,
         description="Execution details for each tool call",
+    )
+    trace_id: str | None = Field(
+        default=None,
+        description="Langfuse trace id of this request (null when tracing is not configured)",
     )
 
 

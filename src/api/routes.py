@@ -14,6 +14,7 @@ from src.api.schemas import (
     ToolDetail,
 )
 from src.config import settings
+from src.observability import tracing
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +80,18 @@ async def agent_query(request: QueryRequest) -> QueryResponse:
     logger.info("Received query: %s", request.query[:100])
 
     try:
-        result = run_agent(
-            query=request.query,
-            trace_metadata={"source": "api"},
-        )
+        with tracing.trace(
+            "api.agent_query",
+            input={"query": request.query},
+            metadata={"source": "api"},
+            session_id=request.session_id,
+            user_id=request.user_id,
+        ) as trace_handle:
+            result = run_agent(
+                query=request.query,
+                trace_metadata={"source": "api"},
+            )
+            trace_handle.update(output={"response": result.get("response", "")})
 
         duration_ms = (time.perf_counter() - start_time) * 1000
         logger.info(
@@ -115,6 +124,7 @@ async def agent_query(request: QueryRequest) -> QueryResponse:
             response=result.get("response", ""),
             tools_used=result.get("tools_used", []),
             tool_details=tool_details,
+            trace_id=trace_handle.id,
         )
 
     except Exception as e:

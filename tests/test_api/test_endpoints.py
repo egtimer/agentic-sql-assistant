@@ -182,3 +182,32 @@ class TestOpenAPISchema:
         assert schema["info"]["title"] == "Agentic SQL Assistant"
         assert "/health" in schema["paths"]
         assert "/agent/query" in schema["paths"]
+
+
+class TestQueryTracing:
+    RESULT = {"response": "ok", "tools_used": [], "tool_results": []}
+
+    @patch("src.api.routes.run_agent")
+    def test_trace_id_is_null_without_langfuse(self, mock_agent, client: TestClient) -> None:
+        from src.observability import tracing
+        from src.observability.tracing import NoopTracer
+
+        mock_agent.return_value = self.RESULT
+        with tracing.use_tracer(NoopTracer()):
+            data = client.post("/agent/query", json={"query": "hi"}).json()
+        assert data["trace_id"] is None
+
+    @patch("src.api.routes.run_agent")
+    def test_one_trace_per_request_with_session_and_user(
+        self, mock_agent, client: TestClient, events: list[dict]
+    ) -> None:
+        mock_agent.return_value = self.RESULT
+        body = {"query": "hi", "session_id": "conv-1", "user_id": "alice"}
+        first = client.post("/agent/query", json=body).json()
+        second = client.post("/agent/query", json={"query": "again"}).json()
+        assert first["trace_id"] and second["trace_id"] and first["trace_id"] != second["trace_id"]
+        created = [e["body"] for e in events if e["type"] == "trace-create"]
+        by_id = {b["id"]: b for b in created if "name" in b}
+        assert by_id[first["trace_id"]]["sessionId"] == "conv-1"
+        assert by_id[first["trace_id"]]["userId"] == "alice"
+        assert "sessionId" not in by_id[second["trace_id"]]
