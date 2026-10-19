@@ -72,8 +72,16 @@ def test_nested_spans_generation_and_score(events: list[dict[str, Any]]) -> None
     assert end_body["endTime"] is not None
     (gen,) = of_type(events, "generation-create")
     assert gen["parentObservationId"] == span_body["id"] and gen["traceId"] == root.id
-    assert gen["usageDetails"] == {"input": 10, "output": 2, "cache_read": 5, "cache_write": 0}
-    assert gen["costDetails"] == {"total": 0.001}
+    assert gen["usage"] == {
+        "input": 15,
+        "output": 2,
+        "total": 17,
+        "unit": "TOKENS",
+        "totalCost": 0.001,
+    }
+    assert gen["metadata"]["cache_read_tokens"] == 5
+    assert gen["metadata"]["input_tokens_uncached"] == 10
+    assert gen["metadata"]["stop_reason"] == "end_turn"
     assert gen["model"] == "m" and gen["output"] == "SELECT 1"
     (sc,) = of_type(events, "score-create")
     assert sc["traceId"] == root.id and sc["name"] == "execution_accuracy" and sc["value"] == 1.0

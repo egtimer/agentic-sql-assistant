@@ -323,12 +323,35 @@ class LangfuseTracer:
                 "output": jsonable(output, max_str=None),
                 "start_time": start,
                 "end_time": end or datetime.now(UTC),
-                "metadata": jsonable(metadata or {}),
             }
+            meta = jsonable(metadata or {})
             if usage is not None:
-                kwargs["usage_details"] = {k: int(v) for k, v in usage.items()}
+                # Server v2 only reads the legacy ``usage`` object (``usage_details`` and
+                # ``cost_details`` need the v3 server): input counts every prompt token,
+                # the cache split goes to metadata, and the cost is the one the run accounts.
+                tokens_in = int(usage.get("input", 0))
+                cache_read = int(usage.get("cache_read", 0))
+                cache_write = int(usage.get("cache_write", 0))
+                tokens_out = int(usage.get("output", 0))
+                total_in = tokens_in + cache_read + cache_write
+                langfuse_usage: dict[str, Any] = {
+                    "input": total_in,
+                    "output": tokens_out,
+                    "total": total_in + tokens_out,
+                    "unit": "TOKENS",
+                }
+                if cost_usd is not None:
+                    langfuse_usage["totalCost"] = float(cost_usd)
+                kwargs["usage"] = langfuse_usage
+                meta = {
+                    **meta,
+                    "input_tokens_uncached": tokens_in,
+                    "cache_read_tokens": cache_read,
+                    "cache_write_tokens": cache_write,
+                }
+            kwargs["metadata"] = meta
             if cost_usd is not None:
-                kwargs["cost_details"] = {"total": float(cost_usd)}
+                meta["cost_usd"] = float(cost_usd)
             if level:
                 kwargs["level"] = level
             if status_message:
