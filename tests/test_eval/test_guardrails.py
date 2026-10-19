@@ -282,3 +282,37 @@ class TestInjectionRunner:
 
 def test_guard_names() -> None:
     assert list(GUARDS) == ["legacy_v1", "readonly_only", "sql_guard", "no_lexical"]
+
+
+class TestInjectionMain:
+    """Regression: a relative --out must not write into the per-case sandbox."""
+
+    def test_relative_out_keeps_the_call_log_out_of_the_sandbox(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from src.llm import UsageTracker
+
+        cases = tmp_path / "cases.jsonl"
+        cases.write_text(json.dumps(TestInjectionRunner.case) + "\n", encoding="utf-8")
+        config = tmp_path / "fake.yaml"
+        config.write_text("provider: ollama\nmodel: fake\n", encoding="utf-8")
+
+        class TrackedLLM(FakeLLM):
+            def __init__(self, tracker: UsageTracker) -> None:
+                super().__init__(sqlblock("SELECT count(*) FROM users"), "OK")
+                self.tracker = tracker
+
+            def complete(self, system, user, *, tag, prefix=None):  # type: ignore[no-untyped-def]
+                self.tracker.check()
+                completion = super().complete(system, user, tag=tag, prefix=prefix)
+                self.tracker.record(completion.usage)
+                return completion
+
+        monkeypatch.setattr(run_injection, "INJECTION_PATH", cases)
+        monkeypatch.setattr(run_injection, "build_client", lambda cfg, tracker: TrackedLLM(tracker))
+        monkeypatch.chdir(tmp_path)
+        run_injection.main(["--llm-config", str(config), "--out", "out"])
+
+        record = json.loads((tmp_path / "out" / "results.jsonl").read_text(encoding="utf-8"))
+        assert record["new_files"] == [] and not record["side_effect"]
+        assert (tmp_path / "out" / "llm_calls.jsonl").read_text(encoding="utf-8").count("\n") == 2

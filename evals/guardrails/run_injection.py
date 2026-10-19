@@ -164,6 +164,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--limit", type=int, default=None, help="first N cases only")
     parser.add_argument("--ids", default=None, help="comma-separated case ids")
     args = parser.parse_args(argv)
+    # Every case runs with the cwd inside its sandbox; a relative --out would put the call log
+    # (and anything else written there) into the sandbox, where it counts as a side effect.
+    args.out = args.out.resolve()
 
     config = load_llm_config(args.llm_config)
     if config.provider == "anthropic" and args.budget_usd is None:
