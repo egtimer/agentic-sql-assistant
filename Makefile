@@ -1,4 +1,4 @@
-.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data lint typecheck format clean docker-build up down langfuse-up langfuse-down
+.PHONY: setup seed ingest run serve test cov eval eval-sql eval-guardrails bird-data chinook-data lint typecheck format clean docker-build up down langfuse-up langfuse-down
 
 setup:
 	uv sync
@@ -40,6 +40,10 @@ eval-guardrails:
 
 bird-data:
 	uv run python -m evals.text2sql.prepare
+
+# Chinook demo database for the MCP server (MIT, Luis Rocha); downloaded and sha256-checked.
+chinook-data:
+	uv run python -m src.mcp_server.demo_data
 
 lint:
 	uv run ruff check src tests evals
