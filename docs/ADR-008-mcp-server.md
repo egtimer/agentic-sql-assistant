@@ -5,7 +5,7 @@
 
 ## Context
 
-Agent v2 (ADR-004), its SQL guard (ADR-005), tracing (ADR-006) and memory (ADR-007) are used today through Python calls and the eval runners. Anything that wants to use them from outside this repository (an IDE assistant, a chat client, another agent) would need its own integration. The Model Context Protocol (MCP) is the common interface those clients already speak, so one server makes the agent and, separately, the guarded SQL tool available to all of them.
+Agent v2 (ADR-004), its SQL guard (ADR-005), tracing (ADR-006) and memory (ADR-007) are used today through Python calls and the eval runners. Anything that wants to use them from outside this repository (an editor plugin, a chat client, another agent) would need its own integration. The Model Context Protocol (MCP) is the common interface those clients already speak, so one server makes the agent and, separately, the guarded SQL tool available to all of them.
 
 Two uses are different and are kept apart as tools:
 
