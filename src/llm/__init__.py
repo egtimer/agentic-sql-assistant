@@ -9,6 +9,7 @@ from src.llm.client import (
     get_client,
     reset_client,
     set_client,
+    trace_completion,
 )
 from src.llm.config import LLMConfig, Pricing
 from src.llm.usage import BudgetExceeded, CallUsage, UsageTracker, call_context, cost_of
@@ -29,4 +30,5 @@ __all__ = [
     "get_client",
     "reset_client",
     "set_client",
+    "trace_completion",
 ]

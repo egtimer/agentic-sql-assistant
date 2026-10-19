@@ -6,6 +6,7 @@ import time
 from collections.abc import Mapping
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -14,6 +15,7 @@ from langchain_ollama import ChatOllama
 from src.config import settings
 from src.llm.config import LLMConfig
 from src.llm.usage import CallUsage, UsageTracker, cost_of
+from src.observability import tracing
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,65 @@ class Completion:
     def is_failure(self) -> bool:
         """True when the model refused or was cut off, so the text is unreliable."""
         return self.usage.stop_reason in FAILURE_STOP_REASONS
+
+
+def trace_completion(
+    model: str,
+    system: str | None,
+    prefix: str | None,
+    user: str,
+    completion: Completion | None,
+    start: datetime,
+    *,
+    tag: str,
+    error: BaseException | None = None,
+) -> None:
+    """Record one finished (or failed) LLM call as a generation under the current trace.
+
+    Cheap no-op when no trace is open. Input is the full prompt (system, then ``prefix +
+    user``); usage carries the cache read/write tokens and the cost is ``cost_of`` (what the
+    run accounts), not a Langfuse price table.
+    """
+    if not tracing.active():
+        return
+    messages: list[dict[str, str]] = []
+    if system is not None:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": (prefix or "") + user})
+    if completion is None:
+        tracing.record_generation(
+            tag,
+            model=model,
+            input=messages,
+            output=None,
+            start=start,
+            end=datetime.now(UTC),
+            level="ERROR",
+            status_message=f"{type(error).__name__}: {error}",
+        )
+        return
+    usage = completion.usage
+    tracing.record_generation(
+        tag,
+        model=model,
+        input=messages,
+        output=completion.text,
+        usage={
+            "input": usage.input_tokens,
+            "output": usage.output_tokens,
+            "cache_read": usage.cache_read_tokens,
+            "cache_write": usage.cache_write_tokens,
+        },
+        cost_usd=usage.cost_usd,
+        start=start,
+        end=datetime.now(UTC),
+        metadata={
+            "tag": tag,
+            "stop_reason": usage.stop_reason,
+            "latency_ms": round(usage.latency_ms, 1),
+        },
+        level="WARNING" if completion.is_failure else None,
+    )
 
 
 class LLMClient(Protocol):
@@ -84,8 +145,13 @@ class OllamaClient:
             messages.append(SystemMessage(content=system))
         messages.append(HumanMessage(content=user))
 
+        started = datetime.now(UTC)
         start = time.perf_counter()
-        response = self._get_llm().invoke(messages)
+        try:
+            response = self._get_llm().invoke(messages)
+        except Exception as e:
+            trace_completion(self.config.model, system, None, user, None, started, tag=tag, error=e)
+            raise
         latency_ms = (time.perf_counter() - start) * 1000
 
         text = response.content if isinstance(response.content, str) else str(response.content)
@@ -100,7 +166,9 @@ class OllamaClient:
         )
         usage.cost_usd = cost_of(usage, self.config.pricing)
         self.tracker.record(usage)
-        return Completion(text=text, usage=usage)
+        completion = Completion(text=text, usage=usage)
+        trace_completion(self.config.model, system, None, user, completion, started, tag=tag)
+        return completion
 
 
 class AnthropicClient:
@@ -153,8 +221,15 @@ class AnthropicClient:
         if self.config.effort:
             kwargs["output_config"] = {"effort": self.config.effort}
 
+        started = datetime.now(UTC)
         start = time.perf_counter()
-        response = self._get_sdk().messages.create(**kwargs)
+        try:
+            response = self._get_sdk().messages.create(**kwargs)
+        except Exception as e:
+            trace_completion(
+                self.config.model, system, prefix, user, None, started, tag=tag, error=e
+            )
+            raise
         latency_ms = (time.perf_counter() - start) * 1000
 
         text = "".join(
@@ -174,7 +249,9 @@ class AnthropicClient:
         self.tracker.record(usage)
         if usage.stop_reason in FAILURE_STOP_REASONS:
             logger.warning("LLM call %s ended with stop_reason=%s", tag, usage.stop_reason)
-        return Completion(text=text, usage=usage)
+        completion = Completion(text=text, usage=usage)
+        trace_completion(self.config.model, system, prefix, user, completion, started, tag=tag)
+        return completion
 
 
 def build_client(config: LLMConfig, tracker: UsageTracker | None = None) -> LLMClient:
