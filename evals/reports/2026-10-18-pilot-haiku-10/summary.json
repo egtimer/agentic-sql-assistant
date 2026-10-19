@@ -1,0 +1,130 @@
+{
+  "run_id": "pilot-haiku-10",
+  "split": "dev",
+  "n_questions": 10,
+  "systems": {
+    "baseline": {
+      "n": 10,
+      "n_planned": 10,
+      "aborted": null,
+      "correct": 2,
+      "ex": 0.2,
+      "by_difficulty": {
+        "simple": {
+          "n": 2,
+          "correct": 1,
+          "ex": 0.5
+        },
+        "moderate": {
+          "n": 6,
+          "correct": 1,
+          "ex": 0.16666666666666666
+        },
+        "challenging": {
+          "n": 2,
+          "correct": 0,
+          "ex": 0.0
+        }
+      },
+      "tokens": {
+        "input_total": 15482,
+        "output_total": 6141,
+        "cache_read_total": 0,
+        "cache_write_total": 0,
+        "input_mean_per_question": 1548.2,
+        "output_mean_per_question": 614.1
+      },
+      "cost_usd": {
+        "total": 0.0046187,
+        "mean_per_question": 0.00046186999999999997
+      },
+      "llm_calls_mean_per_question": 1.0,
+      "latency_ms": {
+        "mean": 3219.470769000054,
+        "median": 3097.8492840004037
+      },
+      "failures": {
+        "wrong_result": 8
+      }
+    },
+    "agent": {
+      "n": 10,
+      "n_planned": 10,
+      "aborted": null,
+      "correct": 3,
+      "ex": 0.3,
+      "by_difficulty": {
+        "simple": {
+          "n": 2,
+          "correct": 1,
+          "ex": 0.5
+        },
+        "moderate": {
+          "n": 6,
+          "correct": 2,
+          "ex": 0.3333333333333333
+        },
+        "challenging": {
+          "n": 2,
+          "correct": 0,
+          "ex": 0.0
+        }
+      },
+      "tokens": {
+        "input_total": 29454,
+        "output_total": 8526,
+        "cache_read_total": 0,
+        "cache_write_total": 0,
+        "input_mean_per_question": 2945.4,
+        "output_mean_per_question": 852.6
+      },
+      "cost_usd": {
+        "total": 0.0072084,
+        "mean_per_question": 0.00072084
+      },
+      "llm_calls_mean_per_question": 2.0,
+      "latency_ms": {
+        "mean": 4801.986123299957,
+        "median": 4080.9642774997883
+      },
+      "failures": {
+        "wrong_result": 6,
+        "sql_error": 1
+      }
+    }
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.0118271,
+    "budget_usd": 0.1
+  },
+  "resumed": false,
+  "workers": 1,
+  "llm_config_file": "configs/llm/claude-haiku-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "pricing": {
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "cache_read_per_mtok": 0.01,
+      "cache_write_per_mtok": 0.125,
+      "long_context_threshold": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5
+    }
+  },
+  "git": {
+    "commit": "e231c057b551227d208b9287a5541b071a2a5664",
+    "dirty": false
+  },
+  "started_at": "2026-10-18T22:52:05.465268+00:00",
+  "finished_at": "2026-10-18T22:53:25.842090+00:00",
+  "limit": 10,
+  "question_ids": null
+}
