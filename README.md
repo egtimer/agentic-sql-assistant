@@ -7,7 +7,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 ## Status
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
-- Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). Implemented and tested offline; the real-model evaluation is pending (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
+- Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On dev with Claude Haiku 5.5, recalled definitions add +7 to +8 points of execution accuracy and match giving the definition in the question, and conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)); the run on test is pending. The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -195,15 +195,28 @@ Agent v2 has two optional kinds of memory; without them its prompts are byte-ide
 - **Short-term (conversation).** `run_sql_agent(..., thread_id=..., checkpointer=...)`: the turns of a thread share a history (question, final SQL, row count, columns; never result rows). `generate` and `check` see the last 3 turns as "Earlier in this conversation:" after the cached schema prefix. Everything else is reset on each turn.
 - **Long-term (across sessions).** `teach(text, user_id=..., db_id=..., store=...)` extracts durable definitions from what the user wrote (one LLM call) into a LangGraph store (`InMemoryStore`, or `open_memory_store(path)` for SQLite); `run_sql_agent(..., store=..., user_id=...)` recalls the 12 most relevant by BM25 and shows them as "Definitions this user gave in earlier sessions:". Memories come only from `teach`, are isolated per user and database, and never bypass the SQL guard.
 
-Evaluation on the dev split (Claude Haiku 5.5; the numbers are filled in after the owner runs them):
+Evaluation on the dev split (Claude Haiku 5.5, effort `low`; prompts frozen after the first iteration; the long-term run on test is pending):
 
-| Evaluation | Result |
+| Long-term (149 dev questions with evidence) | [Iteration 1](evals/reports/2026-10-19-a6-longterm-dev-it1/) | [Replication](evals/reports/2026-10-19-a6-longterm-dev-rep/) |
+|---|---|---|
+| EX without memory (evidence removed) | 57.7% [49.7, 65.1] | 57.7% [49.7, 65.1] |
+| EX with memory (definitions recalled from an earlier session) | 65.1% [57.0, 72.5] | 65.8% [57.7, 73.2] |
+| EX with the evidence given (oracle) | 65.1% [57.0, 72.5] | 67.1% [59.1, 74.5] |
+| memory - no memory | +7.4 pts [+0.7, +14.8] | +8.1 pts [+1.3, +15.4] |
+| oracle - memory | +0.0 pts [-4.7, +4.7] | +1.3 pts [-4.7, +7.4] |
+| Gap closed (share of the oracle's gain recovered) | 100% [11%, 267%] | 86% [20%, 200%] |
+| Retrieval recall (own definition among the injected) | 96.6% | 98.0% |
+| Memories per teaching turn; turns with none | 2.21; 3 of 149 | 2.21; 2 of 149 |
+| Cost: teaching / total | $0.015 / $0.219 | $0.015 / $0.215 |
+
+| Follow-ups (30 conversations from dev, no evidence in any condition) | [EX [95% CI]](evals/reports/2026-10-19-a6-followups-dev-noev/) |
 |---|---|
-| Long-term: EX without memory / with memory / with the evidence given (oracle) | _pending_ |
-| Long-term: share of the oracle's gain recovered by memory ("gap closed") [95% CI] | _pending_ |
-| Long-term: retrieval recall; memories extracted per teaching turn | _pending_ |
-| Long-term: cost, teaching and total | _pending_ |
-| Follow-ups (30 conversations, all from dev): EX turn 2 alone / with history / original question | _pending_ |
+| Turn 2 alone (elliptical, no context) | 6.7% (2 of 30) |
+| Turn 2 after turn 1 in the same thread | 46.7% [30.0, 63.3] |
+| Original question (ceiling) | 56.7% [40.0, 73.3] |
+| with history - turn 2 alone | +40.0 pts [+23.3, +56.7] |
+
+Reading: definitions a user gave in an earlier session recover the accuracy of having them in the question (the gap closed is wide because the oracle's own gain over no memory is only 7 to 9 points), and recall almost always brings the right definition among the 12 shown. Conversation history turns unanswerable follow-ups into mostly answerable ones; it stays about 10 points below asking the full question (CI includes 0). A first follow-up run gave every condition the source evidence; in 18 of the 30 pairs that evidence names the entity turn 1 introduces, so turn 2 was not really elliptical (+10.0 pts [-3.3, +23.3]; [report](evals/reports/2026-10-19-a6-followups-dev-it1/)); the evidence-free run above replaces it. Total cost of the four dev runs: $0.54.
 
 The long-term evaluation teaches BIRD's own evidence to the agent as if a user had said it and removes it from the question, so it measures storing and recalling definitions, not a user's free phrasing. The follow-up set is small (n = 30), written by hand from dev questions. Reproduce (spends money; both need `--run-id` and, with Anthropic, `--budget-usd`):
 

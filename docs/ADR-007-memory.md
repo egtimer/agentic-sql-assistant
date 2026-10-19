@@ -83,15 +83,19 @@ For the chosen split (`dev`; `test` prints a warning that it is for the single f
 
 ## Results
 
-Not run yet: the real-model runs are launched by the owner.
+Dev split, Claude Haiku 5.5, effort `low`. Prompts (`memorize`, the two blocks) frozen after the first iteration: memory matched the oracle and the remaining errors gave nothing specific to fix. Reports in `evals/reports/2026-10-19-a6-*`.
 
-| Evaluation | Result |
-|---|---|
-| Long-term, dev: EX `no_memory` / `memory` / `oracle` | _pending_ |
-| Long-term, dev: gap closed [95% CI] | _pending_ |
-| Long-term, dev: retrieval recall; memories per teaching turn | _pending_ |
-| Long-term, dev: cost (teaching / total) | _pending_ |
-| Follow-ups, dev (n = 30): EX `turn2_alone` / `with_history` / `original` | _pending_ |
+| Evaluation | Iteration 1 | Replication |
+|---|---|---|
+| Long-term, dev (149): EX `no_memory` / `memory` / `oracle` | 57.7% / 65.1% / 65.1% | 57.7% / 65.8% / 67.1% |
+| Long-term: `memory` - `no_memory` [95% CI] | +7.4 [+0.7, +14.8] | +8.1 [+1.3, +15.4] |
+| Long-term: gap closed [95% CI] | 100% [11%, 267%] | 86% [20%, 200%] |
+| Long-term: retrieval recall; memories per teaching turn | 96.6%; 2.21 | 98.0%; 2.21 |
+| Long-term: cost (teaching / total) | $0.015 / $0.219 | $0.015 / $0.215 |
+| Follow-ups, dev (n = 30), no evidence: EX `turn2_alone` / `with_history` / `original` | 6.7% / 46.7% / 56.7% | |
+| Follow-ups: `with_history` - `turn2_alone` | +40.0 [+23.3, +56.7] | |
+
+The first follow-up run gave every condition the source evidence (50.0% / 60.0% / 60.0%, +10.0 [-3.3, +23.3]); in 18 of the 30 pairs that evidence names the entity turn 1 introduces, which makes turn 2 less elliptical, so the evidence-free run (`--evidence none`) is the measurement of the history. The replication was interrupted by a codespace restart and continued with `run_longterm --resume`, which ran only the 63 missing `oracle` questions. The long-term evaluation on test (349 questions with evidence) runs once, with the owner's OK.
 
 ## Limitations
 
