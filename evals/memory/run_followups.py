@@ -103,6 +103,9 @@ def pair_questions(
     return sorted(pairs, key=lambda p: (p[1].db_id, p[1].question_id))
 
 
+EVIDENCE_MODES = ("source", "none")
+
+
 def run_followups(
     *,
     config: LLMConfig,
@@ -117,6 +120,7 @@ def run_followups(
     timeout_s: float = 30,
     skip_respond: bool = False,
     max_fixes: int = DEFAULT_MAX_FIXES,
+    evidence: str = "source",
     bootstrap_resamples: int = DEFAULT_RESAMPLES,
     bootstrap_seed: int = DEFAULT_SEED,
     extra_meta: dict[str, Any] | None = None,
@@ -148,6 +152,7 @@ def run_followups(
             timeout_s=timeout_s,
             skip_respond=skip_respond,
             max_fixes=max_fixes,
+            evidence=evidence,
             bootstrap_resamples=bootstrap_resamples,
             bootstrap_seed=bootstrap_seed,
             extra_meta=extra_meta,
@@ -170,6 +175,7 @@ def _run(
     timeout_s: float,
     skip_respond: bool,
     max_fixes: int,
+    evidence: str,
     bootstrap_resamples: int,
     bootstrap_seed: int,
     extra_meta: dict[str, Any] | None,
@@ -182,27 +188,30 @@ def _run(
     gold_cache = GoldCache(run_dir / "gold_cache.json")
     engine = Engine(workers)
     options: dict[str, Any] = {"skip_respond": skip_respond, "max_fixes": max_fixes}
+    if evidence not in EVIDENCE_MODES:
+        raise ValueError(f"evidence must be one of {EVIDENCE_MODES}")
 
     def case(pair: tuple[FollowUp, Question], condition: str) -> dict[str, Any]:
         follow, source = pair
+        ev = source.evidence if evidence == "source" else ""
         database = db_path(source.db_id, databases_dir)
         result = None
         extra: dict[str, Any] = {"pair_id": follow.id, "n_turns": 1}
         with timed_calls(client, run_id, condition, source.question_id) as call:
             if condition == "original":
-                result = run_sql_agent(source.question, source.evidence, database, **options)
+                result = run_sql_agent(source.question, ev, database, **options)
             elif condition == "turn2_alone":
-                result = run_sql_agent(follow.turn2, source.evidence, database, **options)
+                result = run_sql_agent(follow.turn2, ev, database, **options)
             else:
                 thread = {
                     "thread_id": f"{run_id}/{follow.id}",
                     "checkpointer": memory_checkpointer(),
                 }
-                first = run_sql_agent(follow.turn1, source.evidence, database, **thread, **options)
+                first = run_sql_agent(follow.turn1, ev, database, **thread, **options)
                 extra = {"pair_id": follow.id, "n_turns": 2, "turn1_sql": first.final_sql}
                 extra["turn1_cost_usd"] = sum(u.cost_usd for u in call.counting.usages)
                 extra["turn1_llm_calls"] = len(call.counting.usages)
-                result = run_sql_agent(follow.turn2, source.evidence, database, **thread, **options)
+                result = run_sql_agent(follow.turn2, ev, database, **thread, **options)
         return scored_record(
             run_id=run_id,
             question=source,
@@ -262,8 +271,15 @@ def _run(
             f"n = {n_planned} conversations and every one comes from the {SPLIT} split: "
             "the intervals are wide, treat the point estimates as indicative.",
             "with_history scores turn 2 only; turn 1 cost and calls are in its totals.",
-            "Every condition gets the evidence of the source question; the history is the "
-            "only variable between turn2_alone and with_history.",
+            (
+                "Every condition gets the evidence of the source question; the history is the "
+                "only variable between turn2_alone and with_history. The evidence often names "
+                "the entity that turn 1 introduces, which makes turn 2 less elliptical."
+                if evidence == "source"
+                else "No condition gets any evidence, so the history is the only source of "
+                "the context that turn 1 introduces; the ceiling (original) is lower than with "
+                "evidence."
+            ),
         ],
         "bootstrap": bootstrap_meta(bootstrap_resamples, bootstrap_seed),
         "aborted": engine.reason,
@@ -271,6 +287,7 @@ def _run(
         "workers": workers,
         "skip_respond": skip_respond,
         "max_fixes": max_fixes,
+        "evidence": evidence,
         "conditions_order": list(CONDITIONS),
         "llm_config_file": llm_config_name,
         "llm_config": config.model_dump(),
@@ -304,6 +321,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--skip-respond", action="store_true", help="skip the answer sentence")
     parser.add_argument("--max-fixes", type=int, default=DEFAULT_MAX_FIXES)
     parser.add_argument(
+        "--evidence",
+        choices=EVIDENCE_MODES,
+        default="source",
+        help="source: every condition gets the source question's evidence; none: no condition "
+        "does, so turn 2 is fully elliptical and the history is the only context",
+    )
+    parser.add_argument(
         "--launched-by", help=f"free text recorded in run.json (default: env {LAUNCHED_BY_ENV})"
     )
     return parser.parse_args(argv)
@@ -330,6 +354,7 @@ def main(argv: list[str] | None = None) -> None:
                 llm_config_name=str(args.llm_config),
                 skip_respond=args.skip_respond,
                 max_fixes=args.max_fixes,
+                evidence=args.evidence,
                 argv=raw_argv,
                 launched_by=args.launched_by,
             )

@@ -464,3 +464,43 @@ class TestSmoke:
     def test_main_passes(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         smoke.main(["--out", str(tmp_path / "out")])
         assert "SMOKE PASSED" in capsys.readouterr().out
+
+
+class TestFollowupEvidenceMode:
+    def _generate_prompts(
+        self, fixture: tuple[Path, list[Question]], run_dir: Path, **kw: Any
+    ) -> tuple[list[str], dict[str, Any]]:
+        seen: list[str] = []
+
+        class Spy(smoke.ScriptedClient):
+            def complete(self, system: Any, user: str, *, tag: str, prefix: Any = None) -> Any:
+                if tag == "generate":
+                    seen.append(user)
+                return super().complete(system, user, tag=tag, prefix=prefix)
+
+        summary = followups(fixture, run_dir, client_factory=lambda c, t: Spy(t), **kw)
+        return seen, summary
+
+    def test_none_removes_the_evidence_from_every_condition(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        seen, summary = self._generate_prompts(fixture, tmp_path / "run", evidence="none")
+        assert seen and not any("External Knowledge" in u for u in seen)
+        assert summary["evidence"] == "none"
+        assert any("No condition gets any evidence" in n for n in summary["notes"])
+
+    def test_source_is_the_default_and_keeps_the_evidence(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        _, questions = fixture
+        seen, summary = self._generate_prompts(fixture, tmp_path / "run")
+        assert summary["evidence"] == "source"
+        sources = {f.source_question_id for f in smoke.FOLLOWUPS}
+        if any(q.evidence.strip() for q in questions if q.question_id in sources):
+            assert any("External Knowledge" in u for u in seen)
+
+    def test_unknown_mode_is_refused(
+        self, fixture: tuple[Path, list[Question]], tmp_path: Path
+    ) -> None:
+        with pytest.raises(ValueError):
+            followups(fixture, tmp_path / "run", evidence="some")
