@@ -9,6 +9,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
 - MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions and run read-only SQL through the guard, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model (CI) and in a scripted session with Claude Haiku 5.5. No authentication for remote HTTP.
+- Answer quality: an LLM judge of the final answer agrees with the owner's hand labels on 49 of 50 dev answers (kappa 0.95) and runs at about $0.0001 per answer (see [Answer quality](#answer-quality-an-llm-judge-calibrated-against-hand-labels)).
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -157,6 +158,19 @@ Paired differences on the same 350 questions (95% CI):
 | `agent_v1` | 20% [5, 40] | 66.2 s / 39.8 s | 30% (`agent_v1`) |
 
 On these 20 questions Haiku single shot leads the local baseline by +25 pts [+5, +45] at about 2 s and $0.0002 per question. The local model only solves simple questions (0 of the moderate and challenging ones), and prompt processing dominates its latency (about 14 tokens/s on a cold prefix). n=20 gives wide intervals.
+
+### Answer quality: an LLM judge calibrated against hand labels
+
+EX scores the SQL, but a user reads the sentence the respond step writes. An LLM judge (`evals/judge/`) grades that sentence against the gold result (question, external knowledge, up to 10 reference rows and the answer; never the SQL). Before trusting it, the owner labelled 50 agent v2 answers on dev by hand, seeing the same reference as the judge but not its verdict or EX ([report](evals/reports/2026-10-19-judge-calibration-dev-50/), [ADR-009](docs/ADR-009-judge-and-ci-evals.md)):
+
+| Comparison (50 dev answers) | Accuracy [95% CI] | Cohen's kappa [95% CI] |
+|---|---|---|
+| Judge (Haiku 5.5) vs human | 0.98 [0.94, 1.00] | 0.95 [0.84, 1.00] |
+| Judge (Sonnet 5.5) vs human | 0.98 [0.94, 1.00] | 0.95 [0.85, 1.00] |
+| Human vs EX | 0.84 [0.74, 0.94] | 0.62 [0.35, 0.83] |
+| Judge (Haiku 5.5) vs EX | 0.86 [0.76, 0.94] | 0.66 [0.40, 0.87] |
+
+Either judge reproduces the human reading on 49 of 50 answers (the one miss each is a long result the 10-row preview cannot show in full), so the Haiku judge, at about $0.0001 per answer, is the answer-level metric. Human and EX disagree on 8 of 50 answers in both directions: 5 right queries whose answer lists only part of a long result or misreads a percentage, and 3 queries EX marks wrong whose answer is right (column shape, floating-point rounding, repeated rows). Answers judged correct by the human: 68% [54, 80], against 72% [60, 84] EX on the same questions. One labeler and n = 50, so the intervals are wide; dev only. Cost: $0.12 for the answers and both judges.
 
 ### Cost of the evaluation
 
