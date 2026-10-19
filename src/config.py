@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     sql_read_only: bool = True
     rag_top_k: int = 5
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # .env is shared with docker compose (Langfuse server and database settings), so keys
+    # that belong to other services are ignored instead of rejected.
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()
