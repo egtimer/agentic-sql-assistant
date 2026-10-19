@@ -1,9 +1,12 @@
 """Nodes and routing of the SQL agent v2. The flow is decided here, in code."""
 
-from typing import Any
+import functools
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from src.llm import get_client
-from src.sql_agent.executor import run_query, select_final_sql
+from src.observability import tracing
+from src.sql_agent.executor import Attempt, format_result, run_query, select_final_sql
 from src.sql_agent.extract import extract_check_sql, extract_sql
 from src.sql_agent.introspect import schema_block, schema_context
 from src.sql_agent.prompts import (
@@ -55,6 +58,54 @@ def _normalized(sql: str) -> str:
     return " ".join(sql.split()).rstrip(";").strip()
 
 
+_NodeFn = TypeVar("_NodeFn", bound=Callable[[SqlAgentState], dict[str, Any]])
+
+
+def _traced(
+    name: str,
+    span_input: Callable[[SqlAgentState], dict[str, Any]],
+    span_output: Callable[[SqlAgentState, dict[str, Any]], dict[str, Any]],
+) -> Callable[[_NodeFn], _NodeFn]:
+    """Record a node as a span of the current trace (nothing happens without a trace)."""
+
+    def decorator(func: _NodeFn) -> _NodeFn:
+        @functools.wraps(func)
+        def wrapper(state: SqlAgentState) -> dict[str, Any]:
+            if not tracing.active():
+                return func(state)
+            with tracing.span(name, input=span_input(state)) as handle:
+                update = func(state)
+                handle.update(output=span_output(state, update))
+                return update
+
+        return cast(_NodeFn, wrapper)
+
+    return decorator
+
+
+def _attempt_output(attempt: Attempt) -> dict[str, Any]:
+    return {
+        "columns": attempt.columns,
+        "row_count": attempt.row_count_text,
+        "truncated": attempt.more_rows,
+        "error": attempt.error,
+        "blocked": attempt.blocked,
+        "block_reason": attempt.block_reason,
+        "layer": attempt.layer,
+        "elapsed_s": round(attempt.elapsed_s, 4),
+    }
+
+
+def _check_output(update: dict[str, Any]) -> dict[str, Any]:
+    verdict: Verdict = update["verdicts"][-1]
+    return {"verdict": verdict.kind, "fix_sql": verdict.sql or None, "note": verdict.note}
+
+
+@_traced(
+    "introspect",
+    lambda s: {"db_path": s.db_path, "sample_values": s.sample_values},
+    lambda s, u: {"schema_context": u["schema_context"], "chars": len(u["schema_context"])},
+)
 def introspect_node(state: SqlAgentState) -> dict[str, Any]:
     return {
         "schema_context": schema_context(
@@ -63,6 +114,11 @@ def introspect_node(state: SqlAgentState) -> dict[str, Any]:
     }
 
 
+@_traced(
+    "generate",
+    lambda s: {"question": s.question, "evidence": s.evidence},
+    lambda s, u: {"sql": u["candidate_sql"]},
+)
 def generate_node(state: SqlAgentState) -> dict[str, Any]:
     completion = get_client().complete(
         GENERATE_SYSTEM,
@@ -73,11 +129,21 @@ def generate_node(state: SqlAgentState) -> dict[str, Any]:
     return {"candidate_sql": extract_sql(completion.text)}
 
 
+@_traced(
+    "execute",
+    lambda s: {"sql": s.candidate_sql},
+    lambda s, u: _attempt_output(u["attempts"][-1]),
+)
 def execute_node(state: SqlAgentState) -> dict[str, Any]:
     attempt = run_query(state.db_path, state.candidate_sql, policy=state.policy)
     return {"attempts": [*state.attempts, attempt]}
 
 
+@_traced(
+    "check",
+    lambda s: {"sql": s.attempts[-1].sql, "result": format_result(s.attempts[-1])},
+    lambda s, u: _check_output(u),
+)
 def check_node(state: SqlAgentState) -> dict[str, Any]:
     attempt = state.attempts[-1]
     completion = get_client().complete(
@@ -94,6 +160,11 @@ def check_node(state: SqlAgentState) -> dict[str, Any]:
     return update
 
 
+@_traced(
+    "respond",
+    lambda s: {"final_sql": select_final_sql(s.attempts), "skip_respond": s.skip_respond},
+    lambda s, u: {"final_sql": u["final_sql"], "response": u["response"]},
+)
 def respond_node(state: SqlAgentState) -> dict[str, Any]:
     final_sql = select_final_sql(state.attempts)
     if state.skip_respond:

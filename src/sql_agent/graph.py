@@ -6,6 +6,7 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
+from src.observability import tracing
 from src.sql_agent.nodes import (
     check_node,
     execute_node,
@@ -65,7 +66,20 @@ def run_sql_agent(
         skip_respond=skip_respond,
         policy=policy or GuardPolicy(),
     )
-    out = SqlAgentState.model_validate(build_graph().invoke(initial))
+    with tracing.trace_or_span(
+        "sql_agent_v2",
+        input={"question": question, "evidence": evidence},
+        metadata={"use_check": use_check, "max_fixes": max_fixes, "skip_respond": skip_respond},
+    ) as handle:
+        out = SqlAgentState.model_validate(build_graph().invoke(initial))
+        handle.update(
+            output={
+                "final_sql": out.final_sql,
+                "fixes_used": out.fixes_used,
+                "attempts": len(out.attempts),
+                "response": out.response,
+            }
+        )
     return SqlAgentResult(
         final_sql=out.final_sql,
         attempts=out.attempts,

@@ -24,6 +24,9 @@ class Attempt(BaseModel):
     preview: list[list[str]] = []
     error: str | None = None
     blocked: bool = False  # refused by the SQL guard (error starts with "blocked:")
+    block_reason: str | None = None  # why the guard refused it (traces only)
+    layer: str | None = None  # guard layer that refused it (traces only)
+    elapsed_s: float = 0.0  # execution time (traces only)
 
     @property
     def ok(self) -> bool:
@@ -58,9 +61,17 @@ def run_query(
     )
     result = guarded_execute(db_path, sql, policy)
     if result.error is not None:
-        return Attempt(sql=sql, error=result.error, blocked=result.blocked)
+        return Attempt(
+            sql=sql,
+            error=result.error,
+            blocked=result.blocked,
+            block_reason=result.block_reason,
+            layer=result.layer,
+            elapsed_s=result.elapsed_s,
+        )
     return Attempt(
         sql=sql,
+        elapsed_s=result.elapsed_s,
         columns=result.columns,
         row_count=len(result.rows) + (1 if result.truncated else 0),
         more_rows=result.truncated,
