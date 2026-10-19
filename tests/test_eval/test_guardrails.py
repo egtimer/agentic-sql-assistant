@@ -18,13 +18,10 @@ from evals.guardrails.cases import (
 )
 from evals.guardrails.classify import classify_attempt
 from evals.guardrails.guards import GUARDS, legacy_validate
-from evals.text2sql.data import db_path
 from src.llm import CallUsage, Completion
 from src.sql_guard import GuardPolicy
 
-needs_bird = pytest.mark.skipif(
-    not db_path("student_club").exists(), reason="BIRD data missing (make bird-data)"
-)
+needs_bird = pytest.mark.requires_bird
 CATEGORIES = {
     "write",
     "cte_write",

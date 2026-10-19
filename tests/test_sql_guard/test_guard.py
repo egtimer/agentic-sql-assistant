@@ -112,8 +112,16 @@ def test_blocked_and_database_untouched(db: Path, sql: str, tmp_path: Path) -> N
         ("CREATE TEMP TABLE t (a)", "writing to sqlite_temp_master"),
         ("PRAGMA database_list", "PRAGMA is not allowed"),
         ("PRAGMA user_version = 3", "PRAGMA is not allowed"),
-        ("SELECT * FROM pragma_database_list", "writing to sqlite_master"),
-        ("SELECT * FROM pragma_table_info('users')", "writing to sqlite_master"),
+        # SQLite 3.40 reports the eponymous virtual table as a schema write first; newer
+        # releases (as on the CI runner) report the read of the pragma_* table. Both are denied.
+        (
+            "SELECT * FROM pragma_database_list",
+            ("writing to sqlite_master", "pragma_database_list"),
+        ),
+        (
+            "SELECT * FROM pragma_table_info('users')",
+            ("writing to sqlite_master", "pragma_table_info"),
+        ),
         ("DELETE FROM users", "DELETE is not allowed"),
         ("WITH x AS (SELECT 1) DELETE FROM users", "DELETE is not allowed"),
         ("BEGIN", "transaction control"),
@@ -121,9 +129,13 @@ def test_blocked_and_database_untouched(db: Path, sql: str, tmp_path: Path) -> N
         ("SELECT load_extension('x')", "function load_extension"),
     ],
 )
-def test_authorizer_alone_stops_probes(db: Path, sql: str, authorizer_reason: str) -> None:
+def test_authorizer_alone_stops_probes(
+    db: Path, sql: str, authorizer_reason: str | tuple[str, ...]
+) -> None:
     r = guarded_execute(db, sql, lexical=False)
-    assert r.blocked and r.layer == "authorizer" and authorizer_reason in (r.block_reason or "")
+    accepted = (authorizer_reason,) if isinstance(authorizer_reason, str) else authorizer_reason
+    assert r.blocked and r.layer == "authorizer"
+    assert any(reason in (r.block_reason or "") for reason in accepted), r.block_reason
     assert sorted(p.name for p in db.parent.iterdir()) == ["t.db"]
 
 
