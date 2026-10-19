@@ -10,6 +10,7 @@ from src.agent.prompts import (
     RESPONSE_PROMPT,
     TOOL_SELECTION_PROMPT,
     build_response_prompt,
+    build_tool_selection_parts,
     build_tool_selection_prompt,
 )
 from src.agent.state import AgentState, ToolCall, ToolName, ToolProfile, ToolResult
@@ -83,6 +84,25 @@ class TestSqlOnlyPrompt:
         assert "CREATE TABLE a{b}" in prompt
         assert "q {x}" in prompt
 
+    def test_parts_concatenate_to_prompt(self) -> None:
+        for query in ("How many rows?", "q {x}", "User question: tricky\nUser question: again"):
+            prefix, user = build_tool_selection_parts(query, ToolProfile.SQL_ONLY, SCHEMA)
+            assert prefix is not None
+            assert prefix + user == build_tool_selection_prompt(query, ToolProfile.SQL_ONLY, SCHEMA)
+            assert prefix.endswith("\n\n")
+            assert user.startswith("User question: ")
+            assert SCHEMA in prefix
+
+    def test_prefix_does_not_depend_on_query(self) -> None:
+        a, _ = build_tool_selection_parts("question A", ToolProfile.SQL_ONLY, SCHEMA)
+        b, _ = build_tool_selection_parts("question B", ToolProfile.SQL_ONLY, SCHEMA)
+        assert a == b
+
+    def test_default_profile_has_no_prefix(self) -> None:
+        prefix, user = build_tool_selection_parts(SALES_QUERY)
+        assert prefix is None
+        assert user == build_tool_selection_prompt(SALES_QUERY)
+
     def test_neutral_response_prompt(self) -> None:
         prompt = build_response_prompt("q", "results", ToolProfile.SQL_ONLY)
         assert "€" not in prompt
@@ -97,8 +117,11 @@ class TestReasonNodeProfiles:
         )
         state = AgentState(query="q", profile=ToolProfile.SQL_ONLY, schema_description=SCHEMA)
         updates = reason_node(state)
-        user = mock_get_client.return_value.complete.call_args.args[1]
-        assert SCHEMA in user
+        call = mock_get_client.return_value.complete.call_args
+        assert SCHEMA in call.kwargs["prefix"]
+        assert call.kwargs["prefix"] + call.args[1] == build_tool_selection_prompt(
+            "q", ToolProfile.SQL_ONLY, SCHEMA
+        )
         assert len(updates["planned_tools"]) == 1
 
     @patch("src.agent.nodes.get_client")
@@ -118,8 +141,9 @@ class TestReasonNodeProfiles:
         )
         updates = reason_node(AgentState(query="q"))
         assert [t.tool for t in updates["planned_tools"]] == [ToolName.DOC_SEARCH]
-        user = mock_get_client.return_value.complete.call_args.args[1]
-        assert user == TOOL_SELECTION_PROMPT.format(query="q")
+        call = mock_get_client.return_value.complete.call_args
+        assert call.args[1] == TOOL_SELECTION_PROMPT.format(query="q")
+        assert "prefix" not in call.kwargs
 
 
 class TestExecuteNodeDbPath:

@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from evals.text2sql.agent_system import build_agent_query, predict_agent, select_sql
-from evals.text2sql.baseline import build_baseline_prompt, extract_sql, predict_baseline
+from evals.text2sql.baseline import (
+    build_baseline_parts,
+    build_baseline_prompt,
+    extract_sql,
+    predict_baseline,
+)
 from evals.text2sql.data import Question
 from src.llm import CallUsage, Completion
 
@@ -18,9 +23,13 @@ class FakeClient:
     def __init__(self, *texts: str) -> None:
         self.texts = list(texts)
         self.calls: list[tuple[str | None, str, str]] = []
+        self.prefixes: list[str | None] = []
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
-        self.calls.append((system, user, tag))
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
+        self.prefixes.append(prefix)
+        self.calls.append((system, (prefix or "") + user, tag))
         text = self.texts[min(len(self.calls) - 1, len(self.texts) - 1)]
         return Completion(text=text, usage=CallUsage(tag=tag))
 
@@ -104,6 +113,20 @@ class TestBaselinePrompt:
         _, b = build_baseline_prompt(other, "CREATE TABLE person (id)")
         assert a[: a.index("-- External")] == b[: b.index("-- External")]
 
+    @pytest.mark.parametrize("evidence", ["adult means age >= 18", "", "  padded  "])
+    def test_parts_are_byte_identical_to_the_original_prompt(self, evidence: str) -> None:
+        question = make_question(evidence)
+        schema = "CREATE TABLE person (id)"
+        parts = [f"Database schema (SQLite):\n\n{schema}\n"]  # original construction
+        if evidence.strip():
+            parts.append(f"-- External Knowledge: {evidence.strip()}")
+        parts.append(f"Question: {question.question.strip()}")
+        original = "\n".join(parts)
+        _, prefix, suffix = build_baseline_parts(question, schema)
+        assert prefix + suffix == original
+        assert build_baseline_prompt(question, schema)[1] == original
+        assert schema in prefix and question.question not in prefix
+
     def test_empty_evidence_omitted(self) -> None:
         _, user = build_baseline_prompt(make_question(""), "CREATE TABLE person (id)")
         assert "External Knowledge" not in user
@@ -115,6 +138,7 @@ class TestPredictBaseline:
         sql, n_calls = predict_baseline(make_question(), client, database=db)
         assert sql == "SELECT COUNT(*) FROM person WHERE age >= 18"
         assert n_calls == 1
+        assert client.prefixes[0] is not None and "CREATE TABLE person" in client.prefixes[0]
         system, user, tag = client.calls[0]
         assert tag == "baseline"
         assert "CREATE TABLE person" in user

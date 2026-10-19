@@ -25,8 +25,10 @@ class CountingClient:
     def n_calls(self) -> int:
         return len(self.usages)
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
-        completion = self._client.complete(system, user, tag=tag)
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
+        completion = self._client.complete(system, user, tag=tag, prefix=prefix)
         self.usages.append(completion.usage)
         return completion
 
@@ -37,17 +39,25 @@ def cached_schema(database: str) -> str:
     return schema_ddl(database)
 
 
-def build_baseline_prompt(question: Question, schema: str) -> tuple[str, str]:
-    """Return ``(system, user)``.
+def build_baseline_parts(question: Question, schema: str) -> tuple[str, str, str]:
+    """Return ``(system, prefix, suffix)``.
 
-    Stable content (instructions, schema) comes first and the per-question text last, so
-    local servers can reuse the cached prompt prefix across questions of one database.
+    The prefix (schema block) is stable across the questions of one database and is what
+    gets cached; the suffix is the per-question text (evidence and question). Stable content
+    comes first so local servers can also reuse their KV prefix.
     """
-    parts = [f"Database schema (SQLite):\n\n{schema}\n"]
+    prefix = f"Database schema (SQLite):\n\n{schema}\n\n"
+    parts = []
     if question.evidence.strip():
         parts.append(f"-- External Knowledge: {question.evidence.strip()}")
     parts.append(f"Question: {question.question.strip()}")
-    return BASELINE_SYSTEM, "\n".join(parts)
+    return BASELINE_SYSTEM, prefix, "\n".join(parts)
+
+
+def build_baseline_prompt(question: Question, schema: str) -> tuple[str, str]:
+    """Return ``(system, user)``: the whole user prompt, ``prefix + suffix``."""
+    system, prefix, suffix = build_baseline_parts(question, schema)
+    return system, prefix + suffix
 
 
 _FENCE = re.compile(r"```[ \t]*([A-Za-z]*)[ \t]*\n?(.*?)```", re.DOTALL)
@@ -100,6 +110,6 @@ def predict_baseline(
     """Predict SQL with a single LLM call. Returns ``(sql, n_llm_calls)``."""
     counting = CountingClient(client)
     schema = cached_schema(str(database or db_path(question.db_id)))
-    system, user = build_baseline_prompt(question, schema)
-    completion = counting.complete(system, user, tag="baseline")
+    system, prefix, suffix = build_baseline_parts(question, schema)
+    completion = counting.complete(system, suffix, tag="baseline", prefix=prefix)
     return extract_sql(completion.text), counting.n_calls

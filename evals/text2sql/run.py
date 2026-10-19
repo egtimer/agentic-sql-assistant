@@ -238,6 +238,10 @@ def summarize_system(
         return {"n": len(rows), "correct": correct, "ex": correct / len(rows) if rows else None}
 
     latencies = [r["latency_ms"] for r in records]
+    input_total = sum(r["input_tokens"] for r in records)
+    cache_read = sum(r["cache_read_tokens"] for r in records)
+    cache_write = sum(r["cache_write_tokens"] for r in records)
+    prompt_total = input_total + cache_read + cache_write
     return {
         "n": n,
         "n_planned": n_planned,
@@ -247,10 +251,12 @@ def summarize_system(
             d: ex([r for r in records if r["difficulty"] == d]) for d in DIFFICULTIES
         },
         "tokens": {
-            "input_total": sum(r["input_tokens"] for r in records),
+            "input_total": input_total,
             "output_total": sum(r["output_tokens"] for r in records),
-            "cache_read_total": sum(r["cache_read_tokens"] for r in records),
-            "cache_write_total": sum(r["cache_write_tokens"] for r in records),
+            "cache_read_total": cache_read,
+            "cache_write_total": cache_write,
+            # cache_read / (input + cache_read + cache_write) over all calls of the system
+            "cache_hit_ratio": cache_read / prompt_total if prompt_total else None,
             "input_mean_per_question": mean("input_tokens"),
             "output_mean_per_question": mean("output_tokens"),
         },

@@ -178,7 +178,67 @@ class TestAnthropicClient:
         assert isinstance(build_client(ollama), OllamaClient)
 
 
+class TestPromptCaching:
+    PREFIX = "SCHEMA...\n\n"
+
+    def _sent(self, config: LLMConfig, prefix: str | None) -> Any:
+        sdk = fake_sdk(sdk_response())
+        AnthropicClient(config, sdk_client=sdk).complete(None, "Q?", tag="t", prefix=prefix)
+        return sdk.messages.create.call_args.kwargs["messages"][0]["content"]
+
+    def test_two_blocks_with_cache_control_on_prefix_only(self) -> None:
+        content = self._sent(anthropic_config(prompt_caching=True), self.PREFIX)
+        assert content == [
+            {"type": "text", "text": self.PREFIX, "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": "Q?"},
+        ]
+        assert "cache_control" not in content[1]
+
+    def test_single_string_when_caching_disabled(self) -> None:
+        assert self._sent(anthropic_config(), self.PREFIX) == self.PREFIX + "Q?"
+
+    @pytest.mark.parametrize("prefix", [None, ""])
+    def test_single_string_without_prefix(self, prefix: str | None) -> None:
+        assert self._sent(anthropic_config(prompt_caching=True), prefix) == "Q?"
+
+    def test_caching_is_off_by_default(self) -> None:
+        assert anthropic_config().prompt_caching is False
+
+    def test_cache_tokens_recorded_and_priced(self) -> None:
+        sdk = fake_sdk(
+            sdk_response(
+                input_tokens=10, cache_read_input_tokens=1000, cache_creation_input_tokens=2000
+            )
+        )
+        u = (
+            AnthropicClient(anthropic_config(prompt_caching=True), sdk_client=sdk)
+            .complete(None, "q", tag="t", prefix="p")
+            .usage
+        )
+        assert (u.cache_read_tokens, u.cache_write_tokens) == (1000, 2000)
+        assert u.cost_usd == pytest.approx(
+            (10 * 0.10 + 50 * 0.50 + 1000 * 0.01 + 2000 * 0.125) / 1e6
+        )
+
+    def test_haiku_config_enables_caching(self) -> None:
+        from pathlib import Path
+
+        import yaml
+
+        path = Path(__file__).parents[2] / "configs" / "llm" / "claude-haiku-5-5.yaml"
+        config = LLMConfig.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+        assert config.prompt_caching is True
+
+
 class TestOllamaClient:
+    def test_prefix_and_user_are_concatenated(self) -> None:
+        config = LLMConfig(provider="ollama", model="m")
+        with patch("src.llm.client.ChatOllama") as ctor:
+            ctor.return_value.invoke.return_value = AIMessage(content="x")
+            OllamaClient(config).complete("sys", "Q?", tag="t", prefix="SCHEMA\n\n")
+        sent = ctor.return_value.invoke.call_args.args[0]
+        assert [m.content for m in sent] == ["sys", "SCHEMA\n\nQ?"]
+
     def _config(self, **overrides: Any) -> LLMConfig:
         params: dict[str, Any] = {
             "provider": "ollama",
@@ -284,7 +344,9 @@ class TestClientRegistry:
 
     def test_set_and_reset_client(self) -> None:
         class Fake:
-            def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
+            def complete(
+                self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+            ) -> Completion:
                 raise NotImplementedError
 
         fake = Fake()

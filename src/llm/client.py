@@ -40,7 +40,15 @@ class Completion:
 class LLMClient(Protocol):
     """Anything that can complete a prompt."""
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion: ...
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
+        """Complete a prompt. The model sees ``prefix + user`` (plain concatenation).
+
+        ``prefix`` is the part that is stable across calls; providers with explicit prompt
+        caching may cache it, the others just send ``prefix + user``.
+        """
+        ...
 
 
 class OllamaClient:
@@ -66,8 +74,11 @@ class OllamaClient:
             self._llm = ChatOllama(**kwargs)
         return self._llm
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
         self.tracker.check()
+        user = (prefix or "") + user
         messages: list[BaseMessage] = []
         if system is not None:
             messages.append(SystemMessage(content=system))
@@ -116,12 +127,26 @@ class AnthropicClient:
             self._sdk = anthropic.Anthropic()
         return self._sdk
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
+    def _user_content(self, user: str, prefix: str | None) -> str | list[dict[str, Any]]:
+        """Message content: two blocks with the cache breakpoint after the stable prefix.
+
+        ``cache_control`` goes only on the prefix block, never on the per-question part.
+        """
+        if self.config.prompt_caching and prefix:
+            return [
+                {"type": "text", "text": prefix, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": user},
+            ]
+        return (prefix or "") + user
+
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
         self.tracker.check()
         kwargs: dict[str, Any] = {
             "model": self.config.model,
             "max_tokens": self.config.max_tokens,
-            "messages": [{"role": "user", "content": user}],
+            "messages": [{"role": "user", "content": self._user_content(user, prefix)}],
         }
         if system is not None:
             kwargs["system"] = system

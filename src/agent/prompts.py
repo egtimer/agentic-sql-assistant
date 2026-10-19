@@ -163,6 +163,31 @@ Instructions:
 SCHEMA_NOT_PROVIDED = "(The schema was not provided. Inspect it with queries on sqlite_master.)"
 
 
+_QUESTION_MARKER = "User question: "
+
+
+def build_tool_selection_parts(
+    query: str,
+    profile: ToolProfile = ToolProfile.DEFAULT,
+    schema_description: str | None = None,
+) -> tuple[str | None, str]:
+    """Return ``(prefix, user)`` of the tool-selection prompt; ``prefix + user`` is the prompt.
+
+    Only the SQL-only profile has a prefix: everything up to (not including) the text
+    ``User question: `` is stable across questions of one database, so it can be cached. The
+    default profile returns ``(None, whole prompt)``.
+    """
+    prompt = build_tool_selection_prompt(query, profile, schema_description)
+    if profile is not ToolProfile.SQL_ONLY:
+        return None, prompt
+    # The marker is the template's last one, so it is found from the right; the query text
+    # comes after it and cannot move the split to an earlier position.
+    head = SQL_ONLY_TOOL_SELECTION_PROMPT.rsplit(_QUESTION_MARKER, 1)[0]
+    prefix = head.format(schema=schema_description or SCHEMA_NOT_PROVIDED)
+    assert prompt.startswith(prefix)
+    return prefix, prompt[len(prefix) :]
+
+
 def build_tool_selection_prompt(
     query: str,
     profile: ToolProfile = ToolProfile.DEFAULT,

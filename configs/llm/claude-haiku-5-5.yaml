@@ -1,9 +1,13 @@
 # Prices: USD per million tokens, platform.claude.com pricing page, checked 2026-10-18
-# (see docs/ADR-003-text-to-sql-evaluation.md). Prompt caching is not enabled.
+# (see docs/ADR-003-text-to-sql-evaluation.md).
+# Prompt caching: Claude Haiku 5.5 minimum cacheable prefix is 512 tokens (shorter prefixes
+# are silently not cached), cache write 1.25x input ($0.125/MTok, 5-minute TTL), cache read
+# $0.01/MTok. Source: Anthropic prompt caching docs, checked 2026-10-19.
 provider: anthropic
 model: claude-haiku-5-5
 max_tokens: 16000
 effort: low
+prompt_caching: true
 pricing:
   input_per_mtok: 0.10
   output_per_mtok: 0.50

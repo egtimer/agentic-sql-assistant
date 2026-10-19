@@ -36,6 +36,7 @@ class LLMConfig(BaseModel):
     effort: str | None = None
     num_ctx: int | None = None
     base_url: str | None = None
+    prompt_caching: bool = False
     pricing: Pricing = Pricing()
 
     @model_validator(mode="after")

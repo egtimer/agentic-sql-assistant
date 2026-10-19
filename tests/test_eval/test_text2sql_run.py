@@ -52,8 +52,11 @@ class FakeLLM:
                 return qid
         raise AssertionError(f"no question id in prompt: {user[-200:]}")
 
-    def complete(self, system: str | None, user: str, *, tag: str) -> Completion:
+    def complete(
+        self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+    ) -> Completion:
         self.tracker.check()
+        user = (prefix or "") + user
         self.n_calls += 1
         if tag == "respond":
             text = "done"
@@ -395,3 +398,37 @@ def test_sampling_meta(questions: list[Question]) -> None:
 def test_parse_args_seed_default() -> None:
     assert parse_args(["--llm-config", "x.yaml"]).seed == 0
     assert parse_args(["--llm-config", "x.yaml", "--seed", "3"]).seed == 3
+
+
+def test_summarize_system_cache_totals_and_hit_ratio() -> None:
+    from evals.text2sql.run import summarize_system
+
+    def rec(i: int, cr: int, cw: int) -> dict[str, Any]:
+        return {
+            "correct": True, "difficulty": "simple", "failure_type": None,
+            "input_tokens": i, "output_tokens": 1, "cache_read_tokens": cr,
+            "cache_write_tokens": cw, "cost_usd": 0.0, "n_llm_calls": 1, "latency_ms": 1.0,
+        }  # fmt: skip
+
+    tokens = summarize_system([rec(10, 0, 90), rec(10, 90, 0)], 2, None)["tokens"]
+    assert tokens["cache_read_total"] == 90
+    assert tokens["cache_write_total"] == 90
+    assert tokens["cache_hit_ratio"] == pytest.approx(90 / 200)
+    assert summarize_system([], 0, None)["tokens"]["cache_hit_ratio"] is None
+
+
+def test_counting_client_forwards_prefix() -> None:
+    from evals.text2sql.baseline import CountingClient
+
+    class Spy:
+        def complete(
+            self, system: str | None, user: str, *, tag: str, prefix: str | None = None
+        ) -> Completion:
+            self.seen = (system, user, tag, prefix)
+            return Completion(text="", usage=CallUsage(tag=tag))
+
+    spy = Spy()
+    counting = CountingClient(spy)
+    counting.complete("s", "u", tag="t", prefix="p")
+    assert spy.seen == ("s", "u", "t", "p")
+    assert counting.n_calls == 1

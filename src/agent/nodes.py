@@ -10,7 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from src.agent.prompts import (
     VALIDATION_PROMPT,
     build_response_prompt,
-    build_tool_selection_prompt,
+    build_tool_selection_parts,
 )
 from src.agent.state import (
     PROFILE_TOOLS,
@@ -72,9 +72,15 @@ def reason_node(state: AgentState) -> dict[str, Any]:
     Sends the query to the LLM with tool descriptions and expects
     a JSON array of tool calls in response.
     """
-    prompt = build_tool_selection_prompt(state.query, state.profile, state.schema_description)
+    prefix, prompt = build_tool_selection_parts(
+        state.query, state.profile, state.schema_description
+    )
+    # The default profile's call stays exactly as it was: no prefix argument at all.
+    extra = {} if prefix is None else {"prefix": prefix}
     response_text = (
-        get_client().complete("You output only valid JSON arrays.", prompt, tag="reason").text
+        get_client()
+        .complete("You output only valid JSON arrays.", prompt, tag="reason", **extra)
+        .text
     )
 
     try:
