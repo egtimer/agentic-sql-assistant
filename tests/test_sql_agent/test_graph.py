@@ -215,3 +215,29 @@ class TestPromptPrefix:
         gen = llm.calls[0]
         assert "Question: Which cities?" in gen[1] and "pop > 1 is big" in gen[1]
         assert gen[1].rstrip().endswith("Which cities?")
+
+
+def test_blocked_sql_reaches_check_and_can_be_rephrased(db: Path) -> None:
+    llm = ScriptedLLM(
+        generate=[sql("VACUUM INTO 'stolen.sqlite'")],
+        check=[f"Not allowed, rephrase.\n{sql(GOOD)}"],
+    )
+    out = run(llm, db)
+    assert out.attempts[0].blocked and (out.attempts[0].error or "").startswith("blocked:")
+    assert "Execution error: blocked:" in llm.calls[1][1]
+    assert out.final_sql == GOOD and out.attempts[-1].ok
+    assert not (db.parent / "stolen.sqlite").exists()
+
+
+def test_policy_hides_denied_tables_in_schema_and_blocks_reads(db: Path) -> None:
+    from src.sql_guard import GuardPolicy
+
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE secret (k TEXT)")
+    conn.execute("INSERT INTO secret VALUES ('hidden-value')")
+    conn.commit()
+    conn.close()
+    llm = ScriptedLLM(generate=[sql("SELECT k FROM secret")], check=["OK"])
+    out = run(llm, db, policy=GuardPolicy(denied_tables={"secret"}))
+    assert "secret" not in (llm.calls[0][3] or "") and "hidden-value" not in (llm.calls[0][3] or "")
+    assert out.attempts[0].blocked and "denied by policy" in (out.attempts[0].error or "")

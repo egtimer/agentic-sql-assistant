@@ -39,7 +39,11 @@ def _normalized(sql: str) -> str:
 
 
 def introspect_node(state: SqlAgentState) -> dict[str, Any]:
-    return {"schema_context": schema_context(state.db_path, sample_values=state.sample_values)}
+    return {
+        "schema_context": schema_context(
+            state.db_path, sample_values=state.sample_values, policy=state.policy
+        )
+    }
 
 
 def generate_node(state: SqlAgentState) -> dict[str, Any]:
@@ -53,7 +57,7 @@ def generate_node(state: SqlAgentState) -> dict[str, Any]:
 
 
 def execute_node(state: SqlAgentState) -> dict[str, Any]:
-    attempt = run_query(state.db_path, state.candidate_sql)
+    attempt = run_query(state.db_path, state.candidate_sql, policy=state.policy)
     return {"attempts": [*state.attempts, attempt]}
 
 

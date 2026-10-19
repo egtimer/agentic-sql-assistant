@@ -1,14 +1,12 @@
 """Read-only query execution with a timeout and a compact result preview."""
 
-import sqlite3
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 
-from src.sql_agent.db import connect_readonly, set_deadline
+from src.sql_guard import GuardPolicy, guarded_execute
 
-TIMEOUT_ERROR = "timeout"
 NO_SQL_ERROR = "no sql"
 DEFAULT_TIMEOUT_S = 30.0
 MAX_ROWS = 1000  # fetch MAX_ROWS + 1 rows to know whether there are more
@@ -25,6 +23,7 @@ class Attempt(BaseModel):
     more_rows: bool = False
     preview: list[list[str]] = []
     error: str | None = None
+    blocked: bool = False  # refused by the SQL guard (error starts with "blocked:")
 
     @property
     def ok(self) -> bool:
@@ -42,32 +41,31 @@ def _cell(value: Any) -> str:
     return text if len(text) <= MAX_CELL_CHARS else text[:MAX_CELL_CHARS] + "..."
 
 
-def run_query(db_path: Path | str, sql: str, timeout_s: float = DEFAULT_TIMEOUT_S) -> Attempt:
-    """Run ``sql`` read-only. Never raises for SQL problems: they land in ``Attempt.error``."""
+def run_query(
+    db_path: Path | str,
+    sql: str,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    policy: GuardPolicy | None = None,
+) -> Attempt:
+    """Run ``sql`` under the SQL guard. Never raises for SQL problems: they land in ``error``.
+
+    A statement the guard refuses gets an error starting with ``blocked:``.
+    """
     if not sql.strip():
         return Attempt(sql=sql, error=NO_SQL_ERROR)
-    conn = None
-    try:
-        conn = connect_readonly(db_path)
-        set_deadline(conn, timeout_s)
-        cursor = conn.execute(sql)
-        columns = [d[0] for d in cursor.description or []]
-        rows = cursor.fetchmany(MAX_ROWS + 1)
-        return Attempt(
-            sql=sql,
-            columns=columns,
-            row_count=len(rows),
-            more_rows=len(rows) > MAX_ROWS,
-            preview=[[_cell(v) for v in row] for row in rows[:PREVIEW_ROWS]],
-        )
-    except sqlite3.OperationalError as e:
-        message = TIMEOUT_ERROR if "interrupted" in str(e).lower() else str(e)
-        return Attempt(sql=sql, error=message)
-    except sqlite3.Error as e:
-        return Attempt(sql=sql, error=str(e))
-    finally:
-        if conn is not None:
-            conn.close()
+    policy = (policy or GuardPolicy()).model_copy(
+        update={"timeout_s": timeout_s, "max_rows": MAX_ROWS}
+    )
+    result = guarded_execute(db_path, sql, policy)
+    if result.error is not None:
+        return Attempt(sql=sql, error=result.error, blocked=result.blocked)
+    return Attempt(
+        sql=sql,
+        columns=result.columns,
+        row_count=len(result.rows) + (1 if result.truncated else 0),
+        more_rows=result.truncated,
+        preview=[[_cell(v) for v in row] for row in result.rows[:PREVIEW_ROWS]],
+    )
 
 
 def select_final_sql(attempts: list[Attempt]) -> str:

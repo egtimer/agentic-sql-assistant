@@ -81,3 +81,28 @@ def test_format_result(db: Path) -> None:
     assert text == "Columns: id\nRow count: 2\nRows:\n1\n2"
     assert "First 20 rows:" in format_result(run_query(db, "SELECT id FROM t WHERE id <= 30"))
     assert "Row count: 0" in format_result(run_query(db, "SELECT id FROM t WHERE id < 0"))
+
+
+def test_blocked_attempts_say_so(db: Path) -> None:
+    for sql in (
+        "VACUUM INTO 'x.sqlite'",
+        "PRAGMA database_list",
+        "SELECT * FROM pragma_table_info('t')",
+    ):
+        a = run_query(db, sql)
+        assert a.blocked and not a.ok and (a.error or "").startswith("blocked:")
+        assert format_result(a).startswith("Execution error: blocked:")
+    assert not run_query(db, "SELECT nope FROM t").blocked
+    assert not run_query(db, "SELECT 1 WHERE").blocked
+
+
+def test_replace_function_runs(db: Path) -> None:
+    a = run_query(db, "SELECT REPLACE('abc', 'b', 'x')")
+    assert a.ok and a.preview == [["axc"]]
+
+
+def test_policy_reaches_the_guard(db: Path) -> None:
+    from src.sql_guard import GuardPolicy
+
+    a = run_query(db, "SELECT v FROM t", policy=GuardPolicy(denied_columns={("t", "v")}))
+    assert a.blocked and "denied by policy" in (a.error or "")

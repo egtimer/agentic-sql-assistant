@@ -132,3 +132,9 @@ class TestGoldCache:
         reloaded = GoldCache(path)
         result = reloaded.get(3, tmp_path / "missing.sqlite", "SELECT 1")
         assert result.rows == [(1, "a", b"\x01"), (2, "b", None), (3, "b", None)]
+
+
+def test_scorer_blocks_non_select_gold_or_prediction(db: Path) -> None:
+    result = execute(db, "PRAGMA table_info(t)")
+    assert result.rows is None and (result.error or "").startswith("blocked:")
+    assert execute(db, "SELECT replace(name, 'a', 'z') FROM t").rows is not None

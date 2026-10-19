@@ -16,6 +16,7 @@ from src.sql_agent.nodes import (
     route_after_execute,
 )
 from src.sql_agent.state import SqlAgentResult, SqlAgentState
+from src.sql_guard import GuardPolicy
 
 
 @lru_cache(maxsize=1)
@@ -45,11 +46,14 @@ def run_sql_agent(
     use_check: bool = True,
     max_fixes: int = 2,
     skip_respond: bool = False,
+    policy: GuardPolicy | None = None,
 ) -> SqlAgentResult:
     """Answer ``question`` over the SQLite file at ``db_path`` with one final SQL query.
 
     LLM calls: 1 generate + at most ``max_fixes`` checks (each ends the loop or yields a
-    fix), plus ``respond`` unless ``skip_respond``.
+    fix), plus ``respond`` unless ``skip_respond``. Every candidate runs under the SQL
+    guard with ``policy`` (tables and columns it denies are also hidden from the schema
+    context); a blocked attempt reaches ``check`` as an error starting with ``blocked:``.
     """
     initial = SqlAgentState(
         question=question,
@@ -59,6 +63,7 @@ def run_sql_agent(
         use_check=use_check,
         max_fixes=max_fixes,
         skip_respond=skip_respond,
+        policy=policy or GuardPolicy(),
     )
     out = SqlAgentState.model_validate(build_graph().invoke(initial))
     return SqlAgentResult(

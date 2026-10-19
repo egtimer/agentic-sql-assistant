@@ -5,18 +5,16 @@ as sets, ignoring column names and row order. Errors, timeouts and missing SQL a
 """
 
 import json
-import sqlite3
 import threading
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from evals.text2sql.data import connect_readonly
+from src.sql_guard import GuardPolicy, guarded_execute
 
-TIMEOUT_ERROR = "timeout"
 NO_SQL_ERROR = "no sql"
-PROGRESS_STEPS = 1000
+MAX_RESULT_ROWS = 1_000_000  # the scorer compares whole results; beyond this it is an error
+RESULT_TOO_LARGE = f"result has more than {MAX_RESULT_ROWS} rows"
 
 
 @dataclass
@@ -28,23 +26,18 @@ class ExecResult:
 
 
 def execute(db_path: Path | str, sql: str, timeout_s: float = 30) -> ExecResult:
-    """Run ``sql`` read-only with a wall-clock timeout enforced by a progress handler."""
-    deadline = time.monotonic() + timeout_s
-    conn = None
-    try:
-        conn = connect_readonly(db_path)
-        conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, PROGRESS_STEPS)
-        rows = [tuple(row) for row in conn.execute(sql).fetchall()]
-        return ExecResult(rows=rows, error=None)
-    except sqlite3.OperationalError as e:
-        if "interrupted" in str(e).lower():
-            return ExecResult(rows=None, error=TIMEOUT_ERROR)
-        return ExecResult(rows=None, error=str(e))
-    except sqlite3.Error as e:
-        return ExecResult(rows=None, error=str(e))
-    finally:
-        if conn is not None:
-            conn.close()
+    """Run ``sql`` under the SQL guard (read-only, wall-clock timeout).
+
+    Predicted and gold SQL both go through it; a statement the guard blocks is an error
+    starting with ``blocked:``.
+    """
+    policy = GuardPolicy(timeout_s=timeout_s, max_rows=MAX_RESULT_ROWS)
+    result = guarded_execute(db_path, sql, policy)
+    if result.error is not None:
+        return ExecResult(rows=None, error=result.error)
+    if result.truncated:
+        return ExecResult(rows=None, error=RESULT_TOO_LARGE)
+    return ExecResult(rows=result.rows, error=None)
 
 
 def is_correct(

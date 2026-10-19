@@ -137,3 +137,38 @@ class TestSQLQueryErrors:
         result = sql_query("SELECT * FROM nonexistent", db_path=sample_db)
         assert result.success is False
         assert result.error is not None
+
+
+class TestSQLQueryGuard:
+    """The tool runs under the SQL guard (src/sql_guard), not a keyword blocklist."""
+
+    def test_replace_function_is_allowed(self, sample_db: Path) -> None:
+        result = sql_query("SELECT REPLACE(name, 'Widget', 'Item') FROM products", sample_db)
+        assert result.success is True
+        assert result.rows[0][0] == "Item A"
+
+    def test_keywords_inside_literals_are_allowed(self, sample_db: Path) -> None:
+        result = sql_query("SELECT 'DROP TABLE x; DELETE FROM y' AS s", sample_db)
+        assert result.success is True and result.rows == [["DROP TABLE x; DELETE FROM y"]]
+
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "VACUUM INTO 'stolen.sqlite'",
+            "ATTACH DATABASE 'x.sqlite' AS x",
+            "PRAGMA database_list",
+            "SELECT * FROM pragma_database_list",
+            "WITH x AS (SELECT 1) DELETE FROM products",
+            "SELECT 1; DROP TABLE products",
+        ],
+    )
+    def test_blocked_without_side_effects(
+        self, sample_db: Path, query: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(sample_db.parent)
+        before = sample_db.read_bytes()
+        result = sql_query(query, sample_db)
+        assert result.success is False
+        assert (result.error or "").startswith("blocked: ")
+        assert sample_db.read_bytes() == before
+        assert [p.name for p in sample_db.parent.iterdir()] == [sample_db.name]

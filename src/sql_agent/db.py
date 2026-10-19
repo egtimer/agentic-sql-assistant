@@ -4,13 +4,18 @@ import sqlite3
 import time
 from pathlib import Path
 
+from src.sql_guard import open_guarded
+
 PROGRESS_STEPS = 1000
 
 
 def connect_readonly(path: Path | str) -> sqlite3.Connection:
-    """Open a SQLite file in read-only mode (``mode=ro`` URI)."""
-    uri = Path(path).resolve().as_uri() + "?mode=ro"
-    return sqlite3.connect(uri, uri=True)
+    """Read-only connection with the engine limits of the SQL guard, for trusted code.
+
+    No authorizer: schema introspection runs fixed PRAGMAs. Model-written SQL must go
+    through :func:`src.sql_guard.guarded_execute` instead.
+    """
+    return open_guarded(path, authorizer=False)
 
 
 def set_deadline(conn: sqlite3.Connection, timeout_s: float) -> None:

@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.sql_agent.executor import Attempt
+from src.sql_guard import GuardPolicy
 
 
 class Verdict(BaseModel):
@@ -29,6 +30,7 @@ class SqlAgentState(BaseModel):
     use_check: bool = True
     max_fixes: int = 2
     skip_respond: bool = False
+    policy: GuardPolicy = Field(default_factory=GuardPolicy)
 
     schema_context: str = ""
     candidate_sql: str = ""

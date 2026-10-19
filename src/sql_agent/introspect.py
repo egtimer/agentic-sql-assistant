@@ -5,6 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from src.sql_agent.db import connect_readonly, quote_identifier, set_deadline, sql_literal
+from src.sql_guard import GuardPolicy
 
 MAX_EXAMPLES = 3
 MAX_VALUE_LENGTH = 40
@@ -17,12 +18,16 @@ def is_text_affinity(declared_type: str) -> bool:
     return "CHAR" in t or "CLOB" in t or "TEXT" in t
 
 
-def _tables(conn: sqlite3.Connection) -> list[tuple[str, str]]:
+def _tables(conn: sqlite3.Connection, policy: GuardPolicy) -> list[tuple[str, str]]:
     rows = conn.execute(
         "SELECT name, sql FROM sqlite_master "
         "WHERE type = 'table' AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY rowid"
     ).fetchall()
-    return [(str(name), str(sql).strip()) for name, sql in rows]
+    return [
+        (str(name), str(sql).strip())
+        for name, sql in rows
+        if str(name).lower() not in policy.denied_tables
+    ]
 
 
 def _key_lines(conn: sqlite3.Connection, table: str, ddl: str) -> list[str]:
@@ -41,12 +46,15 @@ def _key_lines(conn: sqlite3.Connection, table: str, ddl: str) -> list[str]:
     return lines
 
 
-def _example_values(conn: sqlite3.Connection, table: str) -> list[str]:
+def _example_values(conn: sqlite3.Connection, table: str, policy: GuardPolicy) -> list[str]:
     """``"table"."column": 'a', 'b'`` lines for the TEXT columns of ``table``."""
     lines: list[str] = []
     for row in conn.execute(f"PRAGMA table_info({quote_identifier(table)})").fetchall():
         column, declared = str(row[1]), str(row[2] or "")
-        if not is_text_affinity(declared):
+        if (
+            not is_text_affinity(declared)
+            or (table.lower(), column.lower()) in policy.denied_columns
+        ):
             continue
         q_table, q_col = quote_identifier(table), quote_identifier(column)
         sql = (
@@ -66,17 +74,23 @@ def _example_values(conn: sqlite3.Connection, table: str) -> list[str]:
     return lines
 
 
-def build_schema_context(db_path: Path | str, *, sample_values: bool = True) -> str:
-    """DDL, undeclared keys and (optionally) example values of a database."""
+def build_schema_context(
+    db_path: Path | str, *, sample_values: bool = True, policy: GuardPolicy | None = None
+) -> str:
+    """DDL, undeclared keys and (optionally) example values of a database.
+
+    Tables denied by ``policy`` are left out, and so are example values of denied columns.
+    """
+    policy = policy or GuardPolicy()
     conn = connect_readonly(db_path)
     try:
-        tables = _tables(conn)
+        tables = _tables(conn, policy)
         parts = ["\n\n".join(ddl for _, ddl in tables)]
         keys = [line for name, ddl in tables for line in _key_lines(conn, name, ddl)]
         if keys:
             parts.append("Keys not declared in the statements above:\n" + "\n".join(keys))
         if sample_values:
-            examples = [line for name, _ in tables for line in _example_values(conn, name)]
+            examples = [line for name, _ in tables for line in _example_values(conn, name, policy)]
             if examples:
                 parts.append(
                     f"Example values (up to {MAX_EXAMPLES} distinct per text column):\n"
@@ -88,13 +102,20 @@ def build_schema_context(db_path: Path | str, *, sample_values: bool = True) -> 
 
 
 @lru_cache(maxsize=64)
-def _cached_context(resolved_path: str, sample_values: bool) -> str:
-    return build_schema_context(resolved_path, sample_values=sample_values)
+def _cached_context(resolved_path: str, sample_values: bool, policy_json: str) -> str:
+    return build_schema_context(
+        resolved_path,
+        sample_values=sample_values,
+        policy=GuardPolicy.model_validate_json(policy_json),
+    )
 
 
-def schema_context(db_path: Path | str, *, sample_values: bool = True) -> str:
+def schema_context(
+    db_path: Path | str, *, sample_values: bool = True, policy: GuardPolicy | None = None
+) -> str:
     """Cached :func:`build_schema_context` (the context is the same for every question)."""
-    return _cached_context(str(Path(db_path).resolve()), sample_values)
+    policy_json = (policy or GuardPolicy()).model_dump_json()
+    return _cached_context(str(Path(db_path).resolve()), sample_values, policy_json)
 
 
 def schema_block(context: str) -> str:

@@ -1,19 +1,17 @@
-"""Tool for executing read-only SQL queries against the SQLite database."""
+"""Tool for executing read-only SQL queries against the SQLite database.
+
+Every statement goes through :mod:`src.sql_guard` (docs/ADR-005-sql-guardrails.md).
+"""
 
 import logging
-import re
-import sqlite3
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+from src.sql_guard import GuardPolicy, guarded_execute
 
-FORBIDDEN_KEYWORDS = re.compile(
-    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|TRUNCATE|GRANT|REVOKE)\b",
-    re.IGNORECASE,
-)
+logger = logging.getLogger(__name__)
 
 
 class SQLQueryResult(BaseModel):
@@ -25,21 +23,6 @@ class SQLQueryResult(BaseModel):
     row_count: int = Field(description="Number of rows returned")
     success: bool = Field(description="Whether the query executed successfully")
     error: str | None = Field(default=None, description="Error message if query failed")
-
-
-def _validate_query(query: str) -> str | None:
-    """Check if a query is safe to execute. Returns error message if unsafe, None if ok."""
-    stripped = query.strip().rstrip(";")
-    if not stripped:
-        return "Empty query"
-
-    if FORBIDDEN_KEYWORDS.search(stripped):
-        return "Write operations are not allowed. Only SELECT queries are permitted."
-
-    if stripped.count(";") > 0:
-        return "Multiple statements are not allowed. Submit one query at a time."
-
-    return None
 
 
 def sql_query(query: str, db_path: str | Path | None = None, max_rows: int = 50) -> SQLQueryResult:
@@ -67,41 +50,23 @@ def sql_query(query: str, db_path: str | Path | None = None, max_rows: int = 50)
             error=f"Database not found at {db_path}. Run 'make seed' to create it.",
         )
 
-    validation_error = _validate_query(query)
-    if validation_error:
+    result = guarded_execute(db_path, query, GuardPolicy(max_rows=max_rows))
+    if result.error is not None:
+        logger.warning("SQL query failed: %s - %s", query[:100], result.error)
         return SQLQueryResult(
             query=query,
             columns=[],
             rows=[],
             row_count=0,
             success=False,
-            error=validation_error,
+            error=result.error,
         )
 
-    conn = sqlite3.connect(str(db_path))
-    try:
-        cursor = conn.execute(query)
-        columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        rows = [list(row) for row in cursor.fetchmany(max_rows)]
-
-        logger.info("SQL query returned %d rows: %s", len(rows), query[:100])
-
-        return SQLQueryResult(
-            query=query,
-            columns=columns,
-            rows=rows,
-            row_count=len(rows),
-            success=True,
-        )
-    except sqlite3.Error as e:
-        logger.warning("SQL query failed: %s — %s", query[:100], str(e))
-        return SQLQueryResult(
-            query=query,
-            columns=[],
-            rows=[],
-            row_count=0,
-            success=False,
-            error=str(e),
-        )
-    finally:
-        conn.close()
+    logger.info("SQL query returned %d rows: %s", len(result.rows), query[:100])
+    return SQLQueryResult(
+        query=query,
+        columns=result.columns,
+        rows=[list(row) for row in result.rows],
+        row_count=len(result.rows),
+        success=True,
+    )
