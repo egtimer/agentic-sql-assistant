@@ -34,6 +34,7 @@ from evals.text2sql.data import (
     load_questions,
     load_split,
 )
+from evals.text2sql.sampling import stratified_sample, stratum_label
 from evals.text2sql.scorer import GoldCache, score_prediction
 from src.llm import BudgetExceeded, LLMClient, LLMConfig, UsageTracker, build_client, call_context
 
@@ -80,18 +81,37 @@ def select_questions(
     split_ids: list[int],
     limit: int | None = None,
     question_ids: list[int] | None = None,
+    seed: int = 0,
 ) -> list[Question]:
-    """Questions of a split, optionally restricted to ids, limited to the first N by id."""
+    """Questions of a split.
+
+    ``question_ids`` restricts to those ids and bypasses sampling. Otherwise ``limit``
+    draws a stratified sample (by database and difficulty) with ``seed``.
+    """
     by_id = {q.question_id: q for q in questions}
     wanted = sorted(split_ids)
     if question_ids is not None:
         outside = [i for i in question_ids if i not in set(split_ids)]
         if outside:
             raise ValueError(f"question ids not in the selected split: {outside}")
-        wanted = sorted(set(question_ids))
+        return [by_id[i] for i in sorted(set(question_ids))]
     if limit is not None:
-        wanted = wanted[:limit]
+        wanted = stratified_sample([by_id[i] for i in wanted], limit, seed)
     return [by_id[i] for i in wanted]
+
+
+def sampling_meta(
+    selected: list[Question], limit: int | None, question_ids: list[int] | None, seed: int
+) -> dict[str, Any]:
+    """What summary.json records about how the questions were chosen."""
+    strata = Counter(stratum_label((q.db_id, q.difficulty)) for q in selected)
+    stratified = limit is not None and question_ids is None
+    return {
+        "method": "stratified" if stratified else "all" if question_ids is None else "question_ids",
+        "seed": seed if stratified else None,
+        "n_sampled": len(selected),
+        "per_stratum": dict(sorted(strata.items())),
+    }
 
 
 def classify(correct: bool, error: str | None, stop_reasons: list[str]) -> str | None:
@@ -399,7 +419,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--llm-config", type=Path, required=True, help="YAML in configs/llm/")
     parser.add_argument("--system", choices=["baseline", "agent", "both"], default="both")
     parser.add_argument("--split", choices=["dev", "test"], default="dev")
-    parser.add_argument("--limit", type=int, help="first N questions of the split, by question id")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="stratified sample of N questions of the split (by database and difficulty)",
+    )
+    parser.add_argument("--seed", type=int, default=0, help="seed of the --limit sampling")
     parser.add_argument("--question-ids", type=int, nargs="+", help="restrict to these ids")
     parser.add_argument(
         "--budget-usd",
@@ -420,7 +445,7 @@ def main(argv: list[str] | None = None) -> None:
     systems = ["baseline", "agent"] if args.system == "both" else [args.system]
     run_id = args.run_id or f"{datetime.now(UTC):%Y%m%d-%H%M%S}-{args.llm_config.stem}"
     questions = select_questions(
-        load_questions(), load_split(args.split), args.limit, args.question_ids
+        load_questions(), load_split(args.split), args.limit, args.question_ids, args.seed
     )
     print(f"Run {run_id}: {len(questions)} questions, systems {systems}, split {args.split}")
     summary = run_experiment(
@@ -434,7 +459,11 @@ def main(argv: list[str] | None = None) -> None:
         workers=args.workers,
         resume=args.resume,
         llm_config_name=str(args.llm_config),
-        extra_meta={"limit": args.limit, "question_ids": args.question_ids},
+        extra_meta={
+            "limit": args.limit,
+            "question_ids": args.question_ids,
+            "sampling": sampling_meta(questions, args.limit, args.question_ids, args.seed),
+        },
     )
     print()
     print(format_table(summary))

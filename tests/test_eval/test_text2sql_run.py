@@ -332,7 +332,12 @@ class TestHelpers:
     def test_select_questions(self, questions: list[Question]) -> None:
         split = [1, 2, 3, 4, 5]
         assert [q.question_id for q in select_questions(questions, split)] == [1, 2, 3, 4, 5]
-        assert [q.question_id for q in select_questions(questions, split, limit=2)] == [1, 2]
+        limited = select_questions(questions, split, limit=2)
+        assert len(limited) == 2
+        assert limited == select_questions(questions, split, limit=2)
+        assert [
+            q.question_id for q in select_questions(questions, split, limit=2, question_ids=[4])
+        ] == [4]
         assert [q.question_id for q in select_questions(questions, split, question_ids=[4, 2])] == [
             2,
             4,
@@ -373,3 +378,20 @@ class TestHelpers:
         assert (qwen.temperature, qwen.num_ctx, qwen.max_tokens) == (0, 8192, 1024)
         assert qwen.base_url == "http://localhost:11434"
         assert qwen.pricing == Pricing()
+
+
+def test_sampling_meta(questions: list[Question]) -> None:
+    from evals.text2sql.run import sampling_meta
+
+    meta = sampling_meta(questions, 3, None, 7)
+    assert meta["method"] == "stratified"
+    assert meta["seed"] == 7
+    assert meta["n_sampled"] == len(questions)
+    assert sum(meta["per_stratum"].values()) == len(questions)
+    assert sampling_meta(questions, 3, [1], 7)["method"] == "question_ids"
+    assert sampling_meta(questions, None, None, 7)["seed"] is None
+
+
+def test_parse_args_seed_default() -> None:
+    assert parse_args(["--llm-config", "x.yaml"]).seed == 0
+    assert parse_args(["--llm-config", "x.yaml", "--seed", "3"]).seed == 3
