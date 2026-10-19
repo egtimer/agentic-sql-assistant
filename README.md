@@ -8,7 +8,7 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
-- MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions and run read-only SQL through the guard, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model; the real-model demo is pending. No authentication for remote HTTP.
+- MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions and run read-only SQL through the guard, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model (CI) and in a scripted session with Claude Haiku 5.5. No authentication for remote HTTP.
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
 - The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
@@ -16,44 +16,41 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 ## Architecture
 
 ```
-                    ┌──────────────┐
-                    │   FastAPI    │
-                    │ POST /query  │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │   LangGraph  │
-                    │    Agent     │
-                    │              │
-                    │ reason ─────►│
-                    │ execute ────►│
-                    │ validate ───►│
-                    │ respond ────►│
-                    └──┬───┬───┬──┘
-                       │   │   │
-              ┌────────┘   │   └────────┐
-              ▼            ▼            ▼
-         ┌────────┐  ┌─────────┐  ┌──────────┐
-         │ SQLite │  │ Qdrant  │  │Calculator│
-         │ Query  │  │  RAG    │  │ (AST)    │
-         └────────┘  └─────────┘  └──────────┘
-                           │
-                    ┌──────▼───────┐
-                    │   Langfuse   │
-                    │   Tracing    │
-                    └──────────────┘
+ FastAPI  POST /agent/query        MCP client (stdio, HTTP)           eval runners (evals/)
+            │                                 │                                │
+            ▼                                 └───────────────┬────────────────┘
+ agent v1 (src/agent/)                                        ▼
+ reason → execute → validate → respond      agent v2 (src/sql_agent/, LangGraph)
+ tools: sql_query, doc_search               introspect → generate → execute → check
+        (Qdrant + BM25, RRF),                                  ▲              │
+        calculator (AST)                                       └─ fix (≤ 2) ──┘
+            │                                                → respond
+            │                               memory: conversation thread (checkpointer),
+            │                                       taught definitions (store, BM25 recall)
+            │                                                   │
+            ▼                                                   ▼
+ src/sql_guard/  lexical check · authorizer allowlist · read-only connection · timeout + row cap
+                                            │
+                                         SQLite
+
+ src/llm/            Ollama or Anthropic: usage, cost, hard budget cap, prompt caching
+ src/observability/  traces of requests, nodes and LLM calls → Langfuse
 ```
+
+Agent v1 is the original tool-calling agent and still serves the API. Agent v2 is the text-to-SQL agent that the evaluation, the memory work and the MCP server use; the flow between its nodes is decided by code, not by the model. Every query a model or an MCP client writes goes through `src/sql_guard/`.
 
 ## At a glance
 
 | Item | Value |
 |---|---|
-| Tools | 3 (sql_query, doc_search, calculator) |
-| Agent nodes | 4 (reason, execute, validate, respond) |
-| Retrieval | Dense candidates re-scored with BM25, fused with RRF (k=60) |
-| Sample data | 10 products, 20 customers, 150 sales |
-| Documents | 3 policy files for RAG |
-| Observability | Langfuse 2.95.11 (self-hosted): per-node spans, LLM generations with tokens and cost, eval runs linked to traces |
+| Benchmark | BIRD Mini-Dev (SQLite), 500 questions split once into 150 dev / 350 test |
+| Accuracy (test, agent v2) | 64.3% EX with Claude Haiku 5.5, 69.7% with Claude Sonnet 5.5 |
+| SQL guard | 152 of 152 attack statements blocked, 0 of 540 legitimate queries blocked |
+| Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
+| Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
+| Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
+| CI | lint, tests, Docker build and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
+| Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
 
@@ -356,6 +353,7 @@ Real-model demo ([transcript](docs/examples/mcp-demo.md), `python -m src.mcp_ser
 - [ADR-006: Observability](docs/ADR-006-observability.md) — context-variable tracing, Langfuse v2, eval-trace linkage and overhead
 - [ADR-007: Memory](docs/ADR-007-memory.md) — conversation history via a checkpointer, per-user definitions via a store, and how both are evaluated
 - [ADR-008: MCP Server](docs/ADR-008-mcp-server.md) — tools, transports, database allowlist, state, budget and safety model of the MCP server
+- [ADR-009: Answer judge and CI evals](docs/ADR-009-judge-and-ci-evals.md) — LLM judge of the final answer, its calibration against hand labels, and what runs in CI
 
 ## Stack
 
@@ -379,7 +377,7 @@ make docker-build      # build the application image
 docker compose up -d   # run the full stack
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) and a text-to-SQL runner smoke test with a scripted LLM. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused.
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) a text-to-SQL runner smoke test and a memory evals smoke test with a scripted LLM, and an MCP smoke test that starts the real server over stdio. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused. After the run a regression gate compares `agent_v2` with a [committed reference run](evals/reports/2026-10-19-ci-reference-dev-30/) of the same configuration: it fails when execution accuracy drops by more than 10 points with a paired-bootstrap CI entirely below 0, or when cost per question is more than twice the reference.
 
 ## Related
 
