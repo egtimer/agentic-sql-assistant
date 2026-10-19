@@ -1,0 +1,210 @@
+{
+  "run_id": "ollama-dev-20",
+  "split": "dev",
+  "n_questions": 20,
+  "systems": {
+    "baseline": {
+      "n": 20,
+      "n_planned": 20,
+      "aborted": null,
+      "correct": 6,
+      "ex": 0.3,
+      "ex_ci95": [
+        0.1,
+        0.5
+      ],
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 6,
+          "ex": 0.8571428571428571,
+          "ex_ci95": [
+            0.5714285714285714,
+            1.0
+          ]
+        },
+        "moderate": {
+          "n": 10,
+          "correct": 0,
+          "ex": 0.0,
+          "ex_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 0,
+          "ex": 0.0,
+          "ex_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 20570,
+        "output_total": 931,
+        "cache_read_total": 0,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.0,
+        "input_mean_per_question": 1028.5,
+        "output_mean_per_question": 46.55
+      },
+      "cost_usd": {
+        "total": 0.0,
+        "mean_per_question": 0.0
+      },
+      "llm_calls_mean_per_question": 1.0,
+      "latency_ms": {
+        "mean": 42985.97407840007,
+        "median": 18170.374881000043
+      },
+      "failures": {
+        "wrong_result": 6,
+        "sql_error": 8
+      }
+    },
+    "agent": {
+      "n": 20,
+      "n_planned": 20,
+      "aborted": null,
+      "correct": 4,
+      "ex": 0.2,
+      "ex_ci95": [
+        0.05,
+        0.4
+      ],
+      "by_difficulty": {
+        "simple": {
+          "n": 7,
+          "correct": 4,
+          "ex": 0.5714285714285714,
+          "ex_ci95": [
+            0.14285714285714285,
+            0.8571428571428571
+          ]
+        },
+        "moderate": {
+          "n": 10,
+          "correct": 0,
+          "ex": 0.0,
+          "ex_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "challenging": {
+          "n": 3,
+          "correct": 0,
+          "ex": 0.0,
+          "ex_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 29045,
+        "output_total": 2102,
+        "cache_read_total": 0,
+        "cache_write_total": 0,
+        "cache_hit_ratio": 0.0,
+        "input_mean_per_question": 1452.25,
+        "output_mean_per_question": 105.1
+      },
+      "cost_usd": {
+        "total": 0.0,
+        "mean_per_question": 0.0
+      },
+      "llm_calls_mean_per_question": 1.0,
+      "latency_ms": {
+        "mean": 66176.8501323,
+        "median": 39765.976877499954
+      },
+      "failures": {
+        "wrong_result": 5,
+        "no_sql": 2,
+        "sql_error": 9
+      }
+    }
+  },
+  "comparison": {
+    "agent_minus_baseline": {
+      "n": 20,
+      "diff": -0.1,
+      "ci_low": -0.25,
+      "ci_high": 0.0,
+      "frac_resamples_le_zero": 1.0
+    }
+  },
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.0,
+    "budget_usd": null
+  },
+  "resumed": true,
+  "workers": 1,
+  "skip_respond": true,
+  "llm_config_file": "configs/llm/ollama-qwen2.5-3b.yaml",
+  "llm_config": {
+    "provider": "ollama",
+    "model": "qwen2.5:3b",
+    "max_tokens": 1024,
+    "temperature": 0.0,
+    "effort": null,
+    "num_ctx": 8192,
+    "base_url": "http://localhost:11434",
+    "prompt_caching": false,
+    "pricing": {
+      "input_per_mtok": 0.0,
+      "output_per_mtok": 0.0,
+      "cache_read_per_mtok": 0.0,
+      "cache_write_per_mtok": 0.0,
+      "long_context_threshold": null,
+      "long_input_per_mtok": null,
+      "long_output_per_mtok": null
+    }
+  },
+  "git": {
+    "commit": "b6151797db53a975eac0454e8c9d9e68776c4ee3",
+    "dirty": false
+  },
+  "started_at": "2026-10-19T06:24:06.523444+00:00",
+  "finished_at": "2026-10-19T06:41:00.831672+00:00",
+  "limit": 20,
+  "question_ids": null,
+  "sampling": {
+    "method": "stratified",
+    "seed": 0,
+    "n_sampled": 20,
+    "per_stratum": {
+      "card_games/moderate": 2,
+      "card_games/simple": 1,
+      "codebase_community/moderate": 1,
+      "codebase_community/simple": 1,
+      "debit_card_specializing/moderate": 1,
+      "debit_card_specializing/simple": 1,
+      "european_football_2/challenging": 1,
+      "european_football_2/moderate": 1,
+      "european_football_2/simple": 1,
+      "financial/moderate": 1,
+      "formula_1/challenging": 1,
+      "formula_1/moderate": 1,
+      "formula_1/simple": 1,
+      "student_club/moderate": 1,
+      "student_club/simple": 1,
+      "superhero/moderate": 1,
+      "superhero/simple": 1,
+      "thrombosis_prediction/challenging": 1,
+      "thrombosis_prediction/moderate": 1
+    }
+  }
+}
