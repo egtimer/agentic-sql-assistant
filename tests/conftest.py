@@ -84,3 +84,14 @@ def events() -> Iterator[list[dict[str, Any]]]:
     client.task_manager.add_task = capture  # type: ignore[method-assign]
     with tracing.use_tracer(LangfuseTracer(client)):
         yield captured
+
+
+@pytest.fixture(autouse=True)
+def _tracing_off_by_default(request: pytest.FixtureRequest) -> Iterator[None]:
+    """No test talks to a real Langfuse because of keys in .env; tests that want traces use
+    the ``events`` fixture (captured, never sent) or the ``requires_langfuse`` marker."""
+    if request.node.get_closest_marker("requires_langfuse") is not None:
+        yield
+        return
+    with tracing.use_tracer(tracing.NoopTracer()):
+        yield
