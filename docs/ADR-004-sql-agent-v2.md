@@ -78,3 +78,25 @@ Moving the API to agent v2 is a later step. The sales profile and agent v1 are u
 - The check step can turn right answers into wrong ones. That is why the flips are measured, and why `agent_v2_nocheck` exists as a control.
 - Example values cost prompt tokens (the schema context is larger on some databases) and are a sample, not an exhaustive list of the values.
 - Sampling example values can take a few seconds on large databases (the 2 s timeout is per column); the result is cached per process.
+
+## Results on dev (2026-10-19)
+
+Claude Haiku 5.5, effort `low`, 150 dev questions, `--skip-respond`. Two runs with the same frozen prompts: iteration 1 (`evals/reports/2026-10-19-agent-v2-it1-haiku-dev-150/`) and a replication (`evals/reports/2026-10-19-agent-v2-replication-haiku-dev-150/`). Prompts were frozen after iteration 1 (1 of the 3 allowed iterations).
+
+| System | EX iteration 1 [95% CI] | EX replication [95% CI] | LLM calls/q | Cost/q (USD) |
+|---|---|---|---|---|
+| `baseline` | 60.0% [52.0, 68.0] | 61.3% [53.3, 68.7] | 1 | 0.00021 |
+| `baseline_ctx` | 60.7% [52.7, 68.0] | 59.3% [51.3, 67.3] | 1 | 0.00024-0.00025 |
+| `agent_v2_nocheck` | 67.3% [60.0, 74.7] | 68.7% [61.3, 76.0] | 1.00 | 0.00024-0.00025 |
+| `agent_v2` | 68.7% [60.7, 76.0] | 68.7% [61.3, 76.0] | 2.05-2.07 | 0.00041-0.00042 |
+
+Paired differences (95% paired bootstrap, iteration 1 / replication):
+
+- `agent_v2` - `baseline`: +8.7 [+3.3, +14.0] / +7.3 [+3.3, +12.0]. The success criterion is met in both runs.
+- `baseline_ctx` - `baseline`: +0.7 [-4.0, +5.3] / -2.0 [-6.7, +2.0]. Example values alone do not help.
+- `agent_v2_nocheck` - `baseline_ctx`: +6.7 [+2.0, +12.0] / +9.3 [+4.0, +14.7]. No execution errors occurred, so `agent_v2_nocheck` made one call per question: this gain comes from the v2 generate prompt (one answer-shaped query), not from the loop.
+- `agent_v2` - `agent_v2_nocheck`: +1.3 [-2.0, +5.3] / +0.0 [-4.0, +4.0]. The check step is not significant on this model while doubling the calls.
+
+Check step flips (questions whose final SQL differs from the first): 11 and 8; wrong to right 2 and 2, right to wrong 0 and 0, wrong to wrong 8 and 5, right to right 1 and 1. A fix was applied in 7.3% and 5.3% of the questions.
+
+Reading: on Claude Haiku 5.5 the gain over single shot comes from asking for an answer-shaped query; the check step is precise (no right-to-wrong flips) but rarely finds a fix. The remaining errors (47 per run) are mostly semantic (wrong table or interpretation) or BIRD gold quirks, not shape errors. Whether the check step pays off on a weaker model is open. Agent v1 for reference: 40.7% on the same split (`evals/reports/2026-10-19-agent-v1-haiku-dev-150/`).
