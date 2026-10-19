@@ -1,8 +1,8 @@
 name: Evals (API)
 
-# Spends real money with the Anthropic API: manual or nightly only, never on push or PR.
+# Spends real money with the Anthropic API: manual or weekly only, never on push or PR.
 # Needs an Actions secret named ANTHROPIC_API_KEY; without it the run is skipped with a
-# notice. The cost of one run is capped by --budget-usd (default 0.10 manual, 0.05 nightly).
+# notice. Every run is capped at 0.20 USD (--budget-usd); a larger manual input is refused.
 on:
   workflow_dispatch:
     inputs:
@@ -16,10 +16,11 @@ on:
         description: Stratified dev sample size
         default: "30"
       budget_usd:
-        description: Hard spend cap in USD
-        default: "0.10"
+        description: Hard spend cap in USD (at most 0.20)
+        default: "0.20"
   schedule:
-    - cron: "17 3 * * *"
+    # Mondays at 03:17 UTC
+    - cron: "17 3 * * 1"
 
 # Two API runs never overlap; a queued run waits instead of cancelling the running one.
 concurrency:
@@ -76,10 +77,13 @@ jobs:
           LLM_CONFIG: ${{ inputs.llm_config || 'configs/llm/claude-haiku-5-5.yaml' }}
           SYSTEMS: ${{ inputs.systems || 'baseline,agent_v2' }}
           LIMIT: ${{ inputs.limit || '30' }}
-          BUDGET_USD: ${{ inputs.budget_usd || '0.05' }}
+          BUDGET_USD: ${{ inputs.budget_usd || '0.20' }}
+          MAX_BUDGET_USD: "0.20"
           RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           grep -q '^provider: anthropic' "$LLM_CONFIG" || { echo "::error::$LLM_CONFIG is not an anthropic config"; exit 1; }
+          python3 -c 'import os, sys; b = float(os.environ["BUDGET_USD"]); sys.exit(0 if 0 < b <= float(os.environ["MAX_BUDGET_USD"]) else 1)' \
+            || { echo "::error::budget_usd must be > 0 and <= $MAX_BUDGET_USD (got $BUDGET_USD)"; exit 1; }
           uv run python -m evals.text2sql.run \
             --llm-config "$LLM_CONFIG" --system "$SYSTEMS" --split dev \
             --limit "$LIMIT" --seed 0 --skip-respond \

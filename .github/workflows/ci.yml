@@ -39,7 +39,7 @@ jobs:
       - run: uv run pytest --cov=src --cov-report=term-missing
 
   # Evals that need no network, no API key and no BIRD download. The paid evals live in
-  # evals-api.yml (manual and nightly) and never run on push or pull requests.
+  # evals-api.yml (manual and weekly) and never run on push or pull requests.
   evals-offline:
     runs-on: ubuntu-latest
     steps:

@@ -280,7 +280,7 @@ make docker-build      # build the application image
 docker compose up -d   # run the full stack
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`. It also runs offline evals (the SQL-guard adversarial eval with a pass/fail check, skipping the cases that need the BIRD data, and a text-to-SQL runner smoke test with a scripted LLM). The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and nightly at 03:17 UTC on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and the cost of a night is capped by the run's `--budget-usd` (0.05 USD nightly, 0.10 USD by default when started manually).
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) and a text-to-SQL runner smoke test with a scripted LLM. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused.
 
 ## Related
 
