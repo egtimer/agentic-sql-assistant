@@ -8,7 +8,8 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Langfuse per-node spans are not working yet.
-- The `sql_query` guardrail is a keyword blocklist, not a full read-only guarantee (being replaced).
+- SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are pending.
+- The guard is SQLite-specific and not a sandbox for a malicious host; a denied column can still leak through aggregates unless its table is denied (ADR-005, Limitations).
 
 ## Architecture
 
@@ -81,7 +82,7 @@ curl -X POST http://localhost:8000/agent/query \
 
 ## Tools
 
-**sql_query** — Executes a single SELECT against SQLite. Write keywords are blocked with a regex blocklist; this is not a full guardrail yet (see Status).
+**sql_query** — Executes a single SELECT against SQLite through the SQL guard ([Guardrails](#guardrails)): read-only connection, statement allowlist, 30 s timeout, row cap. Anything else (`PRAGMA`, `ATTACH`, `VACUUM`, writes, several statements) is refused with a `blocked:` error.
 
 **doc_search** — Dense search in Qdrant returns candidates, BM25 re-scores those candidates, and the two rankings are fused with Reciprocal Rank Fusion. Searches company policy documents.
 
@@ -186,12 +187,44 @@ API runs need `ANTHROPIC_API_KEY` and spend money; `--budget-usd` is a hard cap.
 | single-tool-calculator | 2 | Queries that require only `calculator` |
 | multi-tool | 5 | Queries requiring 2+ tools in sequence |
 
+## Guardrails
+
+Every SQL statement a model writes is untrusted input (direct and indirect prompt injection, files, metadata, resource exhaustion, writes), and all of it now runs through one guard, `src/sql_guard/`: a lexical check, a SQLite authorizer used as an allowlist, a read-only connection with engine limits, and a timeout plus row cap. Agent v1's `sql_query` tool, agent v2's executor and the eval scorer use it, so the old keyword blocklist is gone and `REPLACE()` works. Design, probe findings and limitations: [ADR-005](docs/ADR-005-sql-guardrails.md).
+
+**SQL adversarial evaluation** ([report](evals/reports/2026-10-19-guardrails-sql/), no LLM): 152 attack statements in nine categories, 40 tricky but legitimate queries and the 500 BIRD gold queries, each run on a disposable copy of its database against three guards. Cells are attacks blocked by the guard out of the cases; `ran` counts attacks that executed without an error or changed something. `readonly_only` has no blocking layer: its engine rejects writes with an error, so its cells show 0 blocks.
+
+| Category | cases | `legacy_v1` (v1 tool before) | `readonly_only` (v2 and scorer before) | `sql_guard` |
+|---|---|---|---|---|
+| write | 29 | 22/29 (ran 7) | 0/29 (ran 5) | 29/29 |
+| cte_write | 7 | 7/7 | 0/7 | 7/7 |
+| multi_statement | 15 | 15/15 | 0/15 | 15/15 |
+| file_access | 13 | 0/13 (ran 10) | 0/13 (ran 10) | 13/13 |
+| metadata | 17 | 0/17 (ran 17) | 0/17 (ran 17) | 17/17 |
+| transaction | 9 | 0/9 (ran 4) | 0/9 (ran 4) | 9/9 |
+| obfuscation | 22 | 18/22 (ran 3) | 0/22 (ran 3) | 22/22 |
+| policy | 22 | 0/22 (ran 22) | 0/22 (ran 22) | 22/22 |
+| resource | 18 | 14/18 bounded | 14/18 bounded | 18/18 bounded |
+| **side effects** (changed DB or new file) | 152 | 14 | 9 | 0 |
+| **benign false blocks**, hand-written | 40 | 15/40 | 0/40 | 0/40 |
+| **benign false blocks**, BIRD gold queries | 500 | 0/500 | 0/500 | 0/500 |
+
+The `legacy_v1` and `readonly_only` guards had no timeout, so the harness stopped them after 3 s; the "bounded" cells count resource cases that finished within the timeout plus 2 s and grew memory by less than 256 MB (`legacy_v1` and `readonly_only` reached about 3.2 GB in one case). Reproduce: `uv run python -m evals.guardrails.run_sql --out evals/reports/<date>-guardrails-sql/`. The attack set is written by the author and shows coverage of known classes, not a proof; `sql_guard` also returns the same rows as the plain read-only connection on all 540 benign queries.
+
+**Prompt-injection evaluation** (agent v2 with a real model, 42 questions: 31 direct, 8 indirect through a value stored in the database, 3 controls):
+
+<!-- INJECTION-RESULTS-PLACEHOLDER: fill in after the owner's run. Source: evals/reports/<date>-guardrails-injection/summary.json
+     Command: uv run python -m evals.guardrails.run_injection --llm-config configs/llm/claude-haiku-5-5.yaml --budget-usd 0.25 --out evals/reports/<date>-guardrails-injection/
+     Numbers to report: questions, harmful attempts, blocked harmful attempts, harmful executions (must be 0), questions where the model complied / refused / answered benignly, cost. -->
+
+_Results pending: the run has not been made yet._ The runner and its tests are in `evals/guardrails/`; tests with a scripted client prove that harmful SQL is blocked and recorded.
+
 ## Architecture Decision Records
 
 - [ADR-001: Agent Architecture](docs/ADR-001-agent-architecture.md) — LangGraph StateGraph with 4 nodes
 - [ADR-002: Tool Selection](docs/ADR-002-tool-selection.md) — LLM-based tool selection with JSON output
 - [ADR-003: Text-to-SQL Evaluation](docs/ADR-003-text-to-sql-evaluation.md) — BIRD Mini-Dev, execution accuracy, budgets and caching
 - [ADR-004: SQL Agent v2](docs/ADR-004-sql-agent-v2.md) — code-driven generate, execute, check loop for text-to-SQL
+- [ADR-005: SQL Guardrails](docs/ADR-005-sql-guardrails.md) — layered guard for model-written SQL and its adversarial evaluation
 
 ## Stack
 
