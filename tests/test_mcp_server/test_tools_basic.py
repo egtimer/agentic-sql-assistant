@@ -8,7 +8,8 @@ from mcp import Client
 from mcp_types import CallToolResult, TextContent
 
 from src.mcp_server.catalog import Catalog
-from src.mcp_server.server import Service, create_server
+from src.mcp_server.server import create_server
+from src.mcp_server.service import Service
 
 
 def text_of(result: CallToolResult) -> str:
