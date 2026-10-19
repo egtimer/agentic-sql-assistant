@@ -100,3 +100,14 @@ Paired differences (95% paired bootstrap, iteration 1 / replication):
 Check step flips (questions whose final SQL differs from the first): 11 and 8; wrong to right 2 and 2, right to wrong 0 and 0, wrong to wrong 8 and 5, right to right 1 and 1. A fix was applied in 7.3% and 5.3% of the questions.
 
 Reading: on Claude Haiku 5.5 the gain over single shot comes from asking for an answer-shaped query; the check step is precise (no right-to-wrong flips) but rarely finds a fix. The remaining errors (47 per run) are mostly semantic (wrong table or interpretation) or BIRD gold quirks, not shape errors. Whether the check step pays off on a weaker model is open. Agent v1 for reference: 40.7% on the same split (`evals/reports/2026-10-19-agent-v1-haiku-dev-150/`).
+
+## Results on test (2026-10-19)
+
+The single test run with the frozen prompts (`evals/reports/2026-10-19-haiku-test-350/`, `evals/reports/2026-10-19-sonnet-test-350/`), 350 questions:
+
+| Model | `baseline` | `agent_v2_nocheck` | `agent_v2` | `agent_v2` - `baseline` |
+|---|---|---|---|---|
+| Claude Haiku 5.5 | 60.6% [55.4, 65.7] | 64.6% [59.4, 69.4] | 64.3% [59.1, 69.4] | +3.7 pts [+0.6, +7.1] |
+| Claude Sonnet 5.5 | 66.0% [61.1, 71.1] | not run | 69.7% [64.9, 74.6] | +3.7 pts [+0.9, +6.6] |
+
+The success criterion holds on test for both models, with a smaller gain than on dev (+7 to +9 pts). On Haiku the check step is again not significant (`agent_v2` - `agent_v2_nocheck` = -0.3 pts [-2.9, +2.3]; 6 wrong-to-right and 3 right-to-wrong flips). On Sonnet most check answers explain the review before "OK" and were counted as `unparsed` (treated as OK); see the report README. Cost and the model choice are discussed in the project README.
