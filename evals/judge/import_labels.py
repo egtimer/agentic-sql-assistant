@@ -1,6 +1,6 @@
 """Import the human labels of the judge set.
 
-``labels.json`` (exported by the labeling page) has this shape:
+``labels.json`` (written from the private labeling page) has this shape:
 
     {"labeler": "name", "labels": {"j-01": {"label": "correct", "note": "..."}, ...}}
 

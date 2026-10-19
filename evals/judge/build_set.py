@@ -10,8 +10,7 @@ the scorer's guarded path) and the EX correctness of the final SQL.
 Output in ``evals/results/judge/<run-id>/`` (gitignored):
 
 - ``items.jsonl``         full records, with the gold result preview and EX (BIRD gold content)
-- ``items_public.jsonl``  no gold SQL, no gold rows, no EX: what the labeling page shows and
-                          what may be committed
+- ``items_public.jsonl``  no gold SQL, no gold rows, no EX: what may be committed
 - ``run.json`` (provenance), ``llm_calls.jsonl`` (usage), ``summary.json``, ``gold_cache.json``
 
 Item ids ``j-01``... follow a seeded shuffle of the sample, so the order does not group by

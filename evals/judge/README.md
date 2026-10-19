@@ -21,7 +21,7 @@ with the respond step on. Output:
   content, CC BY-SA): never commit it.
 - `items_public.jsonl`: `item_id` (`j-01`...), `question_id`, `db_id`, `difficulty`, `question`,
   `evidence`, `answer`, `final_sql`, `result_preview` (columns and up to 10 rows). No gold SQL, no
-  gold rows, no EX. This is the file for the labeling page and the one that may be committed.
+  gold rows, no EX. This is the file that may be committed.
 
 ## 2. Judge the answers (paid, 1 LLM call per item)
 
@@ -41,7 +41,9 @@ sees the question, the external knowledge, the gold result preview and the answe
 
 ## 3. Import the human labels (free)
 
-The labeling page exports `labels.json`:
+The labels are collected on a private page that shows each item's question, external knowledge,
+the same 10-row reference preview the judge sees and the answer (no SQL, no EX, no judge verdict),
+and are written out as `labels.json`:
 
 ```
 {"labeler": "name", "labels": {"j-01": {"label": "correct", "note": "..."}, "j-02": {"label": "unsure"}}}
