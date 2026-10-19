@@ -1,0 +1,35 @@
+{
+  "run_id": "judge-set-dev-50",
+  "argv": [
+    "/workspaces/portfolio/agentic-sql-assistant/evals/judge/build_set.py",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--run-id",
+    "judge-set-dev-50",
+    "--budget-usd",
+    "0.50",
+    "--launched-by",
+    "owner-approved A8 judge calibration set"
+  ],
+  "started_at": "2026-10-19T13:23:33.419770+00:00",
+  "finished_at": "2026-10-19T13:28:04.784847+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "0f8ba0307101e9d9d4e1ce53d1c17418ae485e24",
+    "dirty": false
+  },
+  "user": "vscode",
+  "hostname": "codespaces-43f2bb",
+  "pid": 68823,
+  "ppid": 68815,
+  "parent_cmdline": "uv run python -m evals.judge.build_set --llm-config configs/llm/claude-haiku-5-5.yaml --run-id judge-set-dev-50 --budget-usd 0.50 --launched-by owner-approved A8 judge calibration set",
+  "python": "3.12.11",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.5
+  },
+  "launched_by": "owner-approved A8 judge calibration set",
+  "resumes": []
+}

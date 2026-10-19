@@ -1,0 +1,37 @@
+{
+  "run_id": "judge-sonnet-dev-50",
+  "argv": [
+    "/workspaces/portfolio/agentic-sql-assistant/evals/judge/run_judge.py",
+    "--items",
+    "evals/results/judge/judge-set-dev-50",
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--run-id",
+    "judge-sonnet-dev-50",
+    "--budget-usd",
+    "1.00",
+    "--launched-by",
+    "owner-approved A8 judge calibration (Sonnet judge)"
+  ],
+  "started_at": "2026-10-19T13:31:33.674537+00:00",
+  "finished_at": "2026-10-19T13:32:54.286674+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "eac2a3403859f28f9508a7a8cab8cd24d8134630",
+    "dirty": false
+  },
+  "user": "vscode",
+  "hostname": "codespaces-43f2bb",
+  "pid": 73677,
+  "ppid": 73674,
+  "parent_cmdline": "uv run python -m evals.judge.run_judge --items evals/results/judge/judge-set-dev-50 --llm-config configs/llm/claude-sonnet-5-5.yaml --run-id judge-sonnet-dev-50 --budget-usd 1.00 --launched-by owner-approved A8 judge calibration (Sonnet judge)",
+  "python": "3.12.11",
+  "llm_config": {
+    "path": "configs/llm/claude-sonnet-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "budget_usd": 1.0
+  },
+  "launched_by": "owner-approved A8 judge calibration (Sonnet judge)",
+  "resumes": []
+}

@@ -1,6 +1,6 @@
 # ADR-009: Answer judge with human calibration, and the CI eval strategy
 
-**Status:** Accepted (implementation and offline tests done; real-model results pending)
+**Status:** Accepted (calibrated against 50 hand labels on 2026-10-19; see Results)
 **Date:** 2026-10-19
 
 ## Context
@@ -29,14 +29,19 @@ A judge is a measuring instrument, so it is measured. The owner labels the 50 an
 
 Two more comparisons use the same machinery: **human vs EX** (does the SQL-level metric agree with a human reading of the answer?) and **judge vs EX**. Kappa is given beside accuracy because accuracy alone is high whenever one label dominates (EX on dev is far from 50%).
 
+Results ([report](../evals/reports/2026-10-19-judge-calibration-dev-50/), labels by the owner on 2026-10-19):
+
 | Comparison | n | Accuracy [95% CI] | Kappa [95% CI] |
 |---|---|---|---|
-| Judge (Haiku) vs human | _pending_ | _pending_ | _pending_ |
-| Judge (Sonnet) vs human | _pending_ | _pending_ | _pending_ |
-| Human vs EX | _pending_ | _pending_ | _pending_ |
-| Judge (Haiku) vs EX | _pending_ | _pending_ | _pending_ |
+| Judge (Haiku) vs human | 50 | 0.98 [0.94, 1.00] | 0.95 [0.84, 1.00] |
+| Judge (Sonnet) vs human | 50 | 0.98 [0.94, 1.00] | 0.95 [0.85, 1.00] |
+| Human vs EX | 50 | 0.84 [0.74, 0.94] | 0.62 [0.35, 0.83] |
+| Judge (Haiku) vs EX | 50 | 0.86 [0.76, 0.94] | 0.66 [0.40, 0.87] |
+| Judge (Sonnet) vs EX | 50 | 0.86 [0.76, 0.94] | 0.67 [0.42, 0.87] |
 
-Items marked `unsure`: _pending_. Answers the judge could not parse: _pending_ (Haiku), _pending_ (Sonnet). Cost of the item set: _pending_; of one judge run: _pending_ (Haiku), _pending_ (Sonnet).
+Items marked `unsure`: 0. Answers the judge could not parse: 0 (Haiku), 0 (Sonnet). Cost of the item set: $0.0274; of one judge run: $0.0052 (Haiku), $0.0862 (Sonnet).
+
+Each judge disagrees with the owner on one item, both on long results that the 10-row preview cannot show in full (Haiku accepts a right count with a partial list; Sonnet rejects a hedged answer that lists the distinct values of a result made of repeats). Human and EX disagree on 8 items: 5 right queries whose answer drops rows of a long list or misreads a percentage, and 3 wrong-by-EX queries whose answer is right (column shape, floating-point rounding, repeats). **Decision:** the Haiku judge is the answer-level metric for future runs with the respond step on; it costs about $0.0001 per answer and matched the owner as well as Sonnet on this set. Its prompt stays frozen; a change to it needs a new labelled set.
 
 ### CI eval strategy
 

@@ -1,0 +1,133 @@
+{
+  "counts": {
+    "items": 50,
+    "human_labelled": 50,
+    "human_unsure": 0,
+    "judged": 50,
+    "judge_unparsed": 0,
+    "judge_by_label": {
+      "correct": 33,
+      "incorrect": 17
+    }
+  },
+  "judge_vs_human": {
+    "n": 50,
+    "accuracy": {
+      "value": 0.98,
+      "ci_low": 0.94,
+      "ci_high": 1.0,
+      "frac_undefined": 0.0
+    },
+    "kappa": {
+      "value": 0.9547920433996383,
+      "ci_low": 0.8484848484848484,
+      "ci_high": 1.0,
+      "frac_undefined": 0.0
+    },
+    "confusion": {
+      "labels": [
+        "correct",
+        "incorrect"
+      ],
+      "rows": "first rater",
+      "columns": "second rater",
+      "matrix": [
+        [
+          33,
+          0
+        ],
+        [
+          1,
+          16
+        ]
+      ]
+    },
+    "share_correct": {
+      "first": 0.66,
+      "second": 0.68
+    }
+  },
+  "human_vs_ex": {
+    "n": 50,
+    "accuracy": {
+      "value": 0.84,
+      "ci_low": 0.74,
+      "ci_high": 0.94,
+      "frac_undefined": 0.0
+    },
+    "kappa": {
+      "value": 0.6197718631178706,
+      "ci_low": 0.3455497382198952,
+      "ci_high": 0.8333333333333334,
+      "frac_undefined": 0.0
+    },
+    "confusion": {
+      "labels": [
+        "correct",
+        "incorrect"
+      ],
+      "rows": "first rater",
+      "columns": "second rater",
+      "matrix": [
+        [
+          31,
+          3
+        ],
+        [
+          5,
+          11
+        ]
+      ]
+    },
+    "share_correct": {
+      "first": 0.68,
+      "second": 0.72
+    }
+  },
+  "judge_vs_ex": {
+    "n": 50,
+    "accuracy": {
+      "value": 0.86,
+      "ci_low": 0.76,
+      "ci_high": 0.94,
+      "frac_undefined": 0.0
+    },
+    "kappa": {
+      "value": 0.6741154562383612,
+      "ci_low": 0.42477876106194684,
+      "ci_high": 0.8713550600343052,
+      "frac_undefined": 0.0
+    },
+    "confusion": {
+      "labels": [
+        "correct",
+        "incorrect"
+      ],
+      "rows": "first rater",
+      "columns": "second rater",
+      "matrix": [
+        [
+          31,
+          2
+        ],
+        [
+          5,
+          12
+        ]
+      ]
+    },
+    "share_correct": {
+      "first": 0.66,
+      "second": 0.72
+    }
+  },
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, items resampled with replacement"
+  },
+  "items_run": "judge-set-dev-50",
+  "judge_run": "judge-sonnet-dev-50",
+  "labeler": "Eduardo Garcia Timermans"
+}
