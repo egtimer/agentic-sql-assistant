@@ -93,6 +93,10 @@ class AgentState(BaseModel):
         description="Database schema (CREATE TABLE statements) shown to the LLM; "
         "used by non-default profiles",
     )
+    direct_answer: bool = Field(
+        default=False,
+        description="The plan is an explicit empty list: answer without tools (default profile)",
+    )
     skip_respond: bool = Field(
         default=False,
         description="Skip the final answer step (no LLM call); used by execution-accuracy evals",

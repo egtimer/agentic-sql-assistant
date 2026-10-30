@@ -20,7 +20,10 @@ You are a business intelligence assistant with access to three tools:
    - Use for: percentages, growth rates, comparisons, derived metrics
    - Input: a mathematical expression (e.g., "(234500 - 198000) / 198000 * 100")
 
-Given the user's question, decide which tool(s) to use and in what order.
+Given the user's question, decide which tool(s) to use and in what order. If the question \
+needs no sales data, company document or calculation (a greeting, thanks, general knowledge, \
+or anything outside the company's sales and policies), use no tool and respond with an empty \
+array: []
 
 Respond ONLY with a JSON array of tool calls. Each element must have:
 - "tool": one of "sql_query", "doc_search", "calculator"
@@ -37,6 +40,9 @@ Question: "¿Cuál es nuestra política de devoluciones?"
 
 Question: "¿Cuál fue el crecimiento de ventas Q3 vs Q2?"
 [{{"tool": "sql_query", "input": "SELECT quarter, SUM(amount) as total FROM sales WHERE quarter IN ('Q2', 'Q3') GROUP BY quarter", "reason": "Get sales totals for Q2 and Q3"}}, {{"tool": "calculator", "input": "PLACEHOLDER", "reason": "Calculate growth percentage between quarters"}}]
+
+Question: "Hola, ¿qué tal?"
+[]
 
 IMPORTANT:
 - For calculator inputs that depend on previous results, write "PLACEHOLDER" — it will be filled after getting the data.
@@ -162,6 +168,17 @@ Instructions:
 
 SCHEMA_NOT_PROVIDED = "(The schema was not provided. Inspect it with queries on sqlite_master.)"
 
+
+DIRECT_RESPONSE_PROMPT = """\
+You are a business intelligence assistant for a company that sells electronics, office \
+products and software. You can answer questions about its sales data, its return and \
+discount policies and its products, and do calculations.
+
+The user's question needs none of that. Answer it briefly, in the same language as the \
+question. If it asks for something you cannot know (live data such as the current time), say \
+so. Do not invent company data.
+
+**User question:** {query}"""
 
 _QUESTION_MARKER = "User question: "
 

@@ -266,3 +266,34 @@ class TestRunAgentEndToEnd:
         assert tool_result["input"] == "SELECT val FROM t"
         assert tool_result["output"]["rows"] == [["hello"]]
         assert result["response"] == "The value is hello."
+
+
+class TestNoToolQueries:
+    @patch("src.agent.nodes.get_client")
+    def test_default_empty_plan_is_a_direct_answer(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _client("[]")
+        updates = reason_node(AgentState(query="Hola, ¿qué tal?"))
+        assert updates["planned_tools"] == [] and updates["direct_answer"] is True
+        assert "error" not in updates
+
+    @patch("src.agent.nodes.get_client")
+    def test_sql_only_empty_plan_is_still_an_error(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _client("[]")
+        state = AgentState(query="q", profile=ToolProfile.SQL_ONLY, schema_description=SCHEMA)
+        updates = reason_node(state)
+        assert "error" in updates and "direct_answer" not in updates
+
+    @patch("src.agent.nodes.get_client")
+    def test_direct_answer_calls_the_llm_once(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _client("¡Hola! Puedo ayudarte con ventas y políticas.")
+        state = AgentState(query="Hola, ¿qué tal?", direct_answer=True)
+        updates = respond_node(state)
+        assert updates["response"].startswith("¡Hola!")
+        prompt = mock_get_client.return_value.complete.call_args.args[1]
+        assert "Hola, ¿qué tal?" in prompt and "needs none of that" in prompt
+
+    @patch("src.agent.nodes.get_client")
+    def test_graph_answers_a_greeting_without_tools(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _client("[]", "¡Hola!")
+        result = run_agent("Hola, ¿qué tal?")
+        assert result["tools_used"] == [] and result["response"] == "¡Hola!"
