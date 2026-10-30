@@ -72,7 +72,7 @@ jobs:
       - run: docker build -t agentic-sql-assistant:ci .
       - name: Smoke test the image
         # The API must start and answer /health without Ollama or Qdrant (they are reported
-        # as unavailable, not fatal).
+        # as unavailable, not fatal); the demo database must be in the image.
         run: |
           docker run -d --name api -p 8000:8000 agentic-sql-assistant:ci
           for _ in $(seq 1 60); do
@@ -80,7 +80,10 @@ jobs:
             sleep 1
           done
           echo "$body"
-          echo "$body" | python3 -c 'import json, sys; assert json.load(sys.stdin)["status"] == "healthy"'
+          echo "$body" | python3 -c 'import json, sys; h = json.load(sys.stdin); assert h["status"] == "healthy" and h["services"]["sqlite"] == "healthy", h'
+      - name: Query the demo database inside the image
+        run: |
+          docker exec api python -c 'from src.tools.sql_query import sql_query; r = sql_query("SELECT COUNT(*) FROM sales"); print(r.rows); assert r.success and r.rows == [[150]], r'
       - name: Container logs
         if: failure()
         run: docker logs api || true

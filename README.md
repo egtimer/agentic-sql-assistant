@@ -449,6 +449,8 @@ Python 3.12 · LangGraph · Claude (Anthropic SDK) · Ollama · Qdrant · FastAP
 docker compose up -d   # app + Ollama + Qdrant + Langfuse + PostgreSQL (CPU only)
 ```
 
+The application image contains the seeded demo sales database (`src.db.seed`, fixed seed), so agent v1's `sql_query` works in the container without `make seed`; CI starts the image and checks that `/health` reports SQLite as healthy and that a query returns the 150 demo sales.
+
 Langfuse server secrets in `docker-compose.yml` have local-development defaults and can be overridden through the variables documented in `.env.example`. `make langfuse-up` starts only Postgres and Langfuse (headless initialisation creates a project with the local-only keys of `.env.example`).
 
 ## Development
@@ -461,7 +463,7 @@ make docker-build      # build the application image
 docker compose up -d   # run the full stack
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build (the image is started and must answer `/health`) on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) a text-to-SQL runner smoke test and a memory evals smoke test with a scripted LLM, and an MCP smoke test that starts the real server over stdio. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused. After the run a regression gate compares `agent_v2` with a [committed reference run](evals/reports/2026-10-19-ci-reference-dev-30/) of the same configuration: it fails when execution accuracy drops by more than 10 points with a paired-bootstrap CI entirely below 0, or when cost per question is more than twice the reference.
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build (the image is started, must answer `/health` with the demo database present and must run a query on it) on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) a text-to-SQL runner smoke test and a memory evals smoke test with a scripted LLM, and an MCP smoke test that starts the real server over stdio. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused. After the run a regression gate compares `agent_v2` with a [committed reference run](evals/reports/2026-10-19-ci-reference-dev-30/) of the same configuration: it fails when execution accuracy drops by more than 10 points with a paired-bootstrap CI entirely below 0, or when cost per question is more than twice the reference.
 
 ## Related
 

@@ -20,6 +20,10 @@ COPY data ./data
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
+# The demo sales database agent v1's sql_query reads (fixed seed, so every build gets the
+# same data). *.db files are excluded from the build context; this one is generated here.
+RUN /app/.venv/bin/python -m src.db.seed
+
 
 FROM python:3.12-slim AS runtime
 
