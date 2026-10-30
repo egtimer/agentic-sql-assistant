@@ -8,9 +8,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
-from sentence_transformers import SentenceTransformer
 
 from src.config import settings
+from src.rag.embedding import check_index_runtime, load_embedder
 
 logger = logging.getLogger(__name__)
 
@@ -138,8 +138,12 @@ def retrieve(
     qdrant_url = qdrant_url or settings.qdrant_url
     collection_name = collection_name or settings.qdrant_collection
 
-    client = QdrantClient(url=qdrant_url) if _client is None else _client
-    embedder = SentenceTransformer(settings.embedding_model) if _embedder is None else _embedder
+    if _client is None:
+        client = QdrantClient(url=qdrant_url)
+        check_index_runtime(client, collection_name, qdrant_url)
+    else:
+        client = _client
+    embedder = load_embedder() if _embedder is None else _embedder
 
     query_vector = embedder.encode(query).tolist()
 

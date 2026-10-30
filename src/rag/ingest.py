@@ -7,9 +7,9 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
-from sentence_transformers import SentenceTransformer
 
 from src.config import settings
+from src.rag.embedding import embedding_runtime, load_embedder
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,6 @@ def ingest_to_qdrant(
     chunks: list[DocumentChunk],
     qdrant_url: str | None = None,
     collection_name: str | None = None,
-    embedding_model: str | None = None,
 ) -> int:
     """Embed document chunks and upload to Qdrant.
 
@@ -143,17 +142,16 @@ def ingest_to_qdrant(
         chunks: Document chunks to ingest.
         qdrant_url: Qdrant server URL.
         collection_name: Target collection name.
-        embedding_model: Sentence-transformers model name.
 
     Returns:
         Number of points uploaded.
     """
     qdrant_url = qdrant_url or settings.qdrant_url
     collection_name = collection_name or settings.qdrant_collection
-    embedding_model = embedding_model or settings.embedding_model
+    runtime = embedding_runtime()
 
-    logger.info("Loading embedding model: %s", embedding_model)
-    embedder = SentenceTransformer(embedding_model)
+    logger.info("Loading embedding model: %s", runtime)
+    embedder = load_embedder()
 
     texts = [chunk.content for chunk in chunks]
     logger.info("Generating embeddings for %d chunks...", len(texts))
@@ -182,6 +180,7 @@ def ingest_to_qdrant(
                 "content": chunk.content,
                 "source": chunk.source,
                 "chunk_index": chunk.chunk_index,
+                **runtime,
             },
         )
         for chunk, embedding in zip(chunks, embeddings, strict=False)

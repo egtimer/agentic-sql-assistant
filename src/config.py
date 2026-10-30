@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
     ollama_num_ctx: int | None = None
-    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Hugging Face commit of the embedding weights (see src/rag/embedding.py)
+    embedding_revision: str = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "company_docs"
