@@ -82,6 +82,8 @@ strict = true
 [tool.ruff.lint.per-file-ignores]
 # Prompt templates contain long literal example lines that must not be re-wrapped.
 "src/agent/prompts.py" = ["E501"]
+# The tool-eval query table keeps one query per line, with its gold SQL.
+"evals/tools/specs.py" = ["E501"]
 
 [[tool.mypy.overrides]]
 module = ["langfuse", "langfuse.*", "yaml"]
