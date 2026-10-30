@@ -1,61 +1,61 @@
-id,split,category,query,required,optional,gold,review,note
-sql_01,dev,sql,How much did we sell in total in Q3 2024?,sql_query,,214067.19,,
-sql_02,test,sql,How many sales were made in Q1 2024?,sql_query,,30,,
-sql_03,test,sql,Which product generated the most revenue in 2024?,sql_query,,ProBook X2,,
-sql_04,test,sql,Which region had the highest sales amount in Q4 2024?,sql_query,,Centro,,
-sql_05,dev,sql,How many units of the ProBook X1 were sold in 2024?,sql_query,,79,,
-sql_06,test,sql,What was the total revenue from the Software category?,sql_query,,31556.29,,
-sql_07,test,sql,How many customers are in the Platinum tier?,sql_query,,3,,
-sql_08,test,sql,Who was our top customer by total amount spent in 2024?,sql_query,,DataSystems,,
-sql_09,test,sql,What was the average sale amount in Q2 2024?,sql_query,calculator,4802.46,,
-sql_10,test,sql,How many sales did customers from the Sur region make in 2024?,sql_query,,42,,
-sql_11,test,sql,What is the price of the Monitor UltraWide 34?,sql_query,,579,,
-sql_12,dev,sql,Which product in the Oficina category sold the most units?,sql_query,,Escritorio StandUp,,
-sql_13,test,sql,What was the largest single sale amount in 2024?,sql_query,,21376.3,,
-sql_14,dev,sql,How many different products did TechCorp S.L. buy?,sql_query,,7,,
-sql_15,dev,sql,What was total revenue in the Norte region in Q3 2024?,sql_query,,64813.09,,
-sql_16,test,sql,How many Gold-tier customers placed at least one order in Q4 2024?,sql_query,,3,,
-sql_17,dev,sql,What are the three best-selling products by units sold in 2024?,sql_query,,"ProBook X2, Auriculares NoiseMax, Cargador Universal 100W",,
-sql_18,dev,sql,In which quarter of 2024 did we sell the most units of the TabletAir 10?,sql_query,,Q2,,
-doc_01,dev,doc,How many days do customers have to return a product?,doc_search,,30,,
-doc_02,test,doc,What is the return window for electronic products?,doc_search,,15,,
-doc_03,dev,doc,What additional discount do Gold-tier customers get?,doc_search,,7,,
-doc_04,test,doc,What is the maximum combined discount a customer can get?,doc_search,,25,,
-doc_05,test,doc,How long is the warranty on electronics?,doc_search,,2,,
-doc_06,test,doc,"After a returned product is received and inspected, how many business days does the refund take?",doc_search,,"5, 7",,
-doc_07,test,doc,What volume discount applies to an order of 30 units?,doc_search,,8,,
-doc_08,test,doc,What is the welcome discount on a new customer's first order?,doc_search,,10,,
-doc_09,dev,doc,How much does the initial setup of a laptop or tablet cost?,doc_search,,29,,
-doc_10,dev,doc,How long does shipping to the rest of the EU take?,doc_search,,"5, 7",,
-doc_11,test,doc,How long do customers have to claim for a manufacturing defect?,doc_search,,2,,
-doc_12,dev,doc,What is the maximum promotional discount?,doc_search,,20,,
-calc_01,test,calc,"What is 18% of 4,250 euros?",calculator,,765,,
-calc_02,test,calc,"A product costs 1,299 euros. What is its price after a 12% discount?",calculator,,1143.12,,
-calc_03,dev,calc,"By what percent did revenue grow if it went from 120,000 to 150,000?",calculator,,25,,
-calc_04,test,calc,Calculate 459 multiplied by 14.,calculator,,6426,,
-calc_05,dev,calc,"What is the average of 230, 415 and 512?",calculator,,385.67,,
-calc_06,test,calc,"What is 2 to the power of 10, times 3?",calculator,,3072,,
-sqlm_01,dev,sql_math,"What was the sales growth from Q2 to Q3 2024, in percent?",sql_query,calculator,27.36,,
-sqlm_02,test,sql_math,"What share of 2024 revenue came from the Electrónica category, in percent?",sql_query,calculator,67.05,,
-sqlm_03,dev,sql_math,"What was the difference in revenue between Q4 and Q1 2024, in euros?",sql_query,calculator,-18676.79,,
-sqlm_04,test,sql_math,What percentage of all units sold in 2024 were ProBook X2?,sql_query,calculator,18.25,,
-sqlm_05,test,sql_math,"If we raised the price of the Teclado MechPro by 15%, what would its new price be?",sql_query,calculator,148.35,,
-sqlm_06,test,sql_math,What was the average revenue per quarter in 2024?,sql_query,calculator,166244.73,,
-sqlm_07,dev,sql_math,By what percent did revenue in the Norte region change from Q1 to Q4 2024?,sql_query,calculator,-27.14,,
-sqlm_08,dev,sql_math,"What was the average 2024 revenue per customer, counting only customers who bought something?",sql_query,calculator,33248.95,,
-sqlm_09,test,sql_math,What percentage of the Q3 2024 sales (by count) came from Platinum customers?,sql_query,calculator,11.11,,
-sqlm_10,dev,sql_math,How much would TechCorp S.L.'s total 2024 spending be after a 10% rebate?,sql_query,calculator,25201.11,,
-sqlm_11,test,sql_math,What is the ratio of Electrónica revenue to Oficina revenue in 2024?,sql_query,calculator,2.38,,
-sqlm_12,test,sql_math,By what percent did the number of units sold change from Q1 to Q2 2024?,sql_query,calculator,-2.55,,
-sqldoc_01,test,sql_doc,"What tier is MegaStore in, and what additional discount does that tier get?",sql_query doc_search,,Platinum; 10,,
-sqldoc_02,dev,sql_doc,"What tier is DigitalHub in, and what additional discount does that give them?",sql_query doc_search,,Gold; 7,,
-sqldoc_03,test,sql_doc,"Which category does the TabletAir 10 belong to, and how many days does a customer have to return it?",sql_query doc_search,,Electrónica; 15,,
-sqldoc_04,test,sql_doc,"How many Silver-tier customers do we have, and what additional discount does that tier get?",sql_query doc_search,,6; 3,,
-sqldoc_05,dev,sql_doc,"What does the Escritorio StandUp cost, and how many years of structural warranty does office furniture have?",sql_query doc_search,,699; 5,,
-sqldoc_06,test,sql_doc,"Which product generated the most revenue in 2024, and how long is the warranty for its category?",sql_query doc_search,,ProBook X2; 2,,
-none_01,dev,none,Hello! What can you help me with?,,,(not scored),,
-none_02,test,none,"Thanks, that's all for today.",,,(not scored),,
-none_03,dev,none,What is the capital of France?,,,(not scored),,
-none_04,test,none,Can you explain what a SQL JOIN is?,,,(not scored),,
-none_05,test,none,Write a two-line poem about selling laptops.,,,(not scored),,
-none_06,test,none,What time is it in Tokyo right now?,,,(not scored),,
+id,review
+sql_01,ok
+sql_02,ok
+sql_03,ok
+sql_04,"Query: 'highest sales amount' can be read as the largest single sale; the SQL sums per region. Reword to 'Which region had the highest total sales in Q4 2024?'"
+sql_05,"Check that product_id = 1 is the ProBook X1; better to join products and filter by name so the gold does not depend on the id"
+sql_06,ok
+sql_07,"Single-digit gold: require 3 together with 'customers/clientes'"
+sql_08,ok
+sql_09,ok
+sql_10,"Query says 'customers from the Sur region' but the SQL filters sales.region. Reword to 'How many sales were made in the Sur region in 2024?'"
+sql_11,ok
+sql_12,ok
+sql_13,ok
+sql_14,"Single-digit gold: require 7 together with 'products/productos'. Also check that customer_id = 1 is TechCorp S.L. (better to join by name)"
+sql_15,ok
+sql_16,"Single-digit gold: require 3 together with 'customers/clientes'"
+sql_17,ok
+sql_18,"Check that product_id = 3 is the TabletAir 10; better to join by name"
+doc_01,ok
+doc_02,ok
+doc_03,"Single-digit gold: require 7 together with '%'"
+doc_04,ok
+doc_05,"Single-digit gold: require 2 together with 'years/anos'"
+doc_06,"Single-digit gold: require 5 and 7 together with 'business days/dias laborables'"
+doc_07,"Single-digit gold: require 8 together with '%'"
+doc_08,ok
+doc_09,ok
+doc_10,"Single-digit gold: require 5 and 7 together with 'days/dias'"
+doc_11,"Single-digit gold: require 2 together with 'years/anos'"
+doc_12,ok
+calc_01,ok
+calc_02,ok
+calc_03,ok
+calc_04,ok
+calc_05,ok
+calc_06,ok
+sqlm_01,ok
+sqlm_02,ok
+sqlm_03,ok
+sqlm_04,"Check that product_id = 2 is the ProBook X2; better to join by name"
+sqlm_05,ok
+sqlm_06,ok
+sqlm_07,ok
+sqlm_08,ok
+sqlm_09,ok
+sqlm_10,"Check that customer_id = 1 is TechCorp S.L.; better to join by name"
+sqlm_11,ok
+sqlm_12,ok
+sqldoc_01,ok
+sqldoc_02,"Single-digit gold: require 7 together with '%'"
+sqldoc_03,ok
+sqldoc_04,"Single-digit gold: require 6 with 'customers/clientes' and 3 with '%'"
+sqldoc_05,"Single-digit gold: require 5 together with 'years/anos'"
+sqldoc_06,"Single-digit gold: require 2 together with 'years/anos'"
+none_01,ok
+none_02,ok
+none_03,ok
+none_04,ok
+none_05,ok
+none_06,ok
