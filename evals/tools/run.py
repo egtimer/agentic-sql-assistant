@@ -159,6 +159,27 @@ def summarize(rows: list[dict[str, Any]], systems: list[str]) -> dict[str, Any]:
     return out
 
 
+def rescore(run_dir: Path, systems: list[str]) -> int:
+    """Score a finished run's stored responses again; rewrites predictions and summary."""
+    queries = {q["id"]: q for q in map(json.loads, SET.read_text().splitlines())}
+    pred_path = run_dir / "predictions.jsonl"
+    rows = []
+    for r in map(json.loads, pred_path.read_text().splitlines()):
+        fresh = score(queries[r["id"]], r["system"], r["response"], r["tools_executed"])
+        rows.append({**r, **fresh})
+    pred_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    summary = json.loads((run_dir / "summary.json").read_text())
+    present = [s for s in systems if any(r["system"] == s for r in rows)]
+    summary.update(summarize(rows, present))
+    summary["rescored"] = {"at": datetime.now(UTC).isoformat(), "git": git_info()}
+    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    for system in present:
+        a = summary["systems"][system]["all"]
+        exact, correct = a["tool_exact"]["mean"], a["answer_correct"]["mean"]
+        print(f"{system:<14} exact {exact:.3f}  answer {correct:.3f}")
+    return 0
+
+
 def provenance(config_path: Path, argv: list[str]) -> dict[str, Any]:
     from qdrant_client import QdrantClient
 
@@ -186,18 +207,27 @@ def provenance(config_path: Path, argv: list[str]) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(sys.argv if argv is None else ["run.py", *argv])
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--llm-config", type=Path, required=True)
-    parser.add_argument("--split", choices=("dev", "test"), required=True)
+    parser.add_argument("--llm-config", type=Path)
+    parser.add_argument("--split", choices=("dev", "test"))
     parser.add_argument("--systems", default=",".join(SYSTEMS))
-    parser.add_argument("--budget-usd", type=float, required=True)
+    parser.add_argument("--budget-usd", type=float)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--rescore",
+        action="store_true",
+        help="score the stored responses again with the current set and scorer; no LLM call",
+    )
     args = parser.parse_args(argv)
     systems = [s.strip() for s in args.systems.split(",") if s.strip()]
     if unknown := set(systems) - set(SYSTEMS):
         parser.error(f"unknown systems: {sorted(unknown)}")
 
     run_dir = REPORTS / args.run_id
+    if args.rescore:
+        return rescore(run_dir, systems)
+    if args.llm_config is None or args.split is None or args.budget_usd is None:
+        parser.error("--llm-config, --split and --budget-usd are required unless --rescore")
     if run_dir.exists() and not args.resume:
         print(f"error: {run_dir} exists (pass --resume to continue it)", file=sys.stderr)
         return 2

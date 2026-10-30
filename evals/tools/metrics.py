@@ -59,7 +59,9 @@ def parse_number(token: str) -> float | None:
             token = token.replace(",", "")
         else:
             token = token.replace(",", ".")
-    elif token.count(".") > 1:
+    elif token.count(".") > 1 or (token.count(".") == 1 and len(token.split(".")[1]) == 3):
+        # "1.143.120" or "214.067": dot as thousands separator (Spanish formatting);
+        # gold values have at most 2 decimals
         token = token.replace(".", "")
     try:
         return float(token)

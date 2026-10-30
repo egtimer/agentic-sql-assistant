@@ -89,3 +89,27 @@ def test_summary_has_paired_differences_against_agent_v1() -> None:
     diff = out["paired_vs_agent_v1"]["no_tools"]["answer_correct"]
     assert diff["diff"] == pytest.approx(-0.5)
     assert out["paired_vs_agent_v1"]["no_tools"]["exact"]["diff"] == -1.0
+
+
+def test_rescore_uses_stored_responses(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+
+    run_dir = tmp_path / "r"
+    run_dir.mkdir()
+    set_path = tmp_path / "queries.jsonl"
+    set_path.write_text(json.dumps({**QUERY, "split": "dev"}) + "\n")
+    row = {
+        **run.score(QUERY, "agent_v1", "Vendimos 214.067 € en Q3.", ["sql_query"]),
+        "answer_correct": False,  # as scored before the fix
+        "cost_usd": 0.001,
+        "latency_s": 1.0,
+        "n_llm_calls": 2,
+    }
+    (run_dir / "predictions.jsonl").write_text(json.dumps(row) + "\n")
+    (run_dir / "summary.json").write_text("{}")
+    monkeypatch.setattr(run, "SET", set_path)
+    monkeypatch.setattr(run, "REPORTS", tmp_path)
+    assert run.main(["--run-id", "r", "--rescore"]) == 0
+    stored = json.loads((run_dir / "predictions.jsonl").read_text())
+    assert stored["answer_correct"] is True
+    assert "rescored" in json.loads((run_dir / "summary.json").read_text())
