@@ -8,7 +8,8 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
-- MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions and run read-only SQL through the guard, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model (CI) and in a scripted session with Claude Haiku 5.5. No authentication for remote HTTP.
+- Agent v1 tool selection: measured on 60 hand-written queries over the demo data (23 dev / 37 test); on test it picks the right tools for all 37 with Haiku 5.5 and Sonnet 5.5. Its prompt was fixed on dev to answer greetings and out-of-scope questions without tools (see [Agent v1 tool selection](#evaluation-agent-v1-tool-selection)).
+- MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions, run read-only SQL through the guard, search the policy documents and use the calculator, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model (CI) and in a scripted session with Claude Haiku 5.5. No authentication for remote HTTP.
 - Answer quality: an LLM judge of the final answer agrees with the owner's hand labels on 49 of 50 dev answers (kappa 0.95) and runs at about $0.0001 per answer (see [Answer quality](#answer-quality-an-llm-judge-calibrated-against-hand-labels)).
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
 - SQL guardrails: all model-written SQL goes through `src/sql_guard/` (see [Guardrails](#guardrails)). Prompt-injection results with a real model are in [Guardrails](#guardrails).
@@ -40,17 +41,34 @@ LLM agents that answer questions over SQL databases, and the evaluation that mea
 
 Agent v1 is the original tool-calling agent and still serves the API. Agent v2 is the text-to-SQL agent that the evaluation, the memory work and the MCP server use; the flow between its nodes is decided by code, not by the model. Every query a model or an MCP client writes goes through `src/sql_guard/`.
 
+## Results at a glance
+
+BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bootstrap CIs over questions; cost and latency are per question.
+
+| System | EX | Cost / question | Latency / question | Source |
+|---|---|---|---|---|
+| Haiku 5.5 `baseline` (one LLM call) | 60.6% [55.4, 65.7] | $0.00019 [0.00018, 0.00020] | 1.9 s [1.8, 2.0] | [report](evals/reports/2026-10-19-haiku-test-350/) |
+| Haiku 5.5 `agent_v2` | 64.3% [59.1, 69.4] | $0.00040 [0.00036, 0.00043] | 3.9 s [3.6, 4.2] | [report](evals/reports/2026-10-19-haiku-test-350/) |
+| Sonnet 5.5 `baseline` (one LLM call) | 66.0% [61.1, 71.1] | $0.00201 [0.00189, 0.00214] | 2.3 s [2.1, 2.4] | [report](evals/reports/2026-10-19-sonnet-test-350/) |
+| Sonnet 5.5 `agent_v2` | 69.7% [64.9, 74.6] | $0.00515 [0.00470, 0.00562] | 4.9 s [4.6, 5.2] | [report](evals/reports/2026-10-19-sonnet-test-350/) |
+
+| What | Result | Source |
+|---|---|---|
+| `agent_v2` vs `baseline`, paired | Haiku +3.7 pts [+0.6, +7.1], Sonnet +3.7 pts [+0.9, +6.6] | [Evaluation](#evaluation-text-to-sql-on-bird-mini-dev) |
+| Where `agent_v2` still fails (Haiku, test) | 72 of 125 wrong queries return the right shape with wrong values | [`error_shapes.json`](evals/reports/2026-10-19-haiku-test-350/error_shapes.json) |
+| Answer judge vs human (50 dev answers) | Haiku 5.5 kappa 0.95 [0.84, 1.00] | [Answer quality](#answer-quality-an-llm-judge-calibrated-against-hand-labels) |
+| Tool selection of agent v1 (the agent the API serves), 37 test queries | 100% exact with Haiku 5.5 and Sonnet 5.5; answers 93.9% [84.8, 100.0] (Haiku) and 97.0% [90.9, 100.0] (Sonnet) as scored, 97.0% and 97.0% after a scorer fix | [Agent v1 tool selection](#evaluation-agent-v1-tool-selection), [ADR-010](docs/ADR-010-v1-tool-selection-eval.md) |
+
 ## At a glance
 
 | Item | Value |
 |---|---|
 | Benchmark | BIRD Mini-Dev (SQLite), 500 questions split once into 150 dev / 350 test |
-| Accuracy (test, agent v2) | 64.3% EX with Claude Haiku 5.5, 69.7% with Claude Sonnet 5.5 |
 | SQL guard | 152 of 152 attack statements blocked, 0 of 540 legitimate queries blocked |
 | Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
-| CI | lint, tests, Docker build and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
+| CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
@@ -106,14 +124,27 @@ All runs: effort `low`, prompt caching on the schema prefix, final natural-langu
 
 ### Test split (350 questions, run once)
 
-| Model | System | EX [95% CI] | Cost / question | LLM calls / question | Mean latency |
-|---|---|---|---|---|---|
-| Claude Haiku 5.5 | `baseline` | 60.6% [55.4, 65.7] | $0.00019 | 1.00 | 1.9 s |
-| Claude Haiku 5.5 | `baseline_ctx` | 61.7% [56.6, 66.9] | $0.00022 | 1.00 | 2.1 s |
-| Claude Haiku 5.5 | `agent_v2_nocheck` | 64.6% [59.4, 69.4] | $0.00021 | 1.00 | 1.9 s |
-| Claude Haiku 5.5 | `agent_v2` | 64.3% [59.1, 69.4] | $0.00040 | 2.07 | 3.9 s |
-| Claude Sonnet 5.5 | `baseline` | 66.0% [61.1, 71.1] | $0.00201 | 1.00 | 2.3 s |
-| Claude Sonnet 5.5 | `agent_v2` | 69.7% [64.9, 74.6] | $0.00515 | 2.07 | 4.9 s |
+| Model | System | EX [95% CI] | Cost / question [95% CI] | LLM calls / question | Mean latency [95% CI] | Median / p95 latency |
+|---|---|---|---|---|---|---|
+| Claude Haiku 5.5 | `baseline` | 60.6% [55.4, 65.7] | $0.00019 [0.00018, 0.00020] | 1.00 | 1.9 s [1.8, 2.0] | 1.8 / 3.7 s |
+| Claude Haiku 5.5 | `baseline_ctx` | 61.7% [56.6, 66.9] | $0.00022 [0.00020, 0.00023] | 1.00 | 2.1 s [1.9, 2.3] | 1.8 / 3.6 s |
+| Claude Haiku 5.5 | `agent_v2_nocheck` | 64.6% [59.4, 69.4] | $0.00021 [0.00020, 0.00023] | 1.00 | 1.9 s [1.8, 2.0] | 1.7 / 3.6 s |
+| Claude Haiku 5.5 | `agent_v2` | 64.3% [59.1, 69.4] | $0.00040 [0.00036, 0.00043] | 2.07 | 3.9 s [3.6, 4.2] | 3.4 / 7.7 s |
+| Claude Sonnet 5.5 | `baseline` | 66.0% [61.1, 71.1] | $0.00201 [0.00189, 0.00214] | 1.00 | 2.3 s [2.1, 2.4] | 1.9 / 4.7 s |
+| Claude Sonnet 5.5 | `agent_v2` | 69.7% [64.9, 74.6] | $0.00515 [0.00470, 0.00562] | 2.07 | 4.9 s [4.6, 5.2] | 4.1 / 10.6 s |
+
+Cost and latency intervals come from `python -m evals.text2sql.cost_latency <report>` (`cost_latency.json` in each report). Latency is wall time per question with 4 questions in flight (`--workers 4`), so it includes that concurrency.
+
+Error shapes of the wrong queries (`python -m evals.text2sql.error_shapes <report> --write`, `error_shapes.json` in each report):
+
+| Model | System | Wrong | Same shape, different values | Different row count | Fewer columns | More columns (gold values contained) | Empty result | Other |
+|---|---|---|---|---|---|---|---|---|
+| Haiku 5.5 | `baseline` | 138 | 62 | 18 | 16 | 27 (18) | 15 | 0 |
+| Haiku 5.5 | `baseline_ctx` | 134 | 64 | 18 | 17 | 27 (15) | 8 | 0 |
+| Haiku 5.5 | `agent_v2_nocheck` | 124 | 69 | 17 | 21 | 7 (6) | 10 | 0 |
+| Haiku 5.5 | `agent_v2` | 125 | 72 | 21 | 19 | 7 (6) | 6 | 0 |
+| Sonnet 5.5 | `baseline` | 119 | 59 | 19 | 10 | 22 (15) | 8 | 1 SQL error |
+| Sonnet 5.5 | `agent_v2` | 106 | 57 | 20 | 14 | 12 (8) | 3 | 0 |
 
 Paired differences on the same 350 questions (95% CI):
 
@@ -174,12 +205,12 @@ Either judge reproduces the human reading on 49 of 50 answers (the one miss each
 
 ### Cost of the evaluation
 
-All API runs, including a [10-question pilot](evals/reports/2026-10-18-pilot-haiku-10/) and a [20-question Sonnet pilot](evals/reports/2026-10-19-sonnet-dev-20-pilot/) used to estimate costs, cost $3.57 in total (Haiku test run $0.36, Sonnet test run $2.51), as recorded in the reports' `llm_calls.jsonl`.
+All API runs, including a [10-question pilot](evals/reports/2026-10-18-pilot-haiku-10/) and a [20-question Sonnet pilot](evals/reports/2026-10-19-sonnet-dev-20-pilot/) used to estimate costs, cost $3.57 in total (Haiku test run $0.36, Sonnet test run $2.51), as recorded in the reports' `llm_calls.jsonl`. The weekly API eval in CI (30 dev questions, `baseline` and `agent_v2` with Haiku) costs about $0.03 per run: $0.0282 on 2026-10-19 and $0.0289 on 2026-10-26, from the runs' logs.
 
 ### Reproduce
 
 ```bash
-make bird-data   # download BIRD Mini-Dev, verify sha256, extract, write the split
+make bird-data   # download BIRD Mini-Dev (questions pinned to HF revision f65faf4ae3b6), verify sha256, extract, write the split
 uv run python -m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml \
   --system baseline,baseline_ctx,agent_v2_nocheck,agent_v2 --split dev --skip-respond \
   --workers 4 --budget-usd 0.50 --run-id my-dev-run
@@ -188,6 +219,42 @@ uv run python -m evals.text2sql.plot_cost_ex --out docs/img/cost-vs-ex
 ```
 
 API runs need `ANTHROPIC_API_KEY` and spend money; `--budget-usd` is a hard cap. The exact command of every reported run is in its report's README.
+
+## Evaluation: agent v1 tool selection
+
+Agent v1 serves the API and is the only agent that chooses between tools (`sql_query`, `doc_search`, `calculator`). It is measured on 60 hand-written queries over the seeded demo data and the three policy files ([`evals/tools/`](evals/tools/)): `sql` 18, `doc` 12, `calc` 6, `sql_math` 12 (SQL plus arithmetic), `sql_doc` 6, and `none` 6 (greetings and out-of-scope questions that need no tool), split once into 23 dev and 37 test queries. Each query lists its required tools, optional tools and a gold answer computed from the demo database or quoted from a policy file; the owner reviewed all of them before any run. Design and protocol: [ADR-010](docs/ADR-010-v1-tool-selection-eval.md).
+
+Systems: `agent_v1` (as served), `simple_prompt` (the same graph with a minimal tool-selection prompt: tool names and table columns, no usage hints, no examples) and `no_tools` (one LLM call without data or documents). Tool selection is exact when every required tool is used and nothing outside the allowed set; an answer is correct when it states the gold numbers and names. 95% bootstrap CIs over queries.
+
+**Test split (37 queries, 33 with a scored answer, run once).** Answer accuracy is shown as scored at the time of the run, with the score after a later scorer fix next to it.
+
+| Model | System | Tool selection, exact | Answer correct, as scored | Corrected | Cost / query | Latency / query |
+|---|---|---|---|---|---|---|
+| Haiku 5.5 | `agent_v1` | 100.0% [100.0, 100.0] | 93.9% [84.8, 100.0] | 97.0% [90.9, 100.0] | $0.00030 [0.00026, 0.00033] | 3.0 s [2.6, 3.4] |
+| Haiku 5.5 | `simple_prompt` | 100.0% [100.0, 100.0] | 87.9% [75.8, 97.0] | 90.9% [78.8, 100.0] | $0.00023 [0.00020, 0.00027] | 3.0 s [2.7, 3.4] |
+| Haiku 5.5 | `no_tools` | 10.8% [2.7, 21.6] | 12.1% [3.0, 24.2] | 12.1% | $0.00012 [0.00011, 0.00015] | 2.0 s [1.7, 2.3] |
+| Sonnet 5.5 | `agent_v1` | 100.0% [100.0, 100.0] | 97.0% [90.9, 100.0] | 97.0% | $0.00645 [0.00585, 0.00706] | 4.4 s [4.0, 4.9] |
+| Sonnet 5.5 | `simple_prompt` | 100.0% [100.0, 100.0] | 90.9% [81.8, 100.0] | 93.9% [84.8, 100.0] | $0.00477 [0.00414, 0.00540] | 4.3 s [4.0, 4.6] |
+| Sonnet 5.5 | `no_tools` | 10.8% [2.7, 21.6] | 33.3% [18.2, 48.5] | 33.3% | $0.00455 [0.00390, 0.00521] | 4.1 s [3.6, 4.5] |
+
+Reports: [Haiku](evals/reports/2026-10-30-v1-tools-haiku-test/), [Sonnet](evals/reports/2026-10-30-v1-tools-sonnet-test/) (`summary.json` as scored, `summary_rescored.json` corrected).
+
+- **The tools matter; the prompt wording barely shows.** Without tools, answers drop by 81.8 points [66.7, 93.9] with Haiku and 63.6 [48.5, 78.8] with Sonnet. The minimal prompt picks the same tools and loses 6.1 points of answers with both models, an interval that reaches 0: its document searches are in English over Spanish documents and miss the fact.
+- **One real `agent_v1` error**, with both models: for the TabletAir 10 it gives the general 30-day return period and misses the 15-day exception for electronics.
+- **Scorer fix after test.** Reading every wrong answer by hand found three right answers the scorer missed: "Tres clientes" and "Three Gold-tier customers" (numbers written as words) and "-2.545%" (read as 2545 by a thousands rule added on dev). These are measurement faults, not faults of the agent. The fix (numbers as words; both readings of a dot before three digits) was made after seeing test, so the as-scored numbers are the headline; rescoring every run changes exactly these three answers.
+- **Prompt fix on dev.** On dev, v1 called `doc_search` for "Hello! What can you help me with?" and "What is the capital of France?"; its prompt had no way to ask for no tool. The prompt now allows an empty plan, which is answered with one direct LLM call (exact tool selection on dev 91.3% [78.3, 100.0] before, 100% after; no other dev query changed). This was done on dev, before test ran.
+- **Limitation.** Sonnet without tools answers 7 policy questions right because the policy uses common values (30 days to return, 2-year warranty) that a model can guess, so the policy questions test retrieval less than they seem to. Questions with unusual values are future work.
+
+Reproduce (spends money; needs `make up`, `make seed`, `make ingest`):
+
+```bash
+uv run python -m evals.tools.build_set                      # set and review sheet from specs.py (free)
+uv run python -m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml \
+  --split dev --budget-usd 0.15 --run-id my-run
+uv run python -m evals.tools.run --run-id my-run --rescore  # score stored answers again (free)
+```
+
+Cost of this evaluation: $0.640 (dev runs $0.0164 and $0.0160, test with Haiku $0.0242 and with Sonnet $0.5834).
 
 ### Golden dataset (legacy)
 
@@ -317,7 +384,7 @@ Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-tr
 
 ## MCP server
 
-An [MCP](https://modelcontextprotocol.io) server (official Python SDK, `mcp` 2.x) exposes agent v2 and its SQL guard to any MCP client. Design, safety model and what is out of scope: [ADR-008](docs/ADR-008-mcp-server.md).
+An [MCP](https://modelcontextprotocol.io) server (official Python SDK, `mcp` 2.x) exposes agent v2, its SQL guard and agent v1's document search and calculator to any MCP client. Design, safety model and what is out of scope: [ADR-008](docs/ADR-008-mcp-server.md).
 
 ```
 make chinook-data                                   # Chinook demo database, sha256-checked
@@ -350,6 +417,8 @@ Client configuration for stdio (the exact file depends on the client):
 | `run_sql` | a query written by the client, through all guard layers: read-only, at most 100 rows; a refused statement is returned as `blocked` with the reason |
 | `teach` | store definitions a user states (`user_id`, database), one LLM call |
 | `forget` | delete one or all definitions of a user for a database |
+| `doc_search` | passages of the company policy documents for a query (hybrid dense + BM25 retrieval, as agent v1 uses it), with source and score; needs the documents indexed, refuses an index built with another embedding model |
+| `calculator` | value of a math expression (parsed, never executed; whitelisted operators and functions), as agent v1 uses it |
 
 Databases are addressed by name (file stem) from the allowlist built at startup; the client never sends a path. The SQL guard applies to every query, model-written or client-written, and the budget cap stops `ask` and `teach` while `run_sql` and the schema tools keep working. There is no authentication: the HTTP transport binds to localhost and is not meant to be exposed.
 
@@ -368,6 +437,7 @@ Real-model demo ([transcript](docs/examples/mcp-demo.md), `python -m src.mcp_ser
 - [ADR-007: Memory](docs/ADR-007-memory.md) — conversation history via a checkpointer, per-user definitions via a store, and how both are evaluated
 - [ADR-008: MCP Server](docs/ADR-008-mcp-server.md) — tools, transports, database allowlist, state, budget and safety model of the MCP server
 - [ADR-009: Answer judge and CI evals](docs/ADR-009-judge-and-ci-evals.md) — LLM judge of the final answer, its calibration against hand labels, and what runs in CI
+- [ADR-010: Agent v1 tool selection](docs/ADR-010-v1-tool-selection-eval.md) — the 60-query tool-selection set, the prompt fix made on dev, the single test run and a scorer fix made after it
 
 ## Stack
 
@@ -391,7 +461,7 @@ make docker-build      # build the application image
 docker compose up -d   # run the full stack
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) a text-to-SQL runner smoke test and a memory evals smoke test with a scripted LLM, and an MCP smoke test that starts the real server over stdio. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused. After the run a regression gate compares `agent_v2` with a [committed reference run](evals/reports/2026-10-19-ci-reference-dev-30/) of the same configuration: it fails when execution accuracy drops by more than 10 points with a paired-bootstrap CI entirely below 0, or when cost per question is more than twice the reference.
+GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build (the image is started and must answer `/health`) on pushes and pull requests to `main`. It also runs offline evals: the SQL-guard adversarial eval with a pass/fail check (all 152 attacks and 40 benign queries, on a synthetic stand-in when the BIRD data is absent) a text-to-SQL runner smoke test and a memory evals smoke test with a scripted LLM, and an MCP smoke test that starts the real server over stdio. The evals that call the Anthropic API never run on push: `.github/workflows/evals-api.yml` runs them from a manual trigger and weekly (Mondays 03:17 UTC) on a stratified dev sample (30 questions, `baseline` and `agent_v2`). It needs an Actions secret named `ANTHROPIC_API_KEY` (without it the run is skipped with a notice), and every run is capped at 0.20 USD by `--budget-usd`; a larger manual value is refused. After the run a regression gate compares `agent_v2` with a [committed reference run](evals/reports/2026-10-19-ci-reference-dev-30/) of the same configuration: it fails when execution accuracy drops by more than 10 points with a paired-bootstrap CI entirely below 0, or when cost per question is more than twice the reference.
 
 ## Related
 

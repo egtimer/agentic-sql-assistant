@@ -8,6 +8,7 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.agent.prompts import (
+    DIRECT_RESPONSE_PROMPT,
     VALIDATION_PROMPT,
     build_response_prompt,
     build_tool_selection_parts,
@@ -85,6 +86,14 @@ def reason_node(state: AgentState) -> dict[str, Any]:
 
     try:
         tool_calls_raw = _extract_json(response_text)
+        if tool_calls_raw == [] and state.profile is ToolProfile.DEFAULT:
+            # an explicit empty plan: the question needs no tool
+            logger.info("No tool needed for query: %s", state.query[:80])
+            return {
+                "planned_tools": [],
+                "direct_answer": True,
+                "messages": [HumanMessage(content=state.query), AIMessage(content=response_text)],
+            }
         if not isinstance(tool_calls_raw, list):
             tool_calls_raw = [tool_calls_raw]
 
@@ -317,6 +326,10 @@ def respond_node(state: AgentState) -> dict[str, Any]:
                 "response": f"Sorry, there was an error processing your question: {state.error}"
             }
         return {"response": f"Lo siento, hubo un error procesando tu pregunta: {state.error}"}
+
+    if state.direct_answer:
+        prompt = DIRECT_RESPONSE_PROMPT.format(query=state.query)
+        return {"response": get_client().complete(None, prompt, tag="respond").text}
 
     if not state.tool_results:
         if neutral:

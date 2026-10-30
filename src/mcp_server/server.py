@@ -17,6 +17,8 @@ from src.mcp_server.models import (
     TeachResult,
 )
 from src.mcp_server.service import Service
+from src.tools.calculator import CalculatorResult
+from src.tools.doc_search import DocSearchResult
 
 MAX_SQL_CHARS = 20_000
 ID_PATTERN = r"^[A-Za-z0-9_.@:+-]{1,128}$"
@@ -26,7 +28,8 @@ INSTRUCTIONS = (
     "read a schema. Use ask for a question in natural language (it writes, checks and runs the "
     "SQL itself) and run_sql to run a query you wrote; every query goes through a read-only "
     "SQL guard that refuses anything but a single SELECT. teach and forget manage the "
-    "definitions a user wants the agent to remember."
+    "definitions a user wants the agent to remember. doc_search searches the company policy "
+    "documents and calculator evaluates a math expression; neither uses a language model."
 )
 
 DatabaseName = Annotated[
@@ -75,6 +78,20 @@ def render_forget_result(result: ForgetResult) -> str:
     if not result.deleted:
         return "Nothing to forget."
     return "Forgot: " + ", ".join(result.deleted)
+
+
+def render_calculator_result(result: CalculatorResult) -> str:
+    if not result.success:
+        return f"Calculation failed: {result.error}"
+    return f"{result.expression} = {result.result_formatted}"
+
+
+def render_doc_search_result(result: DocSearchResult) -> str:
+    if not result.success:
+        return f"Document search failed: {result.error}"
+    if not result.chunks:
+        return "No matching passages."
+    return "\n\n".join(f"[{c.source}, score {c.score:.3f}]\n{c.content}" for c in result.chunks)
 
 
 def tool_result(model: BaseModel, text: str) -> CallToolResult:
@@ -221,6 +238,45 @@ def create_server(service: Service) -> MCPServer[Any]:
         known(database)
         result = await anyio.to_thread.run_sync(service.forget, database, user_id, term)
         return tool_result(result, render_forget_result(result))
+
+    @server.tool(annotations=_READ_ONLY)
+    async def doc_search(
+        query: Annotated[
+            str,
+            Field(
+                description="What to look for in the policy documents (they are in Spanish)",
+                min_length=1,
+                max_length=1000,
+            ),
+        ],
+        top_k: Annotated[int, Field(description="Passages to return", ge=1, le=20)] = 5,
+    ) -> Annotated[CallToolResult, DocSearchResult]:
+        """Search the company policy documents (returns, discounts, product FAQ).
+
+        Hybrid retrieval: dense vectors in Qdrant and BM25, fused with RRF; the same search
+        agent v1 uses. No language model. Needs the documents indexed (make ingest); a search
+        against an index built with another embedding model is refused.
+        """
+        result = await anyio.to_thread.run_sync(service.search_documents, query, top_k)
+        return tool_result(result, render_doc_search_result(result))
+
+    @server.tool(annotations=_READ_ONLY)
+    async def calculator(
+        expression: Annotated[
+            str,
+            Field(
+                description="Arithmetic expression: + - * / ** and sqrt, round, abs, min, max, log",
+                min_length=1,
+                max_length=500,
+            ),
+        ],
+    ) -> Annotated[CallToolResult, CalculatorResult]:
+        """Evaluate a math expression safely (parsed, never executed as code).
+
+        The calculator agent v1 uses: whitelisted operators and functions, exponent limits.
+        """
+        result = await anyio.to_thread.run_sync(service.calculate, expression)
+        return tool_result(result, render_calculator_result(result))
 
     @server.resource(
         "schema://{database}", mime_type="text/plain", description="Schema of a database"

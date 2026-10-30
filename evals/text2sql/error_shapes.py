@@ -6,7 +6,7 @@ more columns than gold (and whether the gold values are all contained in the pre
 fewer columns, empty result, different row count, or same shape with different values.
 Errors, timeouts and missing SQL keep their failure type.
 
-    uv run python -m evals.text2sql.error_shapes 2026-10-19-haiku-test-350
+    uv run python -m evals.text2sql.error_shapes 2026-10-19-haiku-test-350 [--write]
 """
 
 import argparse
@@ -69,14 +69,25 @@ def classify(report: str) -> dict[str, Counter[str]]:
     return buckets
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("report", help="directory name under evals/reports/")
-    args = parser.parse_args()
-    for system, counter in classify(args.report).items():
+    parser.add_argument(
+        "--write", action="store_true", help="also write error_shapes.json into the report"
+    )
+    args = parser.parse_args(argv)
+    buckets = classify(args.report)
+    for system, counter in buckets.items():
         print(f"{system}: {sum(counter.values())} wrong")
         for bucket, count in counter.most_common():
             print(f"  {bucket}: {count}")
+    if args.write:
+        out = {
+            system: {"wrong": sum(c.values()), "buckets": dict(c.most_common())}
+            for system, c in buckets.items()
+        }
+        path = REPORTS / args.report / "error_shapes.json"
+        path.write_text(json.dumps({"report": args.report, "systems": out}, indent=2) + "\n")
 
 
 if __name__ == "__main__":

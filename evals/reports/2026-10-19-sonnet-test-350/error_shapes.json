@@ -1,0 +1,28 @@
+{
+  "report": "2026-10-19-sonnet-test-350",
+  "systems": {
+    "baseline": {
+      "wrong": 119,
+      "buckets": {
+        "same shape, different values": 59,
+        "different row count": 19,
+        "more columns (gold values contained)": 15,
+        "fewer columns": 10,
+        "empty result": 8,
+        "more columns": 7,
+        "sql_error": 1
+      }
+    },
+    "agent_v2": {
+      "wrong": 106,
+      "buckets": {
+        "same shape, different values": 57,
+        "different row count": 20,
+        "fewer columns": 14,
+        "more columns (gold values contained)": 8,
+        "more columns": 4,
+        "empty result": 3
+      }
+    }
+  }
+}

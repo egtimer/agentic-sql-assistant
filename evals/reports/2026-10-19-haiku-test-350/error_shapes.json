@@ -1,0 +1,49 @@
+{
+  "report": "2026-10-19-haiku-test-350",
+  "systems": {
+    "baseline": {
+      "wrong": 138,
+      "buckets": {
+        "same shape, different values": 62,
+        "more columns (gold values contained)": 18,
+        "different row count": 18,
+        "fewer columns": 16,
+        "empty result": 15,
+        "more columns": 9
+      }
+    },
+    "baseline_ctx": {
+      "wrong": 134,
+      "buckets": {
+        "same shape, different values": 64,
+        "different row count": 18,
+        "fewer columns": 17,
+        "more columns (gold values contained)": 15,
+        "more columns": 12,
+        "empty result": 8
+      }
+    },
+    "agent_v2_nocheck": {
+      "wrong": 124,
+      "buckets": {
+        "same shape, different values": 69,
+        "fewer columns": 21,
+        "different row count": 17,
+        "empty result": 10,
+        "more columns (gold values contained)": 6,
+        "more columns": 1
+      }
+    },
+    "agent_v2": {
+      "wrong": 125,
+      "buckets": {
+        "same shape, different values": 72,
+        "different row count": 21,
+        "fewer columns": 19,
+        "empty result": 6,
+        "more columns (gold values contained)": 6,
+        "more columns": 1
+      }
+    }
+  }
+}

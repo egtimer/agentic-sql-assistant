@@ -1,0 +1,61 @@
+id,review
+sql_01,ok
+sql_02,ok
+sql_03,ok
+sql_04,"Query: 'highest sales amount' can be read as the largest single sale; the SQL sums per region. Reword to 'Which region had the highest total sales in Q4 2024?'"
+sql_05,"Check that product_id = 1 is the ProBook X1; better to join products and filter by name so the gold does not depend on the id"
+sql_06,ok
+sql_07,"Single-digit gold: require 3 together with 'customers/clientes'"
+sql_08,ok
+sql_09,ok
+sql_10,"Query says 'customers from the Sur region' but the SQL filters sales.region. Reword to 'How many sales were made in the Sur region in 2024?'"
+sql_11,ok
+sql_12,ok
+sql_13,ok
+sql_14,"Single-digit gold: require 7 together with 'products/productos'. Also check that customer_id = 1 is TechCorp S.L. (better to join by name)"
+sql_15,ok
+sql_16,"Single-digit gold: require 3 together with 'customers/clientes'"
+sql_17,ok
+sql_18,"Check that product_id = 3 is the TabletAir 10; better to join by name"
+doc_01,ok
+doc_02,ok
+doc_03,"Single-digit gold: require 7 together with '%'"
+doc_04,ok
+doc_05,"Single-digit gold: require 2 together with 'years/anos'"
+doc_06,"Single-digit gold: require 5 and 7 together with 'business days/dias laborables'"
+doc_07,"Single-digit gold: require 8 together with '%'"
+doc_08,ok
+doc_09,ok
+doc_10,"Single-digit gold: require 5 and 7 together with 'days/dias'"
+doc_11,"Single-digit gold: require 2 together with 'years/anos'"
+doc_12,ok
+calc_01,ok
+calc_02,ok
+calc_03,ok
+calc_04,ok
+calc_05,ok
+calc_06,ok
+sqlm_01,ok
+sqlm_02,ok
+sqlm_03,ok
+sqlm_04,"Check that product_id = 2 is the ProBook X2; better to join by name"
+sqlm_05,ok
+sqlm_06,ok
+sqlm_07,ok
+sqlm_08,ok
+sqlm_09,ok
+sqlm_10,"Check that customer_id = 1 is TechCorp S.L.; better to join by name"
+sqlm_11,ok
+sqlm_12,ok
+sqldoc_01,ok
+sqldoc_02,"Single-digit gold: require 7 together with '%'"
+sqldoc_03,ok
+sqldoc_04,"Single-digit gold: require 6 with 'customers/clientes' and 3 with '%'"
+sqldoc_05,"Single-digit gold: require 5 together with 'years/anos'"
+sqldoc_06,"Single-digit gold: require 2 together with 'years/anos'"
+none_01,ok
+none_02,ok
+none_03,ok
+none_04,ok
+none_05,ok
+none_06,ok

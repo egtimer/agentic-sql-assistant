@@ -26,7 +26,7 @@ def rig(databases_dir: Path, tmp_path: Path) -> Rig:
     return Rig(databases_dir, tmp_path / "state")
 
 
-async def test_all_six_tools_are_listed_with_documented_inputs(rig: Rig):
+async def test_all_eight_tools_are_listed_with_documented_inputs(rig: Rig):
     async with Client(create_server(rig.service)) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
     assert set(tools) == {
@@ -36,6 +36,8 @@ async def test_all_six_tools_are_listed_with_documented_inputs(rig: Rig):
         "ask",
         "teach",
         "forget",
+        "doc_search",
+        "calculator",
     }
     ask = tools["ask"].input_schema
     assert set(ask["required"]) == {"question", "database"}

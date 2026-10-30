@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from src.config import settings
+from src.rag.embedding import EmbeddingRuntimeMismatch, check_index_runtime, load_embedder
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,10 @@ def doc_search(
             success=True,
         )
 
+    except EmbeddingRuntimeMismatch as e:
+        # the fallback would search the same mismatched vectors
+        logger.error("Doc search refused: %s", e)
+        return DocSearchResult(query=query, chunks=[], chunk_count=0, success=False, error=str(e))
     except Exception as e:
         logger.warning("Hybrid retrieval failed, attempting direct search: %s", str(e))
         return _fallback_search(query, qdrant_url, collection_name, top_k, _client, _embedder)
@@ -117,15 +122,11 @@ def _fallback_search(
             from qdrant_client import QdrantClient
 
             client = QdrantClient(url=qdrant_url)
+            check_index_runtime(client, collection_name, qdrant_url)
         else:
             client = _client
 
-        if _embedder is None:
-            from sentence_transformers import SentenceTransformer
-
-            embedder = SentenceTransformer(settings.embedding_model)
-        else:
-            embedder = _embedder
+        embedder = load_embedder() if _embedder is None else _embedder
 
         query_vector = embedder.encode(query).tolist()
 

@@ -1,0 +1,54 @@
+{
+  "report": "2026-10-19-sonnet-test-350",
+  "input_sha256": "e60dbd62f0e47eef286d9c9d25b7d15e7727383d5938316c70687fe693fc004d",
+  "workers": 4,
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "systems": {
+    "baseline": {
+      "n": 350,
+      "cost_usd": {
+        "mean": 0.002014466857142857,
+        "ci_low": 0.0018945417142857141,
+        "ci_high": 0.002138188857142857
+      },
+      "latency_s": {
+        "mean": 2.263850568691424,
+        "ci_low": 2.1347347771857033,
+        "ci_high": 2.4016043108485676
+      },
+      "latency_s_median": 1.8658322369999496,
+      "latency_s_p95": 4.726555615849943,
+      "llm_calls": {
+        "mean": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0
+      }
+    },
+    "agent_v2": {
+      "n": 350,
+      "cost_usd": {
+        "mean": 0.005146725714285714,
+        "ci_low": 0.004697321428571428,
+        "ci_high": 0.005615087428571429
+      },
+      "latency_s": {
+        "mean": 4.9018855671656905,
+        "ci_low": 4.6195342042542675,
+        "ci_high": 5.203369022771413
+      },
+      "latency_s_median": 4.111789270500026,
+      "latency_s_p95": 10.61623562280007,
+      "llm_calls": {
+        "mean": 2.065714285714286,
+        "ci_low": 2.04,
+        "ci_high": 2.0942857142857143
+      }
+    }
+  }
+}
