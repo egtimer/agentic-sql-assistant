@@ -928,5 +928,12 @@
         "frac_resamples_le_zero": 1.0
       }
     }
+  },
+  "rescored": {
+    "at": "2026-10-30T10:07:18.374412+00:00",
+    "git": {
+      "commit": "2605471d9c803590b5f2b77d05d6c85002bbc5ca",
+      "dirty": true
+    }
   }
 }
