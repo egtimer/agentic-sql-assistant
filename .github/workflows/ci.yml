@@ -70,3 +70,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t agentic-sql-assistant:ci .
+      - name: Smoke test the image
+        # The API must start and answer /health without Ollama or Qdrant (they are reported
+        # as unavailable, not fatal).
+        run: |
+          docker run -d --name api -p 8000:8000 agentic-sql-assistant:ci
+          for _ in $(seq 1 60); do
+            if body=$(curl -fsS http://localhost:8000/health); then break; fi
+            sleep 1
+          done
+          echo "$body"
+          echo "$body" | python3 -c 'import json, sys; assert json.load(sys.stdin)["status"] == "healthy"'
+      - name: Container logs
+        if: failure()
+        run: docker logs api || true
