@@ -27,6 +27,7 @@ from evals.text2sql.stats import (
 )
 
 REL_TOLERANCE = 0.01
+KEYWORD_WINDOW = 40  # characters between a number and its unit or keyword
 _NUMBER = re.compile(r"\d[\d.,]*")
 
 
@@ -67,7 +68,17 @@ def parse_number(token: str) -> float | None:
 
 
 def numbers_in(text: str) -> list[float]:
-    return [n for n in (parse_number(t) for t in _NUMBER.findall(text)) if n is not None]
+    return [n for n, _, _ in number_spans(text)]
+
+
+def number_spans(text: str) -> list[tuple[float, int, int]]:
+    """Every number in ``text`` with its start and end offsets."""
+    spans = []
+    for m in _NUMBER.finditer(text):
+        n = parse_number(m.group())
+        if n is not None:
+            spans.append((n, m.start(), m.end()))
+    return spans
 
 
 def _plain(text: str) -> str:
@@ -75,21 +86,59 @@ def _plain(text: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c)).lower()
 
 
-def _number_found(value: float, found: Sequence[float]) -> bool:
+def _matches(n: float, value: float) -> bool:
     target = abs(value)
-    tolerance = max(target * REL_TOLERANCE, 0.005)
-    return any(abs(n - target) <= tolerance for n in found)
+    return abs(n - target) <= max(target * REL_TOLERANCE, 0.005)
+
+
+_RANGE = re.compile(r"\s*(?:-|–|to|a|and|y)\s*$")
+
+
+def _near_keyword(
+    plain: str, spans: Sequence[tuple[float, int, int]], i: int, keywords: Sequence[str]
+) -> bool:
+    """A keyword next to number ``i``: a symbol right after it, a word within the window.
+
+    A word may not reach past another number, except across a range ("5-7 days",
+    "5 to 7 days"), where the unit after the range belongs to both ends.
+    """
+    j = i
+    while j + 1 < len(spans) and _RANGE.match(plain[spans[j][2] : spans[j + 1][1]]):
+        j += 1
+    end = spans[j][2]
+    next_start = spans[j + 1][1] if j + 1 < len(spans) else len(plain)
+    after = plain[end : min(end + KEYWORD_WINDOW, next_start)]
+    start = spans[i][1]
+    prev_end = spans[i - 1][2] if i > 0 else 0
+    before = plain[max(start - KEYWORD_WINDOW, prev_end) : start]
+    for keyword in (_plain(k) for k in keywords):
+        if keyword[0].isalpha():
+            if keyword in after or keyword in before:
+                return True
+        elif after.lstrip().startswith(keyword):
+            return True
+    return False
+
+
+def _number_found(
+    value: float, spans: Sequence[tuple[float, int, int]], plain: str, keywords: Sequence[str]
+) -> bool:
+    return any(
+        _matches(n, value) and (not keywords or _near_keyword(plain, spans, i, keywords))
+        for i, (n, _, _) in enumerate(spans)
+    )
 
 
 def check_answer(answer: str, checks: Sequence[Mapping[str, Any]]) -> bool | None:
     """True when every check passes, None when there are no checks."""
     if not checks:
         return None
-    found = numbers_in(answer)
     plain = _plain(answer)
+    spans = number_spans(plain)
     for check in checks:
         if check["kind"] in ("number", "sql_number"):
-            if not all(_number_found(float(v), found) for v in check["values"]):
+            keywords = check.get("with", [])
+            if not all(_number_found(float(v), spans, plain, keywords) for v in check["values"]):
                 return False
         else:
             aliases = check.get("aliases", {})

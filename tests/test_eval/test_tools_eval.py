@@ -74,6 +74,23 @@ class TestCheckAnswer:
         assert check_answer("It is an Electronics product.", checks)
         assert not check_answer("It is an office product.", checks)
 
+    def test_single_digit_needs_its_unit_or_keyword(self) -> None:
+        pct = [{"kind": "number", "values": [7], "with": ["%", "percent"]}]
+        assert check_answer("Gold customers get an extra 7% off.", pct)
+        assert check_answer("They get 7 percent.", pct)
+        assert not check_answer("Gold is one of 7 tiers; the discount is 10%.", pct)
+        years = [{"kind": "number", "values": [2], "with": ["year", "ano"]}]
+        assert check_answer("Electronics carry a 2-year warranty.", years)
+        assert check_answer("La garantía es de 2 años.", years)
+        assert not check_answer("See section 2 for details.", years)
+        customers = [{"kind": "number", "values": [3], "with": ["customer", "client"]}]
+        assert check_answer("The number of Platinum customers is 3.", customers)
+        days = [{"kind": "number", "values": [5, 7], "with": ["business day", "dias laborables"]}]
+        assert check_answer("The refund takes 5-7 business days.", days)
+        assert not check_answer("The refund takes 5-7 days.", days)
+        assert check_answer("The refund takes 5 to 7 business days.", days)
+        assert not check_answer("Q3 had 7 regions and grew 10 percent.", pct)
+
     def test_no_checks_is_not_scored(self) -> None:
         assert check_answer("Hello!", []) is None
 

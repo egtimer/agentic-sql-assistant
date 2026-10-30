@@ -8,7 +8,8 @@ dev and test, stratified by category (``--dev-fraction``, seed 0), and writes in
 - ``queries.jsonl``     one query per line with its split, tools and resolved checks
 - ``review_sheet.md``   the queries with expected tools and gold answers, for the human
                         review before any run (no model output in it)
-- ``review.csv``        the same, with empty ``review`` and ``note`` columns
+- ``review.csv``        the same, with empty ``review`` and ``note`` columns (only if
+                        it does not exist yet: it holds the human review)
 
     uv run python -m evals.tools.build_set --out evals/tools/set
 """
@@ -80,7 +81,10 @@ def gold_text(spec: dict[str, Any]) -> str:
     parts = []
     for check in spec["checks"]:
         values = check["values"]
-        parts.append(", ".join(_fmt(v) for v in values))
+        text = ", ".join(_fmt(v) for v in values)
+        if check.get("with"):
+            text += f" (with {' / '.join(check['with'])})"
+        parts.append(text)
     return "; ".join(parts) or "(not scored)"
 
 
@@ -120,6 +124,8 @@ def write_outputs(queries: list[dict[str, Any]], out: Path) -> None:
             f"{gold_text(q)} | {f'`{source}`' if source else ''} |"
         )
     (out / "review_sheet.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if (out / "review.csv").exists():
+        return  # holds the human review; never overwritten
     with open(out / "review.csv", "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(
