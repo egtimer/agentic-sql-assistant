@@ -110,6 +110,8 @@ def test_rescore_uses_stored_responses(tmp_path, monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(run, "SET", set_path)
     monkeypatch.setattr(run, "REPORTS", tmp_path)
     assert run.main(["--run-id", "r", "--rescore"]) == 0
-    stored = json.loads((run_dir / "predictions.jsonl").read_text())
-    assert stored["answer_correct"] is True
-    assert "rescored" in json.loads((run_dir / "summary.json").read_text())
+    rescored = json.loads((run_dir / "predictions_rescored.jsonl").read_text())
+    assert rescored["answer_correct"] is True
+    original = json.loads((run_dir / "predictions.jsonl").read_text())
+    assert original["answer_correct"] is False
+    assert "rescored" in json.loads((run_dir / "summary_rescored.json").read_text())

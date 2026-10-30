@@ -160,19 +160,24 @@ def summarize(rows: list[dict[str, Any]], systems: list[str]) -> dict[str, Any]:
 
 
 def rescore(run_dir: Path, systems: list[str]) -> int:
-    """Score a finished run's stored responses again; rewrites predictions and summary."""
+    """Score a finished run's stored responses again, next to the original scores.
+
+    Writes ``predictions_rescored.jsonl`` and ``summary_rescored.json``; the files of the
+    run as it was scored are left unchanged.
+    """
     queries = {q["id"]: q for q in map(json.loads, SET.read_text().splitlines())}
     pred_path = run_dir / "predictions.jsonl"
     rows = []
     for r in map(json.loads, pred_path.read_text().splitlines()):
         fresh = score(queries[r["id"]], r["system"], r["response"], r["tools_executed"])
         rows.append({**r, **fresh})
-    pred_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    out_path = run_dir / "predictions_rescored.jsonl"
+    out_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     summary = json.loads((run_dir / "summary.json").read_text())
     present = [s for s in systems if any(r["system"] == s for r in rows)]
     summary.update(summarize(rows, present))
     summary["rescored"] = {"at": datetime.now(UTC).isoformat(), "git": git_info()}
-    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (run_dir / "summary_rescored.json").write_text(json.dumps(summary, indent=2) + "\n")
     for system in present:
         a = summary["systems"][system]["all"]
         exact, correct = a["tool_exact"]["mean"], a["answer_correct"]["mean"]
@@ -216,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--rescore",
         action="store_true",
-        help="score the stored responses again with the current set and scorer; no LLM call",
+        help="score the stored responses again into *_rescored files; no LLM call",
     )
     args = parser.parse_args(argv)
     systems = [s.strip() for s in args.systems.split(",") if s.strip()]

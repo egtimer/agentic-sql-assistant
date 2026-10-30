@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from evals.tools import build_set
-from evals.tools.metrics import aggregate, check_answer, numbers_in, parse_number, tool_scores
+from evals.tools.metrics import (
+    aggregate,
+    check_answer,
+    number_readings,
+    numbers_in,
+    tool_scores,
+)
 from evals.tools.specs import SPECS
 
 
@@ -41,13 +47,19 @@ class TestNumbers:
             ("3,5", 3.5),
             ("27.14", 27.14),
             ("1.143.120", 1143120.0),
-            ("214.067", 214067.0),
             ("4.5", 4.5),
             ("30.", 30.0),
         ],
     )
-    def test_parse_number(self, token: str, value: float) -> None:
-        assert parse_number(token) == pytest.approx(value)
+    def test_unambiguous_numbers(self, token: str, value: float) -> None:
+        assert number_readings(token) == (pytest.approx(value),)
+
+    def test_a_dot_before_three_digits_has_two_readings(self) -> None:
+        assert number_readings("214.067") == (pytest.approx(214.067), 214067.0)
+        assert number_readings("2.545") == (pytest.approx(2.545), 2545.0)
+
+    def test_numbers_written_as_words(self) -> None:
+        assert numbers_in("tres clientes y three products") == [3.0, 3.0]
 
     def test_numbers_in_text(self) -> None:
         assert numbers_in("Refunds take 5-7 business days (€29 setup).") == [5.0, 7.0, 29.0]

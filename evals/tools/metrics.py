@@ -13,6 +13,7 @@ are not scored. Aggregates are means over the queries where a score is defined, 
 percentile bootstrap CIs over queries (``evals.text2sql.stats`` settings).
 """
 
+import contextlib
 import random
 import re
 import unicodedata
@@ -46,41 +47,111 @@ def tool_scores(
     }
 
 
-def parse_number(token: str) -> float | None:
-    """A number written with ``.`` or ``,`` as thousands or decimal separator."""
+def number_readings(token: str) -> tuple[float, ...]:
+    """The values a number written with ``.`` or ``,`` separators can mean.
+
+    Unambiguous forms give one value. One dot followed by exactly three digits ("214.067",
+    "2.545") is a Spanish thousands separator or an English decimal point, so both values
+    are returned and either may match the gold.
+    """
     token = token.rstrip(".,")
     if "," in token and "." in token:
         decimal = "." if token.rfind(".") > token.rfind(",") else ","
         thousands = "," if decimal == "." else "."
-        token = token.replace(thousands, "").replace(decimal, ".")
+        candidates = [token.replace(thousands, "").replace(decimal, ".")]
     elif "," in token:
         groups = token.split(",")
         if len(groups) > 2 or len(groups[-1]) == 3:
-            token = token.replace(",", "")
+            candidates = [token.replace(",", "")]
         else:
-            token = token.replace(",", ".")
-    elif token.count(".") > 1 or (token.count(".") == 1 and len(token.split(".")[1]) == 3):
-        # "1.143.120" or "214.067": dot as thousands separator (Spanish formatting);
-        # gold values have at most 2 decimals
-        token = token.replace(".", "")
-    try:
-        return float(token)
-    except ValueError:
-        return None
+            candidates = [token.replace(",", ".")]
+    elif token.count(".") > 1:
+        candidates = [token.replace(".", "")]
+    elif token.count(".") == 1 and len(token.split(".")[1]) == 3:
+        candidates = [token, token.replace(".", "")]
+    else:
+        candidates = [token]
+    values = []
+    for c in candidates:
+        with contextlib.suppress(ValueError):
+            values.append(float(c))
+    return tuple(values)
+
+
+# Numbers written as words, in the two languages the agent answers in.
+_EN = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+)
+_ES = (
+    "cero",
+    "uno",
+    "dos",
+    "tres",
+    "cuatro",
+    "cinco",
+    "seis",
+    "siete",
+    "ocho",
+    "nueve",
+    "diez",
+    "once",
+    "doce",
+    "trece",
+    "catorce",
+    "quince",
+    "dieciseis",
+    "diecisiete",
+    "dieciocho",
+    "diecinueve",
+    "veinte",
+)
+WORD_NUMBERS = {
+    **{w: n for n, w in enumerate(_EN)},
+    **{w: n for n, w in enumerate(_ES)},
+    "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80,
+    "ninety": 90, "una": 1, "treinta": 30, "cuarenta": 40, "cincuenta": 50, "sesenta": 60,
+    "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100,
+}  # fmt: skip
+_WORD_NUMBER = re.compile(r"\b(" + "|".join(WORD_NUMBERS) + r")\b")
+
+Span = tuple[tuple[float, ...], int, int]
 
 
 def numbers_in(text: str) -> list[float]:
-    return [n for n, _, _ in number_spans(text)]
+    return [v for values, _, _ in number_spans(text) for v in values]
 
 
-def number_spans(text: str) -> list[tuple[float, int, int]]:
-    """Every number in ``text`` with its start and end offsets."""
-    spans = []
+def number_spans(text: str) -> list[Span]:
+    """Every number in ``text`` (digits or a word, on accent-free lower-case text) with
+    its possible values and its start and end offsets, in order."""
+    spans: list[Span] = []
     for m in _NUMBER.finditer(text):
-        n = parse_number(m.group())
-        if n is not None:
-            spans.append((n, m.start(), m.end()))
-    return spans
+        values = number_readings(m.group())
+        if values:
+            spans.append((values, m.start(), m.end()))
+    for m in _WORD_NUMBER.finditer(text):
+        spans.append(((float(WORD_NUMBERS[m.group()]),), m.start(), m.end()))
+    return sorted(spans, key=lambda s: s[1])
 
 
 def _plain(text: str) -> str:
@@ -96,9 +167,7 @@ def _matches(n: float, value: float) -> bool:
 _RANGE = re.compile(r"\s*(?:-|–|to|a|and|y)\s*$")
 
 
-def _near_keyword(
-    plain: str, spans: Sequence[tuple[float, int, int]], i: int, keywords: Sequence[str]
-) -> bool:
+def _near_keyword(plain: str, spans: Sequence[Span], i: int, keywords: Sequence[str]) -> bool:
     """A keyword next to number ``i``: a symbol right after it, a word within the window.
 
     A word may not reach past another number, except across a range ("5-7 days",
@@ -122,12 +191,11 @@ def _near_keyword(
     return False
 
 
-def _number_found(
-    value: float, spans: Sequence[tuple[float, int, int]], plain: str, keywords: Sequence[str]
-) -> bool:
+def _number_found(value: float, spans: Sequence[Span], plain: str, keywords: Sequence[str]) -> bool:
     return any(
-        _matches(n, value) and (not keywords or _near_keyword(plain, spans, i, keywords))
-        for i, (n, _, _) in enumerate(spans)
+        any(_matches(n, value) for n in values)
+        and (not keywords or _near_keyword(plain, spans, i, keywords))
+        for i, (values, _, _) in enumerate(spans)
     )
 
 
