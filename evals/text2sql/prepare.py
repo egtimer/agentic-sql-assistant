@@ -23,8 +23,11 @@ from evals.text2sql.data import (
     load_questions,
 )
 
+# Pinned to the dataset revision the reported runs used (2026-01-18). On 2026-10-26 the
+# dataset's main branch replaced this file with a reviewed update, so "main" 404s here.
+QUESTIONS_REVISION = "f65faf4ae3b638c1fa6df1d3370c8d92c8366301"
 QUESTIONS_URL = (
-    "https://huggingface.co/datasets/birdsql/bird_mini_dev/resolve/main/"
+    f"https://huggingface.co/datasets/birdsql/bird_mini_dev/resolve/{QUESTIONS_REVISION}/"
     "data/mini_dev_sqlite-00000-of-00001.json"
 )
 QUESTIONS_SHA256 = "88ceb0710163cae46a256ecea8f0a8c98286599530b60587fda5c3cfe57d45d2"
