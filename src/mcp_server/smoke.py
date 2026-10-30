@@ -21,7 +21,16 @@ from mcp.client.stdio import StdioServerParameters
 
 from src.mcp_server.demo_data import REPO_ROOT
 
-TOOLS = {"list_databases", "describe_database", "run_sql", "ask", "teach", "forget"}
+TOOLS = {
+    "list_databases",
+    "describe_database",
+    "run_sql",
+    "ask",
+    "teach",
+    "forget",
+    "doc_search",
+    "calculator",
+}
 TIMEOUT_S = 90
 
 
@@ -98,6 +107,15 @@ async def run(databases_dir: Path, state_dir: Path) -> list[str]:
 
             unknown = await client.call_tool("run_sql", {"sql": "SELECT 1", "database": "nope"})
             check(unknown.is_error, "an unknown database is a tool error", failures)
+
+            calc = await client.call_tool(
+                "calculator", {"expression": "(150000 - 120000) / 120000 * 100"}
+            )
+            check(
+                not calc.is_error and (calc.structured_content or {}).get("result") == 25,
+                "calculator evaluates an expression",
+                failures,
+            )
 
             again = await client.call_tool(
                 "run_sql", {"sql": "SELECT count(*) FROM city", "database": "smoke"}

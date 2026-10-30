@@ -50,6 +50,8 @@ from src.sql_agent.memory import (
     teach_text,
 )
 from src.sql_guard import GuardPolicy, guarded_execute
+from src.tools.calculator import CalculatorResult, calculate
+from src.tools.doc_search import DocSearchResult, doc_search
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,9 @@ LLM_FAILED = "The language model request failed. The server log has the details.
 LLM_NOT_CONFIGURED = (
     "This server has no language model configured; only run_sql and the schema tools work."
 )
+
+DocSearch = Callable[..., DocSearchResult]
+"""``doc_search(query, top_k=...)``; tests pass a fake that needs no Qdrant."""
 
 ClientFactory = Callable[[UsageTracker], LLMClient]
 """Builds the client of a server from its usage tracker (which holds the budget). The default
@@ -120,8 +125,10 @@ class Service:
         budget_usd: float | None = None,
         state_dir: Path | None = None,
         client_factory: ClientFactory | None = None,
+        doc_search_fn: DocSearch = doc_search,
     ) -> None:
         self.catalog = catalog
+        self._doc_search = doc_search_fn
         self.tracker = UsageTracker(budget_usd=budget_usd, keep_calls=False)
         self._state_dir = state_dir
         self._client: LLMClient | None = None
@@ -194,6 +201,14 @@ class Service:
             row_count=len(rows),
             truncated=result.truncated,
         )
+
+    # --- agent v1 tools (no language model) ----------------------------------------------
+
+    def calculate(self, expression: str) -> CalculatorResult:
+        return calculate(expression)
+
+    def search_documents(self, query: str, top_k: int) -> DocSearchResult:
+        return self._doc_search(query, top_k=top_k)
 
     # --- language-model tools -------------------------------------------------------------
 
