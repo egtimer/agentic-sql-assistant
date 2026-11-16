@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from evals.noise import stats
+from evals.noise.repeat import PROVIDER_ERROR_PATTERN
 
 ID_KEY = {"tools": "id", "text2sql": "question_id"}
 METRICS = {"tools": ("answer_correct", "exact"), "text2sql": ("correct",)}
@@ -35,13 +36,20 @@ def load_predictions(run_dir: Path, *, rescored: bool = False) -> list[dict[str,
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def is_provider_failure(row: dict[str, Any]) -> bool:
+    """An API failure recorded as a prediction (runs made before the runners raised
+    ProviderError scored these as wrong answers)."""
+    return bool(PROVIDER_ERROR_PATTERN.search(str(row.get("error") or "")))
+
+
 def verdicts(rows: list[dict[str, Any]], kind: str, system: str, metric: str) -> dict[str, bool]:
-    """item id -> verdict for one system; items with no verdict (None) are left out."""
+    """item id -> verdict for one system. Items with no verdict (None) and API failures
+    are left out: an answer that never came back is missing, not wrong."""
     key = ID_KEY[kind]
     return {
         str(r[key]): bool(r[metric])
         for r in rows
-        if r["system"] == system and r.get(metric) is not None
+        if r["system"] == system and r.get(metric) is not None and not is_provider_failure(r)
     }
 
 
@@ -131,6 +139,10 @@ def analyze(
         if not all(runs):
             continue
         report, ids, m = system_report(runs, resamples, seed)
+        report["provider_failures_left_out"] = [
+            sum(1 for r in rows if r["system"] == system and is_provider_failure(r))
+            for rows in per_run
+        ]
         if reference is not None:
             report["reference"] = reference_report(
                 reference, kind, system, metric, ids, report["dispersion"]

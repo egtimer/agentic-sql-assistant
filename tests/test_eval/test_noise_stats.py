@@ -121,3 +121,24 @@ def test_analyze_refuses_a_metric_of_the_other_eval(tmp_path: Path) -> None:
     report = analyze.analyze("text2sql", [run], "correct", [], resamples=50)
     assert report["systems"]["baseline"]["dispersion"]["mean"] == 1.0
     assert "variance_components" not in report["systems"]["baseline"]
+
+
+def test_api_failures_are_missing_not_wrong(tmp_path: Path) -> None:
+    credit = "BadRequestError: Error code: 400 - credit balance is too low"
+    good = [
+        {"question_id": i, "system": "baseline", "correct": True, "error": None} for i in range(4)
+    ]
+    bad = [
+        *good[:2],
+        *[
+            {"question_id": i, "system": "baseline", "correct": False, "error": credit}
+            for i in (2, 3)
+        ],
+    ]
+    runs = [_write_run(tmp_path, "r1", good), _write_run(tmp_path, "r2", bad)]
+    report = analyze.analyze("text2sql", runs, "correct", [], resamples=50)
+    s = report["systems"]["baseline"]
+    # the two failed items are dropped (not in every run), not counted as wrong
+    assert s["dispersion"]["per_run"] == [1.0, 1.0]
+    assert s["dropped_items"] == 2
+    assert s["provider_failures_left_out"] == [0, 2]
