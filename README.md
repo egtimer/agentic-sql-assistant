@@ -219,7 +219,7 @@ uv run python -m evals.text2sql.compare_runs 2026-10-19-haiku-test-350:agent_v2 
 uv run python -m evals.text2sql.plot_cost_ex --out docs/img/cost-vs-ex
 ```
 
-API runs need `ANTHROPIC_API_KEY` and spend money; `--budget-usd` is a hard cap. The exact command of every reported run is in its report's README.
+API runs need `ANTHROPIC_API_KEY` and spend money; `--budget-usd` is a hard cap. The exact command of every reported run is in its report's README. The API models are called by alias (`claude-haiku-5-5`, `claude-sonnet-5-5`, in `configs/llm/`), so a later model update behind the alias can change the results; every report records the model id and when it ran (`started_at`, `finished_at`).
 
 ## Evaluation: agent v1 tool selection
 
