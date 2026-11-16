@@ -39,6 +39,7 @@ from src.agent.graph import run_agent
 from src.config import settings
 from src.llm import (
     BudgetExceeded,
+    ProviderError,
     UsageTracker,
     build_client,
     call_context,
@@ -134,8 +135,8 @@ def run_query(
     try:
         with call_context(run_id=run_id, system=system, query_id=q["id"]):
             response, tools, steps = answer(system, q["query"], client)
-    except BudgetExceeded:
-        raise
+    except (BudgetExceeded, ProviderError):
+        raise  # not a verdict: the run stops and --resume runs this query again
     except Exception as e:  # recorded, the run goes on
         response, tools, error = "", [], f"{type(e).__name__}: {e}"
     finally:
@@ -294,6 +295,10 @@ def main(argv: list[str] | None = None) -> int:
     except BudgetExceeded as e:
         stopped = str(e)
         print(f"stopped: {e}", file=sys.stderr)
+    except ProviderError as e:
+        stopped = f"provider_error: {e}"
+        print(f"stopped: {stopped} (the query was not scored; --resume runs it again)",
+              file=sys.stderr)  # fmt: skip
 
     rows = [json.loads(line) for line in pred_path.read_text().splitlines()]
     summary = {

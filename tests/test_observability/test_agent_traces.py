@@ -9,7 +9,14 @@ import pytest
 from langchain_core.messages import AIMessage
 
 from src.agent.graph import run_agent
-from src.llm import LLMConfig, OllamaClient, UsageTracker, reset_client, set_client
+from src.llm import (
+    LLMConfig,
+    OllamaClient,
+    ProviderError,
+    UsageTracker,
+    reset_client,
+    set_client,
+)
 from src.observability import tracing
 from src.sql_agent.graph import run_sql_agent
 from tests.test_observability.helpers import of_type
@@ -183,8 +190,9 @@ def test_failed_llm_call_is_recorded_as_error_generation(events: list[dict[str, 
     config = LLMConfig(provider="ollama", model="fake-model")
     client = OllamaClient(config, UsageTracker())
     client._llm = SimpleNamespace(invoke=lambda m: (_ for _ in ()).throw(RuntimeError("down")))  # type: ignore[assignment]
-    with tracing.trace("t"), pytest.raises(RuntimeError):
+    with tracing.trace("t"), pytest.raises(ProviderError) as info:
         client.complete("sys", "user", tag="generate")
+    assert isinstance(info.value.cause, RuntimeError)  # the provider's own error is kept
     (gen,) = of_type(events, "generation-create")
     assert gen["level"] == "ERROR" and "down" in gen["statusMessage"]
 

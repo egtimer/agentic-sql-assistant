@@ -163,3 +163,16 @@ def test_no_tools_has_no_steps() -> None:
     tracker = UsageTracker()
     row = run.run_query(QUERY, "no_tools", FakeClient(tracker, "About €200,000."), tracker, "r")
     assert row["steps"] == [] and row["llm_tags"] == ["answer"]
+
+
+def test_provider_error_is_not_scored(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.llm import ProviderError
+
+    tracker = UsageTracker()
+
+    def out_of_credit(query: str) -> dict[str, Any]:
+        raise ProviderError("anthropic", RuntimeError("credit balance is too low"))
+
+    monkeypatch.setattr(run, "run_agent", out_of_credit)
+    with pytest.raises(ProviderError):
+        run.run_query(QUERY, "agent_v1", FakeClient(tracker), tracker, "r")

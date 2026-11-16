@@ -14,7 +14,7 @@ from langchain_ollama import ChatOllama
 
 from src.config import settings
 from src.llm.config import LLMConfig
-from src.llm.usage import CallUsage, UsageTracker, cost_of
+from src.llm.usage import CallUsage, ProviderError, UsageTracker, cost_of
 from src.observability import tracing
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ class OllamaClient:
             response = self._get_llm().invoke(messages)
         except Exception as e:
             trace_completion(self.config.model, system, None, user, None, started, tag=tag, error=e)
-            raise
+            raise ProviderError("ollama", e) from e
         latency_ms = (time.perf_counter() - start) * 1000
 
         text = response.content if isinstance(response.content, str) else str(response.content)
@@ -229,6 +229,10 @@ class AnthropicClient:
             trace_completion(
                 self.config.model, system, prefix, user, None, started, tag=tag, error=e
             )
+            import anthropic
+
+            if isinstance(e, anthropic.APIError):
+                raise ProviderError("anthropic", e) from e
             raise
         latency_ms = (time.perf_counter() - start) * 1000
 

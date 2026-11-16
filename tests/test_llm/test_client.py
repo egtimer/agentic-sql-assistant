@@ -14,6 +14,7 @@ from src.llm import (
     LLMConfig,
     OllamaClient,
     Pricing,
+    ProviderError,
     UsageTracker,
     build_client,
     get_client,
@@ -356,3 +357,29 @@ class TestClientRegistry:
         finally:
             reset_client(token)
         assert get_client() is not fake
+
+
+class TestProviderErrors:
+    def test_anthropic_api_error_becomes_provider_error(self) -> None:
+        import anthropic
+        import httpx
+
+        request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+        response = httpx.Response(400, request=request)
+        sdk = MagicMock()
+        sdk.messages.create.side_effect = anthropic.BadRequestError(
+            "Your credit balance is too low", response=response, body=None
+        )
+        client = AnthropicClient(anthropic_config(), sdk_client=sdk)
+        with pytest.raises(ProviderError, match="credit balance") as info:
+            client.complete(None, "hi", tag="t")
+        assert info.value.provider == "anthropic"
+        assert isinstance(info.value.cause, anthropic.BadRequestError)
+        assert client.tracker.calls == []  # a failed call records no usage
+
+    def test_other_exceptions_are_not_provider_errors(self) -> None:
+        sdk = MagicMock()
+        sdk.messages.create.side_effect = TypeError("bad kwargs")
+        client = AnthropicClient(anthropic_config(), sdk_client=sdk)
+        with pytest.raises(TypeError):
+            client.complete(None, "hi", tag="t")

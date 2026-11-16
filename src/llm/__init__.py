@@ -12,7 +12,14 @@ from src.llm.client import (
     trace_completion,
 )
 from src.llm.config import LLMConfig, Pricing
-from src.llm.usage import BudgetExceeded, CallUsage, UsageTracker, call_context, cost_of
+from src.llm.usage import (
+    BudgetExceeded,
+    CallUsage,
+    ProviderError,
+    UsageTracker,
+    call_context,
+    cost_of,
+)
 
 __all__ = [
     "AnthropicClient",
@@ -23,6 +30,7 @@ __all__ = [
     "LLMConfig",
     "OllamaClient",
     "Pricing",
+    "ProviderError",
     "UsageTracker",
     "build_client",
     "call_context",

@@ -20,7 +20,15 @@ from evals.text2sql.run import (
     run_experiment,
     select_questions,
 )
-from src.llm import CallUsage, Completion, LLMConfig, Pricing, UsageTracker, cost_of
+from src.llm import (
+    CallUsage,
+    Completion,
+    LLMConfig,
+    Pricing,
+    ProviderError,
+    UsageTracker,
+    cost_of,
+)
 
 PRICING = Pricing(input_per_mtok=1.0, output_per_mtok=2.0)
 CONFIG = LLMConfig(provider="anthropic", model="fake", max_tokens=100, pricing=PRICING)
@@ -40,10 +48,12 @@ class FakeLLM:
         stop_reason: dict[int, str] | None = None,
         raise_for: set[int] | None = None,
         input_tokens: int = 1000,
+        provider_error_for: set[int] | None = None,
     ) -> None:
         self.tracker = tracker
         self.stop_reason = stop_reason or {}
         self.raise_for = raise_for or set()
+        self.provider_error_for = provider_error_for or set()
         self.input_tokens = input_tokens
         self.n_calls = 0
 
@@ -66,6 +76,8 @@ class FakeLLM:
             qid = self._question_id(user)
             if qid in self.raise_for:
                 raise RuntimeError("api down")
+            if qid in self.provider_error_for:
+                raise ProviderError("anthropic", RuntimeError("credit balance is too low"))
             value = 999 if qid in WRONG else qid
             sql = f"SELECT v FROM t WHERE id = {value}"
             text = (
@@ -402,6 +414,42 @@ class TestFailures:
         )  # fmt: skip
         assert summary["aborted"] == "errors"
         assert summary["systems"]["baseline"]["n"] == 3
+
+    def test_provider_error_stops_the_run_without_scoring_the_pair(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(
+            tmp_path, databases, questions, systems=["baseline"],
+            llm_kwargs={"provider_error_for": {4}},
+        )  # fmt: skip
+        assert summary["aborted"] == "provider_error"
+        done = read_predictions(tmp_path / "run" / "predictions.jsonl")
+        assert (4, "baseline") not in done  # never written as a wrong answer
+        assert all(r["failure_type"] != "exception" for r in done.values())
+        summary = run(tmp_path, databases, questions, systems=["baseline"], resume=True)
+        assert summary["aborted"] is None and summary["systems"]["baseline"]["n"] == 6
+
+    def test_provider_error_stops_threaded_runs_too(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(
+            tmp_path, databases, questions, systems=["baseline"], workers=4,
+            llm_kwargs={"provider_error_for": set(QUESTIONS)},
+        )  # fmt: skip
+        assert summary["aborted"] == "provider_error"
+        assert not (tmp_path / "run" / "predictions.jsonl").exists() or not read_predictions(
+            tmp_path / "run" / "predictions.jsonl"
+        )
+
+    def test_repeated_exceptions_abort_threaded_runs(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        summary = run(
+            tmp_path, databases, questions, systems=["baseline"], workers=4,
+            llm_kwargs={"raise_for": set(QUESTIONS)},
+        )  # fmt: skip
+        # before the fix the threaded path never counted exceptions and finished "clean"
+        assert summary["aborted"] == "errors"
 
     def test_exceptions_are_retried_on_resume(
         self, tmp_path: Path, databases: Path, questions: list[Question]

@@ -62,7 +62,15 @@ from evals.text2sql.stats import (
     paired_bootstrap,
 )
 from src.config import settings
-from src.llm import BudgetExceeded, LLMClient, LLMConfig, UsageTracker, build_client, call_context
+from src.llm import (
+    BudgetExceeded,
+    LLMClient,
+    LLMConfig,
+    ProviderError,
+    UsageTracker,
+    build_client,
+    call_context,
+)
 from src.observability import tracing
 from src.observability.tracing import NoopTracer
 
@@ -309,9 +317,9 @@ def _evaluate_pair(
             out = PREDICTORS[system](question, recorder, database=database, **options)
             pred_sql, n_calls = out[0], out[1]
             details = out[2] if len(out) > 2 else None
-        except BudgetExceeded:
-            raise
-        except Exception as e:  # API or agent failure: record it and keep going
+        except (BudgetExceeded, ProviderError):
+            raise  # not a verdict: the run stops and --resume runs the pair again
+        except Exception as e:  # agent failure: record it and keep going
             exception = True
             error = f"{type(e).__name__}: {e}"
     latency_ms = (time.perf_counter() - start) * 1000
@@ -659,6 +667,8 @@ def _run_experiment(
     abort_reason: dict[str, str] = {}
     abort = threading.Event()
     n_planned = len(ordered)
+    consecutive: dict[str, int] = {}  # exceptions in a row per system, across workers
+    exception_lock = threading.Lock()
 
     def run_one(question: Question, system: str) -> bool:
         """Returns True when the pair ended in an exception."""
@@ -683,8 +693,19 @@ def _run_experiment(
             abort.set()
             print(f"Budget reached: {e}. Stopping and saving partial results.")
             return False
+        except ProviderError as e:
+            abort_reason.setdefault(system, "provider_error")
+            abort.set()
+            print(f"Provider error: {e}. Stopping; the pair was not scored (--resume reruns it).")
+            return False
         writer.write(record)
-        return bool(record["failure_type"] == "exception")
+        failed = record["failure_type"] == "exception"
+        with exception_lock:
+            consecutive[system] = consecutive.get(system, 0) + 1 if failed else 0
+            if consecutive[system] >= MAX_CONSECUTIVE_EXCEPTIONS:
+                abort_reason.setdefault(system, "errors")
+                abort.set()
+        return bool(failed)
 
     aborted_systems: dict[str, str] = {}
     try:
@@ -692,15 +713,11 @@ def _run_experiment(
             done = read_predictions(predictions_path)
             pending = [q for q in ordered if not (resume and _is_done(done, q, system))]
             print(f"[{system}] {len(pending)} to run, {n_planned - len(pending)} already done")
-            consecutive_exceptions = 0
             if workers <= 1:
                 for q in pending:
                     if abort.is_set():
                         break
-                    consecutive_exceptions = consecutive_exceptions + 1 if run_one(q, system) else 0
-                    if consecutive_exceptions >= MAX_CONSECUTIVE_EXCEPTIONS:
-                        abort_reason.setdefault(system, "errors")
-                        abort.set()
+                    run_one(q, system)
             else:
                 with ThreadPoolExecutor(max_workers=workers) as pool:
                     list(pool.map(lambda q, s=system: run_one(q, s), pending))

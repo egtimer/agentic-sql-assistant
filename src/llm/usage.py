@@ -35,6 +35,18 @@ class CallUsage:
         return {**context, **record}
 
 
+class ProviderError(Exception):
+    """The model provider could not answer a call (after the SDK's own retries): an API
+    error such as a 400 for an exhausted credit balance, a 5xx, a timeout or a lost
+    connection. Raised so that eval runners stop instead of scoring the missing answer
+    as a wrong one."""
+
+    def __init__(self, provider: str, cause: BaseException) -> None:
+        self.provider = provider
+        self.cause = cause
+        super().__init__(f"{provider}: {type(cause).__name__}: {cause}")
+
+
 class BudgetExceeded(Exception):  # noqa: N818  (name fixed by the spec)
     """Raised before an LLM call when spending has reached the budget."""
 
