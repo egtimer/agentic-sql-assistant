@@ -54,9 +54,9 @@ jobs:
             echo "present=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=API evals skipped::The Actions secret ANTHROPIC_API_KEY is not set, nothing was run."
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         if: steps.key.outputs.present == 'true'
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
         if: steps.key.outputs.present == 'true'
         with:
           python-version: "3.12"
@@ -66,7 +66,7 @@ jobs:
       - name: Restore BIRD data
         id: bird
         if: steps.key.outputs.present == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
         with:
           path: data/external
           key: ${{ env.BIRD_CACHE_KEY }}
@@ -112,7 +112,7 @@ jobs:
             --reference "$reference" --current "evals/results/text2sql/$RUN_ID" --system agent_v2
       - name: Upload the run directory
         if: always() && steps.key.outputs.present == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: text2sql-ci-${{ github.run_id }}-${{ github.run_attempt }}
           path: evals/results/text2sql/ci-${{ github.run_id }}-${{ github.run_attempt }}
