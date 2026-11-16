@@ -102,6 +102,8 @@ def predict_agent_v2(
         ],
         "fixes_used": result.fixes_used,
     }
+    if result.response:  # the respond step ran (no --skip-respond): keep what the user reads
+        details["response"] = result.response
     return result.final_sql, counting.n_calls, details
 
 

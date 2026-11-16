@@ -202,6 +202,16 @@ class TestEndToEnd:
         assert "v2" not in summary["systems"]["baseline"]
         assert "attempts" not in records[1, "baseline"]
 
+    def test_final_answer_is_kept_only_when_the_respond_step_runs(
+        self, tmp_path: Path, databases: Path, questions: list[Question]
+    ) -> None:
+        run(tmp_path / "skip", databases, questions, systems=["agent_v2"])
+        skipped = read_predictions(tmp_path / "skip" / "run" / "predictions.jsonl")
+        assert all("response" not in r for r in skipped.values())
+        run(tmp_path / "full", databases, questions, systems=["agent_v2"], skip_respond=False)
+        full = read_predictions(tmp_path / "full" / "run" / "predictions.jsonl")
+        assert {r["response"] for r in full.values()} == {"done"}
+
     def test_max_fixes_zero(
         self, tmp_path: Path, databases: Path, questions: list[Question]
     ) -> None:
