@@ -48,6 +48,7 @@ from src.llm import (
 from src.rag.embedding import embedding_runtime, index_runtime
 
 SET = Path(__file__).resolve().parent / "set" / "queries.jsonl"
+STEP_OUTPUT_CHARS = 2000
 REPORTS = Path(__file__).resolve().parents[1] / "reports"
 SYSTEMS = ("agent_v1", "simple_prompt", "no_tools")
 
@@ -81,16 +82,33 @@ def tool_selection_prompt(template: str) -> Iterator[None]:
         prompts.TOOL_SELECTION_PROMPT = original
 
 
-def answer(system: str, query: str, client: Any) -> tuple[str, list[str]]:
-    """The final answer and the tools executed, in order."""
+def step_record(result: dict[str, Any]) -> dict[str, Any]:
+    """One executed tool call as stored in the predictions: tool, input, success, the
+    tool's error if it reported one, and its output as JSON cut to STEP_OUTPUT_CHARS."""
+    output = result.get("output")
+    error = output.get("error") if isinstance(output, dict) else None
+    text = json.dumps(output, ensure_ascii=False, default=str)
+    return {
+        "tool": result.get("tool"),
+        "input": result.get("input"),
+        "success": bool(result.get("success")),
+        "error": error,
+        "output": text[:STEP_OUTPUT_CHARS],
+        "output_truncated": len(text) > STEP_OUTPUT_CHARS,
+    }
+
+
+def answer(system: str, query: str, client: Any) -> tuple[str, list[str], list[dict[str, Any]]]:
+    """The final answer, the tools executed (in order, once each) and every tool call."""
     if system == "no_tools":
-        return client.complete(NO_TOOLS_SYSTEM, query, tag="answer").text, []
+        return client.complete(NO_TOOLS_SYSTEM, query, tag="answer").text, [], []
     if system == "simple_prompt":
         with tool_selection_prompt(SIMPLE_TOOL_SELECTION_PROMPT):
             result = run_agent(query)
     else:
         result = run_agent(query)
-    return result["response"], list(result["tools_used"])
+    steps = [step_record(r) for r in result.get("tool_results", [])]
+    return result["response"], list(result["tools_used"]), steps
 
 
 def score(q: dict[str, Any], system: str, response: str, tools: list[str]) -> dict[str, Any]:
@@ -112,9 +130,10 @@ def run_query(
     token = set_client(client)
     start = time.perf_counter()
     error = None
+    steps: list[dict[str, Any]] = []
     try:
         with call_context(run_id=run_id, system=system, query_id=q["id"]):
-            response, tools = answer(system, q["query"], client)
+            response, tools, steps = answer(system, q["query"], client)
     except BudgetExceeded:
         raise
     except Exception as e:  # recorded, the run goes on
@@ -130,6 +149,8 @@ def run_query(
         "input_tokens": sum(c.input_tokens for c in calls),
         "output_tokens": sum(c.output_tokens for c in calls),
         "latency_s": time.perf_counter() - start,
+        "steps": steps,
+        "llm_tags": [c.tag for c in calls],
     }
 
 

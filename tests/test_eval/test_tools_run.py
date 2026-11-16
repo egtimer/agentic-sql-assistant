@@ -115,3 +115,51 @@ def test_rescore_uses_stored_responses(tmp_path, monkeypatch: pytest.MonkeyPatch
     original = json.loads((run_dir / "predictions.jsonl").read_text())
     assert original["answer_correct"] is False
     assert "rescored" in json.loads((run_dir / "summary_rescored.json").read_text())
+
+
+def test_every_tool_call_is_stored_with_success_and_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tracker = UsageTracker()
+    client = FakeClient(tracker)
+
+    def fake_agent(query: str) -> dict[str, Any]:
+        client.complete(None, query, tag="reason")
+        client.complete(None, query, tag="respond")
+        return {
+            "response": "Q3 sales were €214,067.19.",
+            "tools_used": ["sql_query"],
+            "tool_results": [
+                {
+                    "tool": "sql_query",
+                    "input": "SELECT nope",
+                    "output": {"success": False, "error": "no such column: nope"},
+                    "success": False,
+                },
+                {
+                    "tool": "sql_query",
+                    "input": "SELECT SUM(amount) FROM sales",
+                    "output": {"success": True, "rows": [[214067.19]] * 500},
+                    "success": True,
+                },
+            ],
+        }
+
+    monkeypatch.setattr(run, "run_agent", fake_agent)
+    row = run.run_query(QUERY, "agent_v1", client, tracker, "r")
+    first, second = row["steps"]
+    assert (first["tool"], first["success"], first["error"]) == (
+        "sql_query",
+        False,
+        "no such column: nope",
+    )
+    assert second["success"] is True and second["error"] is None
+    assert second["output_truncated"] is True
+    assert len(second["output"]) == run.STEP_OUTPUT_CHARS
+    assert row["llm_tags"] == ["reason", "respond"]
+
+
+def test_no_tools_has_no_steps() -> None:
+    tracker = UsageTracker()
+    row = run.run_query(QUERY, "no_tools", FakeClient(tracker, "About €200,000."), tracker, "r")
+    assert row["steps"] == [] and row["llm_tags"] == ["answer"]
