@@ -175,3 +175,25 @@ def test_dry_run_prints_commands_without_running(
     assert repeat.main([*argv, "--", "--split", "test"]) == 0
     printed = capsys.readouterr().out
     assert "x-r01" in printed and "x-r02" in printed
+
+
+def test_a_capped_run_resumes_only_when_asked_and_the_raised_cap_leaves_money(
+    roots: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    out = roots / "out"
+    _write_run(out / "x-r01", summary={"stopped": "budget"}, costs=[1.0])
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        _write_run(out / "x-r01", summary={"stopped": None}, costs=[0.2])
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(repeat.subprocess, "run", fake_run)
+    argv = ["--eval", "tools", "--n", "1", "--prefix", "x"]
+    assert repeat.main([*argv, "--budget-usd", "1.25"]) == 1 and calls == []
+    assert repeat.main([*argv, "--budget-usd", "1.0", "--resume-stopped"]) == 1 and calls == []
+    assert repeat.main([*argv, "--budget-usd", "1.25", "--resume-stopped"]) == 0
+    (cmd,) = calls
+    assert cmd[-1] == "--resume"
+    assert float(cmd[cmd.index("--budget-usd") + 1]) == pytest.approx(0.25)

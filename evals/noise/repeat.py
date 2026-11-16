@@ -131,6 +131,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix", required=True, help="run ids are <prefix>-r01 ...")
     parser.add_argument("--budget-usd", type=float, required=True, help="cap per repetition")
     parser.add_argument("--dry-run", action="store_true", help="print the commands only")
+    parser.add_argument(
+        "--resume-stopped",
+        action="store_true",
+        help="also continue repetitions that stopped at their budget cap, when --budget-usd "
+        "(the cap per repetition, counting what each already spent) leaves money for it",
+    )
     args = parser.parse_args(own)
     if args.n < 1 or args.budget_usd <= 0:
         parser.error("--n must be >= 1 and --budget-usd > 0")
@@ -156,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
         entry: dict[str, Any] = {"run_id": run_id, "run_dir": str(run_dir.relative_to(REPO_ROOT))}
         if before == "done":
             entry["status"] = "done (skipped)"
-        elif before in ("stopped", "contaminated"):
+        elif before == "contaminated" or (before == "stopped" and not args.resume_stopped):
             entry["status"] = f"{before} earlier"
             exit_code = 1
         else:
@@ -167,7 +173,11 @@ def main(argv: list[str] | None = None) -> int:
                 exit_code = 1
                 break
             cmd = command(
-                kind, run_id, round(remaining, 6), passthrough, resume=before in RESUMABLE
+                kind,
+                run_id,
+                round(remaining, 6),
+                passthrough,
+                resume=before in RESUMABLE or before == "stopped",
             )
             entry["command"] = " ".join(cmd[1:])
             if args.dry_run:
