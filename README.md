@@ -64,7 +64,7 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Item | Value |
 |---|---|
 | Benchmark | BIRD Mini-Dev (SQLite), 500 questions split once into 150 dev / 350 test |
-| SQL guard | 152 of 152 attack statements blocked, 0 of 540 legitimate queries blocked |
+| SQL guard | 152/152 stopped (145 blocked, 7 bounded by timeout/row cap), 0 of 540 legitimate queries blocked |
 | Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
