@@ -1,0 +1,245 @@
+{
+  "run_id": "2026-11-16-noise-bird-sonnet-test-120/run-r02",
+  "split": "test",
+  "n_questions": 120,
+  "systems": {
+    "baseline": {
+      "n": 120,
+      "n_planned": 120,
+      "aborted": null,
+      "correct": 73,
+      "ex": 0.6083333333333333,
+      "ex_ci95": [
+        0.5166666666666667,
+        0.7
+      ],
+      "by_difficulty": {
+        "simple": {
+          "n": 35,
+          "correct": 25,
+          "ex": 0.7142857142857143,
+          "ex_ci95": [
+            0.5714285714285714,
+            0.8571428571428571
+          ]
+        },
+        "moderate": {
+          "n": 62,
+          "correct": 36,
+          "ex": 0.5806451612903226,
+          "ex_ci95": [
+            0.45161290322580644,
+            0.7096774193548387
+          ]
+        },
+        "challenging": {
+          "n": 23,
+          "correct": 12,
+          "ex": 0.5217391304347826,
+          "ex_ci95": [
+            0.30434782608695654,
+            0.7391304347826086
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 14274,
+        "output_total": 18955,
+        "cache_read_total": 152294,
+        "cache_write_total": 31769,
+        "cache_hit_ratio": 0.7678547119296955,
+        "input_mean_per_question": 118.95,
+        "output_mean_per_question": 157.95833333333334
+      },
+      "cost_usd": {
+        "total": 0.3127499,
+        "mean_per_question": 0.0026062491666666667
+      },
+      "llm_calls_mean_per_question": 1.0,
+      "latency_ms": {
+        "mean": 1937.5059761666307,
+        "median": 1738.6637500003417
+      },
+      "failures": {
+        "wrong_result": 46,
+        "sql_error": 1
+      }
+    },
+    "agent_v2": {
+      "n": 120,
+      "n_planned": 120,
+      "aborted": null,
+      "correct": 78,
+      "ex": 0.65,
+      "ex_ci95": [
+        0.5666666666666667,
+        0.7333333333333333
+      ],
+      "v2": {
+        "n": 120,
+        "flips": {
+          "wrong_to_right": 5,
+          "right_to_wrong": 2,
+          "wrong_to_wrong": 1,
+          "right_to_right": 0
+        },
+        "n_final_differs_from_first": 8,
+        "frac_with_fix": 0.06666666666666667,
+        "llm_calls_mean": 2.066666666666667,
+        "unparsed_checks": 0,
+        "first_sql_correct": 75,
+        "first_sql_ex": 0.625
+      },
+      "by_difficulty": {
+        "simple": {
+          "n": 35,
+          "correct": 28,
+          "ex": 0.8,
+          "ex_ci95": [
+            0.6571428571428571,
+            0.9142857142857143
+          ]
+        },
+        "moderate": {
+          "n": 62,
+          "correct": 38,
+          "ex": 0.6129032258064516,
+          "ex_ci95": [
+            0.4838709677419355,
+            0.7258064516129032
+          ]
+        },
+        "challenging": {
+          "n": 23,
+          "correct": 12,
+          "ex": 0.5217391304347826,
+          "ex_ci95": [
+            0.30434782608695654,
+            0.7391304347826086
+          ]
+        }
+      },
+      "tokens": {
+        "input_total": 51347,
+        "output_total": 39600,
+        "cache_read_total": 623709,
+        "cache_write_total": 96149,
+        "cache_hit_ratio": 0.8087460532543228,
+        "input_mean_per_question": 427.89166666666665,
+        "output_mean_per_question": 330.0
+      },
+      "cost_usd": {
+        "total": 0.8014374,
+        "mean_per_question": 0.0066786449999999995
+      },
+      "llm_calls_mean_per_question": 2.066666666666667,
+      "latency_ms": {
+        "mean": 4228.860116275276,
+        "median": 3965.0056785012566
+      },
+      "failures": {
+        "wrong_result": 41,
+        "sql_error": 1
+      }
+    }
+  },
+  "comparison": {
+    "agent_v2_minus_baseline": {
+      "n": 120,
+      "diff": 0.041666666666666664,
+      "ci_low": -0.016666666666666666,
+      "ci_high": 0.1,
+      "frac_resamples_le_zero": 0.1074
+    }
+  },
+  "bootstrap": {
+    "B": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "percentile bootstrap, questions resampled with replacement",
+    "paired_method": "paired percentile bootstrap, question ids resampled with replacement"
+  },
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 1.1141872999999998,
+    "budget_usd": 1.25
+  },
+  "resumed": false,
+  "workers": 4,
+  "skip_respond": true,
+  "max_fixes": 2,
+  "systems_order": [
+    "baseline",
+    "agent_v2"
+  ],
+  "llm_config_file": "configs/llm/claude-sonnet-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "prompt_caching": true,
+    "pricing": {
+      "input_per_mtok": 2.0,
+      "output_per_mtok": 10.0,
+      "cache_read_per_mtok": 0.1,
+      "cache_write_per_mtok": 2.5,
+      "long_context_threshold": null,
+      "long_input_per_mtok": null,
+      "long_output_per_mtok": null,
+      "long_cache_read_per_mtok": null,
+      "long_cache_write_per_mtok": null
+    }
+  },
+  "git": {
+    "commit": "7e44efb20a1e2d33ec4dea16fd23ffe1f65cd783",
+    "dirty": true
+  },
+  "started_at": "2026-11-16T15:50:49.260076+00:00",
+  "finished_at": "2026-11-16T15:54:18.391509+00:00",
+  "limit": 120,
+  "question_ids": null,
+  "sampling": {
+    "method": "stratified",
+    "seed": 0,
+    "n_sampled": 120,
+    "per_stratum": {
+      "california_schools/challenging": 1,
+      "california_schools/moderate": 5,
+      "california_schools/simple": 2,
+      "card_games/challenging": 1,
+      "card_games/moderate": 7,
+      "card_games/simple": 2,
+      "codebase_community/challenging": 2,
+      "codebase_community/moderate": 6,
+      "codebase_community/simple": 6,
+      "debit_card_specializing/challenging": 1,
+      "debit_card_specializing/moderate": 2,
+      "debit_card_specializing/simple": 3,
+      "european_football_2/challenging": 2,
+      "european_football_2/moderate": 6,
+      "european_football_2/simple": 3,
+      "financial/challenging": 2,
+      "financial/moderate": 6,
+      "financial/simple": 1,
+      "formula_1/challenging": 2,
+      "formula_1/moderate": 6,
+      "formula_1/simple": 7,
+      "student_club/challenging": 1,
+      "student_club/moderate": 5,
+      "student_club/simple": 5,
+      "superhero/challenging": 3,
+      "superhero/moderate": 7,
+      "superhero/simple": 3,
+      "thrombosis_prediction/challenging": 3,
+      "thrombosis_prediction/moderate": 7,
+      "thrombosis_prediction/simple": 2,
+      "toxicology/challenging": 5,
+      "toxicology/moderate": 5,
+      "toxicology/simple": 1
+    }
+  }
+}

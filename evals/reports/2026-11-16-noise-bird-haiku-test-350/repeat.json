@@ -1,0 +1,73 @@
+{
+  "eval": "text2sql",
+  "n": 5,
+  "prefix": "2026-11-16-noise-bird-haiku-test-350/run",
+  "budget_usd_per_run": 0.3,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--system",
+    "baseline,agent_v2",
+    "--split",
+    "test",
+    "--skip-respond",
+    "--workers",
+    "4",
+    "--launched-by",
+    "noise repeat"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-haiku-test-350/run-r01",
+      "status": "done (skipped)",
+      "cost_usd": 0.22839868,
+      "share_of_cap": 0.7613289333333333
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r02",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-haiku-test-350/run-r02",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-haiku-test-350/run-r02 --budget-usd 0.3 --resume",
+      "started_at": "2026-11-16T15:06:25.464205+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:14:58.938488+00:00",
+      "status": "done",
+      "cost_usd": 0.210892005,
+      "share_of_cap": 0.70297335
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r03",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-haiku-test-350/run-r03",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-haiku-test-350/run-r03 --budget-usd 0.3",
+      "started_at": "2026-11-16T15:14:58.952231+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:23:21.469683+00:00",
+      "status": "done",
+      "cost_usd": 0.205083875,
+      "share_of_cap": 0.6836129166666667
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r04",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-haiku-test-350/run-r04",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-haiku-test-350/run-r04 --budget-usd 0.3",
+      "started_at": "2026-11-16T15:23:21.489301+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:31:37.961953+00:00",
+      "status": "done",
+      "cost_usd": 0.20321554,
+      "share_of_cap": 0.6773851333333334
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r05",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-haiku-test-350/run-r05",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-haiku-test-350/run-r05 --budget-usd 0.3",
+      "started_at": "2026-11-16T15:31:37.982543+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:40:09.236578+00:00",
+      "status": "done",
+      "cost_usd": 0.210028925,
+      "share_of_cap": 0.7000964166666667
+    }
+  ],
+  "cost_usd_total": 1.057619025
+}

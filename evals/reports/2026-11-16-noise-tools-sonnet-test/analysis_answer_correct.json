@@ -1,0 +1,183 @@
+{
+  "eval": "tools",
+  "metric": "answer_correct",
+  "runs": [
+    "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r01",
+    "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r02",
+    "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r03",
+    "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r04",
+    "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r05"
+  ],
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "two-stage percentile bootstrap: items resampled with replacement, then each resampled item's runs resampled with replacement"
+  },
+  "systems": {
+    "agent_v1": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 33,
+        "n_runs": 5,
+        "per_run": [
+          0.9696969696969697,
+          1.0,
+          0.9696969696969697,
+          0.9696969696969697,
+          1.0
+        ],
+        "mean": 0.9818181818181818,
+        "sd": 0.016597653257732294,
+        "min": 0.9696969696969697,
+        "max": 1.0
+      },
+      "flips": {
+        "n_items": 33,
+        "n_changing": 1,
+        "share_changing": 0.030303030303030304,
+        "n_always_right": 32,
+        "n_always_wrong": 0,
+        "changing_ids": [
+          "sqldoc_03"
+        ]
+      },
+      "interval": {
+        "mean": 0.9818181818181818,
+        "ci_low": 0.9333333333333333,
+        "ci_high": 1.0,
+        "single_run": {
+          "mean": 0.9696969696969697,
+          "ci_low": 0.9090909090909091,
+          "ci_high": 1.0
+        }
+      },
+      "variance_components": {
+        "between_item": 0.00909090909090909,
+        "within_item": 0.009090909090909092,
+        "icc": 0.5,
+        "se_of_mean_one_run": 0.02347262634065101,
+        "se_of_mean_all_runs": 0.01818181818181818
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-sonnet-test",
+        "n_items": 33,
+        "accuracy": 0.9696969696969697,
+        "within_repetition_range": true
+      }
+    },
+    "no_tools": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 33,
+        "n_runs": 5,
+        "per_run": [
+          0.3333333333333333,
+          0.24242424242424243,
+          0.2727272727272727,
+          0.2727272727272727,
+          0.2727272727272727
+        ],
+        "mean": 0.27878787878787875,
+        "sd": 0.0331953065154646,
+        "min": 0.24242424242424243,
+        "max": 0.3333333333333333
+      },
+      "flips": {
+        "n_items": 33,
+        "n_changing": 7,
+        "share_changing": 0.21212121212121213,
+        "n_always_right": 6,
+        "n_always_wrong": 20,
+        "changing_ids": [
+          "doc_02",
+          "doc_04",
+          "doc_06",
+          "doc_07",
+          "doc_08",
+          "sqlm_05",
+          "sqldoc_03"
+        ]
+      },
+      "interval": {
+        "mean": 0.2787878787878788,
+        "ci_low": 0.15151515151515152,
+        "ci_high": 0.42424242424242425,
+        "single_run": {
+          "mean": 0.3333333333333333,
+          "ci_low": 0.18181818181818182,
+          "ci_high": 0.48484848484848486
+        }
+      },
+      "variance_components": {
+        "between_item": 0.14833333333333334,
+        "within_item": 0.057575757575757586,
+        "icc": 0.720382634289919,
+        "se_of_mean_one_run": 0.0789915781681035,
+        "se_of_mean_all_runs": 0.0695980853203385
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-sonnet-test",
+        "n_items": 33,
+        "accuracy": 0.3333333333333333,
+        "within_repetition_range": true
+      }
+    }
+  },
+  "comparisons": {
+    "agent_v1-no_tools": {
+      "paired": {
+        "n_items": 33,
+        "n_runs": 5,
+        "diff": 0.703030303030303,
+        "ci_low": 0.5575757575757576,
+        "ci_high": 0.8424242424242424,
+        "frac_resamples_le_zero": 0.0,
+        "per_run_diff": [
+          0.6363636363636364,
+          0.7575757575757576,
+          0.696969696969697,
+          0.696969696969697,
+          0.7272727272727273
+        ],
+        "per_run_sd": 0.044946657497549475
+      },
+      "power": {
+        "delta": 0.03,
+        "alpha": 0.05,
+        "power": 0.8,
+        "between_item_var": 0.1656060606060606,
+        "within_item_var": 0.04848484848484849,
+        "observed_diff": 0.703030303030303,
+        "by_runs": {
+          "1": {
+            "sd_of_item_difference": 0.46269958838420105,
+            "items_needed": 1868,
+            "simulated_power_at_n": 0.7995,
+            "total_samples": 1868
+          },
+          "5": {
+            "sd_of_item_difference": 0.4186920470979002,
+            "items_needed": 1529,
+            "simulated_power_at_n": 0.8095,
+            "total_samples": 7645
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "run_id": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "argv": [
+    "/workspaces/agentic-sql-assistant/evals/text2sql/run.py",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--system",
+    "baseline,agent_v2",
+    "--split",
+    "test",
+    "--workers",
+    "4",
+    "--launched-by",
+    "noise repeat r01, with respond",
+    "--run-id",
+    "2026-11-16-noise-bird-haiku-test-350/run-r01",
+    "--budget-usd",
+    "0.3"
+  ],
+  "started_at": "2026-11-16T14:24:06.784762+00:00",
+  "finished_at": "2026-11-16T15:06:25.058778+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "a3b311487f76663b45295bd9f1f9b7148b7673b7",
+    "dirty": true
+  },
+  "user": "codespace",
+  "hostname": "codespaces-fc7a79",
+  "pid": 149636,
+  "ppid": 149627,
+  "parent_cmdline": ".venv/bin/python -u -m evals.noise.repeat --eval text2sql --n 1 --prefix 2026-11-16-noise-bird-haiku-test-350/run --budget-usd 0.30 -- --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --workers 4 --launched-by noise repeat r01, with respond",
+  "python": "3.12.3",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.3
+  },
+  "launched_by": "noise repeat r01, with respond",
+  "resumes": [
+    {
+      "resumed_at": "2026-11-16T15:00:28.967261+00:00",
+      "argv": [
+        "/workspaces/agentic-sql-assistant/evals/text2sql/run.py",
+        "--llm-config",
+        "configs/llm/claude-haiku-5-5.yaml",
+        "--system",
+        "baseline,agent_v2",
+        "--split",
+        "test",
+        "--workers",
+        "4",
+        "--launched-by",
+        "noise repeat r01, with respond",
+        "--run-id",
+        "2026-11-16-noise-bird-haiku-test-350/run-r01",
+        "--budget-usd",
+        "0.202499",
+        "--resume"
+      ],
+      "pid": 173977,
+      "ppid": 173966,
+      "parent_cmdline": ".venv/bin/python -u -m evals.noise.repeat --eval text2sql --n 1 --prefix 2026-11-16-noise-bird-haiku-test-350/run --budget-usd 0.30 -- --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --split test --workers 4 --launched-by noise repeat r01, with respond",
+      "launched_by": "noise repeat r01, with respond"
+    }
+  ]
+}

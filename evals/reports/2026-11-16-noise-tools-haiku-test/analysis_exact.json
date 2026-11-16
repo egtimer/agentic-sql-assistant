@@ -1,0 +1,203 @@
+{
+  "eval": "tools",
+  "metric": "exact",
+  "runs": [
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r01",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r02",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r03",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r04",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r05",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r06",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r07",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r08",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r09",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r10"
+  ],
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "two-stage percentile bootstrap: items resampled with replacement, then each resampled item's runs resampled with replacement"
+  },
+  "systems": {
+    "agent_v1": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 37,
+        "n_runs": 10,
+        "per_run": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "flips": {
+        "n_items": 37,
+        "n_changing": 0,
+        "share_changing": 0.0,
+        "n_always_right": 37,
+        "n_always_wrong": 0,
+        "changing_ids": []
+      },
+      "interval": {
+        "mean": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "single_run": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0
+        }
+      },
+      "variance_components": {
+        "between_item": 0.0,
+        "within_item": 0.0,
+        "icc": null,
+        "se_of_mean_one_run": 0.0,
+        "se_of_mean_all_runs": 0.0
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-haiku-test",
+        "n_items": 37,
+        "accuracy": 1.0,
+        "within_repetition_range": true
+      }
+    },
+    "no_tools": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 37,
+        "n_runs": 10,
+        "per_run": [
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811,
+          0.10810810810810811
+        ],
+        "mean": 0.10810810810810811,
+        "sd": 0.0,
+        "min": 0.10810810810810811,
+        "max": 0.10810810810810811
+      },
+      "flips": {
+        "n_items": 37,
+        "n_changing": 0,
+        "share_changing": 0.0,
+        "n_always_right": 4,
+        "n_always_wrong": 33,
+        "changing_ids": []
+      },
+      "interval": {
+        "mean": 0.10810810810810811,
+        "ci_low": 0.02702702702702703,
+        "ci_high": 0.21621621621621623,
+        "single_run": {
+          "mean": 0.10810810810810811,
+          "ci_low": 0.02702702702702703,
+          "ci_high": 0.21621621621621623
+        }
+      },
+      "variance_components": {
+        "between_item": 0.09909909909909911,
+        "within_item": 0.0,
+        "icc": 1.0,
+        "se_of_mean_one_run": 0.05175281663547774,
+        "se_of_mean_all_runs": 0.05175281663547774
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-haiku-test",
+        "n_items": 37,
+        "accuracy": 0.10810810810810811,
+        "within_repetition_range": true
+      }
+    }
+  },
+  "comparisons": {
+    "agent_v1-no_tools": {
+      "paired": {
+        "n_items": 37,
+        "n_runs": 10,
+        "diff": 0.8918918918918919,
+        "ci_low": 0.7837837837837838,
+        "ci_high": 0.972972972972973,
+        "frac_resamples_le_zero": 0.0,
+        "per_run_diff": [
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919,
+          0.8918918918918919
+        ],
+        "per_run_sd": 1.1702778228589004e-16
+      },
+      "power": {
+        "delta": 0.03,
+        "alpha": 0.05,
+        "power": 0.8,
+        "between_item_var": 0.09909909909909911,
+        "within_item_var": 0.0,
+        "observed_diff": 0.8918918918918919,
+        "by_runs": {
+          "1": {
+            "sd_of_item_difference": 0.3148000938676784,
+            "items_needed": 865,
+            "simulated_power_at_n": 0.7805,
+            "total_samples": 865
+          },
+          "10": {
+            "sd_of_item_difference": 0.3148000938676784,
+            "items_needed": 865,
+            "simulated_power_at_n": 0.787,
+            "total_samples": 8650
+          }
+        }
+      }
+    }
+  }
+}

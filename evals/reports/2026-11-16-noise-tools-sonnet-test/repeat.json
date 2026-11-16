@@ -1,0 +1,72 @@
+{
+  "eval": "tools",
+  "n": 5,
+  "prefix": "2026-11-16-noise-tools-sonnet-test/run",
+  "budget_usd_per_run": 0.5,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--split",
+    "test",
+    "--systems",
+    "agent_v1,no_tools"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-16-noise-tools-sonnet-test/run-r01",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r01",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-sonnet-test/run-r01 --budget-usd 0.17228 --resume",
+      "started_at": "2026-11-16T15:00:27.663060+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:01:52.873876+00:00",
+      "status": "done",
+      "cost_usd": 0.405656,
+      "share_of_cap": 0.811312
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-sonnet-test/run-r02",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r02",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-sonnet-test/run-r02 --budget-usd 0.5 --resume",
+      "started_at": "2026-11-16T15:01:52.877259+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:06:52.329687+00:00",
+      "status": "done",
+      "cost_usd": 0.407258,
+      "share_of_cap": 0.814516
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-sonnet-test/run-r03",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r03",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-sonnet-test/run-r03 --budget-usd 0.5 --resume",
+      "started_at": "2026-11-16T15:06:52.332658+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:11:50.705114+00:00",
+      "status": "done",
+      "cost_usd": 0.401436,
+      "share_of_cap": 0.802872
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-sonnet-test/run-r04",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r04",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-sonnet-test/run-r04 --budget-usd 0.5",
+      "started_at": "2026-11-16T15:11:50.708326+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:16:51.494408+00:00",
+      "status": "done",
+      "cost_usd": 0.408826,
+      "share_of_cap": 0.817652
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-sonnet-test/run-r05",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-sonnet-test/run-r05",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-sonnet-test/run-r05 --budget-usd 0.5",
+      "started_at": "2026-11-16T15:16:51.497395+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:21:50.202748+00:00",
+      "status": "done",
+      "cost_usd": 0.405216,
+      "share_of_cap": 0.810432
+    }
+  ],
+  "cost_usd_total": 2.028392
+}

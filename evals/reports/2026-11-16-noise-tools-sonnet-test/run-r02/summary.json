@@ -1,0 +1,607 @@
+{
+  "run_id": "2026-11-16-noise-tools-sonnet-test/run-r02",
+  "split": "test",
+  "n_queries": 37,
+  "stopped": null,
+  "cost_usd_this_invocation": 0.40725799999999995,
+  "cost_usd_total": 0.407258,
+  "finished_at": "2026-11-16T15:06:49.780968+00:00",
+  "systems": {
+    "agent_v1": {
+      "all": {
+        "n": 37,
+        "tool_precision": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 33
+        },
+        "tool_recall": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 33
+        },
+        "tool_exact": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 37
+        },
+        "answer_correct": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 33
+        },
+        "cost_usd": {
+          "mean": 0.006431189189189189,
+          "ci_low": 0.005811567567567568,
+          "ci_high": 0.007055945945945947,
+          "n": 37
+        },
+        "latency_s": {
+          "mean": 3.943012447405144,
+          "ci_low": 3.515932141269995,
+          "ci_high": 4.4649294958916155,
+          "n": 37
+        },
+        "llm_calls": {
+          "mean": 2.0,
+          "ci_low": 2.0,
+          "ci_high": 2.0,
+          "n": 37
+        }
+      },
+      "by_category": {
+        "calc": {
+          "n": 4,
+          "tool_precision": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "tool_recall": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "cost_usd": {
+            "mean": 0.0041785,
+            "ci_low": 0.004086,
+            "ci_high": 0.0042995,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 2.5305125820004832,
+            "ci_low": 2.415328674500415,
+            "ci_high": 2.6456964895005513,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 4
+          }
+        },
+        "doc": {
+          "n": 7,
+          "tool_precision": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "tool_recall": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "cost_usd": {
+            "mean": 0.007770857142857143,
+            "ci_low": 0.006970857142857142,
+            "ci_high": 0.00857342857142857,
+            "n": 7
+          },
+          "latency_s": {
+            "mean": 5.324124605999324,
+            "ci_low": 4.065900792856285,
+            "ci_high": 7.250208671141341,
+            "n": 7
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 7
+          }
+        },
+        "none": {
+          "n": 4,
+          "tool_precision": null,
+          "tool_recall": null,
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "answer_correct": null,
+          "cost_usd": {
+            "mean": 0.0038165,
+            "ci_low": 0.0028409999999999998,
+            "ci_high": 0.0053195000000000004,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 3.0081669229994077,
+            "ci_low": 2.3666798517488132,
+            "ci_high": 3.90859630875093,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 4
+          }
+        },
+        "sql": {
+          "n": 11,
+          "tool_precision": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 11
+          },
+          "tool_recall": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 11
+          },
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 11
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 11
+          },
+          "cost_usd": {
+            "mean": 0.005451454545454545,
+            "ci_low": 0.004986181818181818,
+            "ci_high": 0.0059359999999999994,
+            "n": 11
+          },
+          "latency_s": {
+            "mean": 3.33323848618172,
+            "ci_low": 2.912726667636889,
+            "ci_high": 3.81450314972674,
+            "n": 11
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 11
+          }
+        },
+        "sql_doc": {
+          "n": 4,
+          "tool_precision": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "tool_recall": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "cost_usd": {
+            "mean": 0.008720499999999999,
+            "ci_low": 0.008469,
+            "ci_high": 0.008972,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 4.617477727499136,
+            "ci_low": 4.227068010999574,
+            "ci_high": 5.123884861500301,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 4
+          }
+        },
+        "sql_math": {
+          "n": 7,
+          "tool_precision": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "tool_recall": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          },
+          "cost_usd": {
+            "mean": 0.008104285714285715,
+            "ci_low": 0.007362857142857143,
+            "ci_high": 0.008735999999999999,
+            "n": 7
+          },
+          "latency_s": {
+            "mean": 4.476048004857148,
+            "ci_low": 4.00914533742928,
+            "ci_high": 4.91177117314198,
+            "n": 7
+          },
+          "llm_calls": {
+            "mean": 2.0,
+            "ci_low": 2.0,
+            "ci_high": 2.0,
+            "n": 7
+          }
+        }
+      }
+    },
+    "no_tools": {
+      "all": {
+        "n": 37,
+        "tool_precision": null,
+        "tool_recall": {
+          "mean": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 33
+        },
+        "tool_exact": {
+          "mean": 0.10810810810810811,
+          "ci_low": 0.02702702702702703,
+          "ci_high": 0.21621621621621623,
+          "n": 37
+        },
+        "answer_correct": {
+          "mean": 0.24242424242424243,
+          "ci_low": 0.12121212121212122,
+          "ci_high": 0.3939393939393939,
+          "n": 33
+        },
+        "cost_usd": {
+          "mean": 0.004575783783783784,
+          "ci_low": 0.0039274594594594595,
+          "ci_high": 0.005218648648648649,
+          "n": 37
+        },
+        "latency_s": {
+          "mean": 4.051167235270711,
+          "ci_low": 3.6276687787033772,
+          "ci_high": 4.478799431514081,
+          "n": 37
+        },
+        "llm_calls": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 37
+        }
+      },
+      "by_category": {
+        "calc": {
+          "n": 4,
+          "tool_precision": null,
+          "tool_recall": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 4
+          },
+          "tool_exact": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 4
+          },
+          "answer_correct": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "cost_usd": {
+            "mean": 0.001063,
+            "ci_low": 0.0006445,
+            "ci_high": 0.0015245,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 1.5944325602513345,
+            "ci_low": 1.384667875501691,
+            "ci_high": 1.804197245000978,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          }
+        },
+        "doc": {
+          "n": 7,
+          "tool_precision": null,
+          "tool_recall": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 7
+          },
+          "tool_exact": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 7
+          },
+          "answer_correct": {
+            "mean": 0.2857142857142857,
+            "ci_low": 0.0,
+            "ci_high": 0.5714285714285714,
+            "n": 7
+          },
+          "cost_usd": {
+            "mean": 0.0049582857142857146,
+            "ci_low": 0.004289428571428571,
+            "ci_high": 0.005816857142857143,
+            "n": 7
+          },
+          "latency_s": {
+            "mean": 4.70605485742999,
+            "ci_low": 4.07647743643039,
+            "ci_high": 5.497916350144286,
+            "n": 7
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          }
+        },
+        "none": {
+          "n": 4,
+          "tool_precision": null,
+          "tool_recall": null,
+          "tool_exact": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          },
+          "answer_correct": null,
+          "cost_usd": {
+            "mean": 0.0038035,
+            "ci_low": 0.000632,
+            "ci_high": 0.0076555,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 3.5204519522494593,
+            "ci_low": 1.7654788049985655,
+            "ci_high": 5.842164552248505,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          }
+        },
+        "sql": {
+          "n": 11,
+          "tool_precision": null,
+          "tool_recall": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 11
+          },
+          "tool_exact": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 11
+          },
+          "answer_correct": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 11
+          },
+          "cost_usd": {
+            "mean": 0.005239090909090909,
+            "ci_low": 0.004734,
+            "ci_high": 0.005675636363636364,
+            "n": 11
+          },
+          "latency_s": {
+            "mean": 4.368382033090959,
+            "ci_low": 4.084714672999822,
+            "ci_high": 4.654797222363744,
+            "n": 11
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 11
+          }
+        },
+        "sql_doc": {
+          "n": 4,
+          "tool_precision": null,
+          "tool_recall": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 4
+          },
+          "tool_exact": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 4
+          },
+          "answer_correct": {
+            "mean": 0.25,
+            "ci_low": 0.0,
+            "ci_high": 0.75,
+            "n": 4
+          },
+          "cost_usd": {
+            "mean": 0.0048590000000000005,
+            "ci_low": 0.0037540000000000004,
+            "ci_high": 0.0059640000000000006,
+            "n": 4
+          },
+          "latency_s": {
+            "mean": 4.291843466749924,
+            "ci_low": 3.490573746999871,
+            "ci_high": 5.093113186499977,
+            "n": 4
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 4
+          }
+        },
+        "sql_math": {
+          "n": 7,
+          "tool_precision": null,
+          "tool_recall": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 7
+          },
+          "tool_exact": {
+            "mean": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "n": 7
+          },
+          "answer_correct": {
+            "mean": 0.14285714285714285,
+            "ci_low": 0.0,
+            "ci_high": 0.42857142857142855,
+            "n": 7
+          },
+          "cost_usd": {
+            "mean": 0.005437714285714286,
+            "ci_low": 0.004740571428571428,
+            "ci_high": 0.005989428571428571,
+            "n": 7
+          },
+          "latency_s": {
+            "mean": 4.467384203143281,
+            "ci_low": 4.128457238143061,
+            "ci_high": 4.749311868858578,
+            "n": 7
+          },
+          "llm_calls": {
+            "mean": 1.0,
+            "ci_low": 1.0,
+            "ci_high": 1.0,
+            "n": 7
+          }
+        }
+      }
+    }
+  },
+  "paired_vs_agent_v1": {
+    "no_tools": {
+      "exact": {
+        "n": 37,
+        "diff": -0.8918918918918919,
+        "ci_low": -0.972972972972973,
+        "ci_high": -0.7837837837837838,
+        "frac_resamples_le_zero": 1.0
+      },
+      "answer_correct": {
+        "n": 33,
+        "diff": -0.7575757575757576,
+        "ci_low": -0.9090909090909091,
+        "ci_high": -0.6060606060606061,
+        "frac_resamples_le_zero": 1.0
+      }
+    }
+  }
+}

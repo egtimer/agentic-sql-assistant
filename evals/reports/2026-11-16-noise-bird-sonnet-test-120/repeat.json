@@ -1,0 +1,59 @@
+{
+  "eval": "text2sql",
+  "n": 3,
+  "prefix": "2026-11-16-noise-bird-sonnet-test-120/run",
+  "budget_usd_per_run": 1.25,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--system",
+    "baseline,agent_v2",
+    "--split",
+    "test",
+    "--limit",
+    "120",
+    "--seed",
+    "0",
+    "--skip-respond",
+    "--workers",
+    "4",
+    "--launched-by",
+    "noise repeat"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-16-noise-bird-sonnet-test-120/run-r01",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-sonnet-test-120/run-r01",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-sonnet-5-5.yaml --system baseline,agent_v2 --split test --limit 120 --seed 0 --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-sonnet-test-120/run-r01 --budget-usd 0.233577 --resume",
+      "started_at": "2026-11-16T15:50:18.267635+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:50:48.264398+00:00",
+      "status": "done",
+      "cost_usd": 1.1468912,
+      "share_of_cap": 0.91751296
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-sonnet-test-120/run-r02",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-sonnet-test-120/run-r02",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-sonnet-5-5.yaml --system baseline,agent_v2 --split test --limit 120 --seed 0 --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-sonnet-test-120/run-r02 --budget-usd 1.25",
+      "started_at": "2026-11-16T15:50:48.271635+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:54:18.693595+00:00",
+      "status": "done",
+      "cost_usd": 1.1141873,
+      "share_of_cap": 0.89134984
+    },
+    {
+      "run_id": "2026-11-16-noise-bird-sonnet-test-120/run-r03",
+      "run_dir": "evals/results/text2sql/2026-11-16-noise-bird-sonnet-test-120/run-r03",
+      "command": "-m evals.text2sql.run --llm-config configs/llm/claude-sonnet-5-5.yaml --system baseline,agent_v2 --split test --limit 120 --seed 0 --skip-respond --workers 4 --launched-by noise repeat --run-id 2026-11-16-noise-bird-sonnet-test-120/run-r03 --budget-usd 1.25",
+      "started_at": "2026-11-16T15:54:18.703541+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:57:54.336615+00:00",
+      "status": "done",
+      "cost_usd": 0.8003349,
+      "share_of_cap": 0.64026792
+    }
+  ],
+  "cost_usd_total": 3.0614134
+}

@@ -1,0 +1,46 @@
+{
+  "run_id": "2026-11-16-noise-bird-sonnet-test-120/run-r02",
+  "argv": [
+    "/workspaces/agentic-sql-assistant/evals/text2sql/run.py",
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--system",
+    "baseline,agent_v2",
+    "--split",
+    "test",
+    "--limit",
+    "120",
+    "--seed",
+    "0",
+    "--skip-respond",
+    "--workers",
+    "4",
+    "--launched-by",
+    "noise repeat",
+    "--run-id",
+    "2026-11-16-noise-bird-sonnet-test-120/run-r02",
+    "--budget-usd",
+    "1.25"
+  ],
+  "started_at": "2026-11-16T15:50:49.250995+00:00",
+  "finished_at": "2026-11-16T15:54:18.396784+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "7e44efb20a1e2d33ec4dea16fd23ffe1f65cd783",
+    "dirty": true
+  },
+  "user": "codespace",
+  "hostname": "codespaces-fc7a79",
+  "pid": 200038,
+  "ppid": 199752,
+  "parent_cmdline": ".venv/bin/python -u -m evals.noise.repeat --eval text2sql --n 3 --prefix 2026-11-16-noise-bird-sonnet-test-120/run --budget-usd 1.25 --resume-stopped -- --llm-config configs/llm/claude-sonnet-5-5.yaml --system baseline,agent_v2 --split test --limit 120 --seed 0 --skip-respond --workers 4 --launched-by noise repeat",
+  "python": "3.12.3",
+  "llm_config": {
+    "path": "configs/llm/claude-sonnet-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-sonnet-5-5",
+    "budget_usd": 1.25
+  },
+  "launched_by": "noise repeat",
+  "resumes": []
+}

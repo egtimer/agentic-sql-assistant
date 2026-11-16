@@ -1,0 +1,115 @@
+{
+  "eval": "tools",
+  "n": 10,
+  "prefix": "2026-11-16-noise-tools-haiku-test/run",
+  "budget_usd_per_run": 0.03,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--split",
+    "test",
+    "--systems",
+    "agent_v1,no_tools"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r01",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r01",
+      "status": "done (skipped)",
+      "cost_usd": 0.0155221,
+      "share_of_cap": 0.5174033333333333
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r02",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r02",
+      "status": "done (skipped)",
+      "cost_usd": 0.0154451,
+      "share_of_cap": 0.5148366666666667
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r03",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r03",
+      "status": "done (skipped)",
+      "cost_usd": 0.0151605,
+      "share_of_cap": 0.5053500000000001
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r04",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r04",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r04 --budget-usd 0.018231 --resume",
+      "started_at": "2026-11-16T15:00:27.651965+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:01:30.219385+00:00",
+      "status": "done",
+      "cost_usd": 0.015347900000000001,
+      "share_of_cap": 0.5115966666666667
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r05",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r05",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r05 --budget-usd 0.03 --resume",
+      "started_at": "2026-11-16T15:01:30.223738+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:04:20.052587+00:00",
+      "status": "done",
+      "cost_usd": 0.015600900000000001,
+      "share_of_cap": 0.5200300000000001
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r06",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r06",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r06 --budget-usd 0.03 --resume",
+      "started_at": "2026-11-16T15:04:20.055713+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:07:02.422153+00:00",
+      "status": "done",
+      "cost_usd": 0.015760200000000002,
+      "share_of_cap": 0.5253400000000001
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r07",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r07",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r07 --budget-usd 0.03",
+      "started_at": "2026-11-16T15:07:02.425882+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:09:45.692095+00:00",
+      "status": "done",
+      "cost_usd": 0.0156234,
+      "share_of_cap": 0.52078
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r08",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r08",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r08 --budget-usd 0.03",
+      "started_at": "2026-11-16T15:09:45.695057+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:12:26.202452+00:00",
+      "status": "done",
+      "cost_usd": 0.0152434,
+      "share_of_cap": 0.5081133333333334
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r09",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r09",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r09 --budget-usd 0.03",
+      "started_at": "2026-11-16T15:12:26.205293+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:15:08.153149+00:00",
+      "status": "done",
+      "cost_usd": 0.015436400000000001,
+      "share_of_cap": 0.5145466666666667
+    },
+    {
+      "run_id": "2026-11-16-noise-tools-haiku-test/run-r10",
+      "run_dir": "evals/reports/2026-11-16-noise-tools-haiku-test/run-r10",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1,no_tools --run-id 2026-11-16-noise-tools-haiku-test/run-r10 --budget-usd 0.03",
+      "started_at": "2026-11-16T15:15:08.156142+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-16T15:17:50.360895+00:00",
+      "status": "done",
+      "cost_usd": 0.0153582,
+      "share_of_cap": 0.5119400000000001
+    }
+  ],
+  "cost_usd_total": 0.1544981
+}

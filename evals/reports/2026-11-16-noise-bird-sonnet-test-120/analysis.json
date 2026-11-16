@@ -1,0 +1,175 @@
+{
+  "eval": "text2sql",
+  "metric": "correct",
+  "runs": [
+    "evals/reports/2026-11-16-noise-bird-sonnet-test-120/run-r01",
+    "evals/reports/2026-11-16-noise-bird-sonnet-test-120/run-r02",
+    "evals/reports/2026-11-16-noise-bird-sonnet-test-120/run-r03"
+  ],
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "two-stage percentile bootstrap: items resampled with replacement, then each resampled item's runs resampled with replacement"
+  },
+  "systems": {
+    "agent_v2": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 120,
+        "n_runs": 3,
+        "per_run": [
+          0.65,
+          0.65,
+          0.6416666666666667
+        ],
+        "mean": 0.6472222222222223,
+        "sd": 0.004811252243246865,
+        "min": 0.6416666666666667,
+        "max": 0.65
+      },
+      "flips": {
+        "n_items": 120,
+        "n_changing": 9,
+        "share_changing": 0.075,
+        "n_always_right": 73,
+        "n_always_wrong": 38,
+        "changing_ids": [
+          "41",
+          "83",
+          "116",
+          "236",
+          "340",
+          "408",
+          "685",
+          "892",
+          "959"
+        ]
+      },
+      "interval": {
+        "mean": 0.6472222222222223,
+        "ci_low": 0.5611111111111111,
+        "ci_high": 0.7277777777777777,
+        "single_run": {
+          "mean": 0.65,
+          "ci_low": 0.5583333333333333,
+          "ci_high": 0.7333333333333333
+        }
+      },
+      "variance_components": {
+        "between_item": 0.20510426392779338,
+        "within_item": 0.025,
+        "icc": 0.8913535995671727,
+        "se_of_mean_one_run": 0.04378967381394398,
+        "se_of_mean_all_runs": 0.042174004361012755
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-19-sonnet-test-350",
+        "n_items": 120,
+        "accuracy": 0.65,
+        "within_repetition_range": true
+      }
+    },
+    "baseline": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 120,
+        "n_runs": 3,
+        "per_run": [
+          0.6166666666666667,
+          0.6083333333333333,
+          0.6333333333333333
+        ],
+        "mean": 0.6194444444444445,
+        "sd": 0.012729376930432893,
+        "min": 0.6083333333333333,
+        "max": 0.6333333333333333
+      },
+      "flips": {
+        "n_items": 120,
+        "n_changing": 3,
+        "share_changing": 0.025,
+        "n_always_right": 73,
+        "n_always_wrong": 44,
+        "changing_ids": [
+          "83",
+          "736",
+          "1166"
+        ]
+      },
+      "interval": {
+        "mean": 0.6194444444444445,
+        "ci_low": 0.5333333333333333,
+        "ci_high": 0.7027777777777777,
+        "single_run": {
+          "mean": 0.6166666666666667,
+          "ci_low": 0.525,
+          "ci_high": 0.7
+        }
+      },
+      "variance_components": {
+        "between_item": 0.22933395580454402,
+        "within_item": 0.008333333333333333,
+        "icc": 0.9649369782288427,
+        "se_of_mean_one_run": 0.04450349135534924,
+        "se_of_mean_all_runs": 0.04398027337931574
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-19-sonnet-test-350",
+        "n_items": 120,
+        "accuracy": 0.6083333333333333,
+        "within_repetition_range": true
+      }
+    }
+  },
+  "comparisons": {
+    "agent_v2-baseline": {
+      "paired": {
+        "n_items": 120,
+        "n_runs": 3,
+        "diff": 0.027777777777777776,
+        "ci_low": -0.027777777777777776,
+        "ci_high": 0.08333333333333333,
+        "frac_resamples_le_zero": 0.1777,
+        "per_run_diff": [
+          0.03333333333333333,
+          0.041666666666666664,
+          0.008333333333333333
+        ],
+        "per_run_sd": 0.017347216662217772
+      },
+      "power": {
+        "delta": 0.03,
+        "alpha": 0.05,
+        "power": 0.8,
+        "between_item_var": 0.07495331465919697,
+        "within_item_var": 0.036111111111111115,
+        "observed_diff": 0.027777777777777776,
+        "by_runs": {
+          "1": {
+            "sd_of_item_difference": 0.3332632979646995,
+            "items_needed": 969,
+            "simulated_power_at_n": 0.801,
+            "total_samples": 969
+          },
+          "3": {
+            "sd_of_item_difference": 0.2949412682149346,
+            "items_needed": 759,
+            "simulated_power_at_n": 0.8075,
+            "total_samples": 2277
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "eval": "tools",
+  "metric": "answer_correct",
+  "runs": [
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r01",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r02",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r03",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r04",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r05",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r06",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r07",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r08",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r09",
+    "evals/reports/2026-11-16-noise-tools-haiku-test/run-r10"
+  ],
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 0,
+    "confidence": 0.95,
+    "method": "two-stage percentile bootstrap: items resampled with replacement, then each resampled item's runs resampled with replacement"
+  },
+  "systems": {
+    "agent_v1": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 33,
+        "n_runs": 10,
+        "per_run": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          0.9696969696969697,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean": 0.9969696969696968,
+        "sd": 0.009582659576267808,
+        "min": 0.9696969696969697,
+        "max": 1.0
+      },
+      "flips": {
+        "n_items": 33,
+        "n_changing": 1,
+        "share_changing": 0.030303030303030304,
+        "n_always_right": 32,
+        "n_always_wrong": 0,
+        "changing_ids": [
+          "sqldoc_03"
+        ]
+      },
+      "interval": {
+        "mean": 0.996969696969697,
+        "ci_low": 0.9848484848484849,
+        "ci_high": 1.0,
+        "single_run": {
+          "mean": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0
+        }
+      },
+      "variance_components": {
+        "between_item": 0.0,
+        "within_item": 0.0030303030303030307,
+        "icc": 0.0,
+        "se_of_mean_one_run": 0.009582659576267817,
+        "se_of_mean_all_runs": 0.0030303030303030307
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-haiku-test",
+        "n_items": 33,
+        "accuracy": 0.9696969696969697,
+        "within_repetition_range": true
+      }
+    },
+    "no_tools": {
+      "dropped_items": 0,
+      "dispersion": {
+        "n_items": 33,
+        "n_runs": 10,
+        "per_run": [
+          0.12121212121212122,
+          0.12121212121212122,
+          0.12121212121212122,
+          0.12121212121212122,
+          0.12121212121212122,
+          0.15151515151515152,
+          0.12121212121212122,
+          0.12121212121212122,
+          0.15151515151515152,
+          0.12121212121212122
+        ],
+        "mean": 0.1272727272727273,
+        "sd": 0.012776879435023755,
+        "min": 0.12121212121212122,
+        "max": 0.15151515151515152
+      },
+      "flips": {
+        "n_items": 33,
+        "n_changing": 2,
+        "share_changing": 0.06060606060606061,
+        "n_always_right": 4,
+        "n_always_wrong": 27,
+        "changing_ids": [
+          "doc_06",
+          "doc_11"
+        ]
+      },
+      "interval": {
+        "mean": 0.12727272727272726,
+        "ci_low": 0.030303030303030304,
+        "ci_high": 0.24553030303030193,
+        "single_run": {
+          "mean": 0.12121212121212122,
+          "ci_low": 0.030303030303030304,
+          "ci_high": 0.24242424242424243
+        }
+      },
+      "variance_components": {
+        "between_item": 0.10831439393939393,
+        "within_item": 0.0060606060606060615,
+        "icc": 0.9470110945520782,
+        "se_of_mean_one_run": 0.058871972031766445,
+        "se_of_mean_all_runs": 0.0574510211807479
+      },
+      "provider_failures_left_out": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "reference": {
+        "run": "2026-10-30-v1-tools-haiku-test",
+        "n_items": 33,
+        "accuracy": 0.12121212121212122,
+        "within_repetition_range": true
+      }
+    }
+  },
+  "comparisons": {
+    "agent_v1-no_tools": {
+      "paired": {
+        "n_items": 33,
+        "n_runs": 10,
+        "diff": 0.8696969696969697,
+        "ci_low": 0.7515151515151515,
+        "ci_high": 0.9666666666666667,
+        "frac_resamples_le_zero": 0.0,
+        "per_run_diff": [
+          0.8787878787878788,
+          0.8787878787878788,
+          0.8787878787878788,
+          0.8787878787878788,
+          0.8787878787878788,
+          0.8484848484848485,
+          0.8484848484848485,
+          0.8787878787878788,
+          0.8484848484848485,
+          0.8787878787878788
+        ],
+        "per_run_sd": 0.014637754289080228
+      },
+      "power": {
+        "delta": 0.03,
+        "alpha": 0.05,
+        "power": 0.8,
+        "between_item_var": 0.10751893939393939,
+        "within_item_var": 0.009090909090909092,
+        "observed_diff": 0.8696969696969697,
+        "by_runs": {
+          "1": {
+            "sd_of_item_difference": 0.34148184210122867,
+            "items_needed": 1017,
+            "simulated_power_at_n": 0.8125,
+            "total_samples": 1017
+          },
+          "10": {
+            "sd_of_item_difference": 0.3292841179028079,
+            "items_needed": 946,
+            "simulated_power_at_n": 0.803,
+            "total_samples": 9460
+          }
+        }
+      }
+    }
+  }
+}
