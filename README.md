@@ -467,4 +467,4 @@ GitHub Actions (`.github/workflows/ci.yml`) runs lint, tests and a Docker build 
 
 ## Related
 
-- [fastapi-rag-lab](https://github.com/egtimer/fastapi-rag-lab) — Production RAG system with hybrid retrieval, benchmarking (Recall@5 0.98), and RAGAS evaluation pipeline
+- [fastapi-rag-lab](https://github.com/egtimer/fastapi-rag-lab) — hybrid retrieval with bootstrap CIs; LLM judge calibrated against two human labellers (κ 0.78, n = 100)
