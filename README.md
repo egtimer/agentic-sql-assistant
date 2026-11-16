@@ -2,13 +2,13 @@
 
 LLM agents that answer questions over SQL databases, and the evaluation that measures whether they work. Two agents live here: the original tool-calling agent (v1, served by the API) and a text-to-SQL agent (v2) that writes one answer-shaped query, runs it and reviews the result in a bounded loop. Both are scored on the public BIRD Mini-Dev benchmark by execution accuracy, with confidence intervals and per-call cost.
 
-**Headline (BIRD Mini-Dev test split, 350 questions):** agent v2 beats a single-shot baseline by +3.7 points with both Claude Haiku 5.5 (64.3% vs 60.6%) and Claude Sonnet 5.5 (69.7% vs 66.0%), and Haiku with agent v2 matches Sonnet single shot at a fifth of the cost per question. Details and caveats in [Evaluation](#evaluation-text-to-sql-on-bird-mini-dev).
+**Headline (BIRD Mini-Dev test split, 350 questions):** agent v2 beats a single-shot baseline by +3.7 points with both Claude Haiku 5.5 (64.3% vs 60.6%) and Claude Sonnet 5.5 (69.7% vs 66.0%), and Haiku with agent v2 matches Sonnet single shot at a fifth of the cost per question. Those figures are one run each; run five times with nothing changed, the Haiku gain averages +2.8 points [+0.2, +5.4], still above zero, and a single run's gain moved between +1.4 and +4.9 (see [Run-to-run noise](#run-to-run-noise)). Details and caveats in [Evaluation](#evaluation-text-to-sql-on-bird-mini-dev).
 
 ## Status
 
 - Agent v2 (`src/sql_agent/`) is evaluated through the eval runner; the API still serves agent v1. Moving the API to v2 is a planned step.
 - Memory: agent v2 can remember a conversation (short-term, a LangGraph checkpointer thread) and the definitions a user taught it (long-term, a LangGraph store with lexical recall). On the test split with Claude Haiku 5.5, definitions recalled from an earlier session add +6.3 points of execution accuracy [+2.6, +10.0], within 2 points of giving the definition in the question, and on dev conversation history lifts elliptical follow-ups from 7% to 47% (see [Memory](#memory)). The API does not use it yet. Known gaps: recall is lexical (a definition with no word in common with the question is missed), the history keeps SQL but not results, and the follow-up set has only 30 conversations.
-- Agent v1 tool selection: measured on 60 hand-written queries over the demo data (23 dev / 37 test); on test it picks the right tools for all 37 with Haiku 5.5 and Sonnet 5.5. Its prompt was fixed on dev to answer greetings and out-of-scope questions without tools (see [Agent v1 tool selection](#evaluation-agent-v1-tool-selection)).
+- Agent v1 tool selection: measured on 60 hand-written queries over the demo data (23 dev / 37 test); on test it picks the right tools for all 37 with Haiku 5.5 and Sonnet 5.5, and did so in every one of 10 repeat runs with Haiku and 5 with Sonnet. Its prompt was fixed on dev to answer greetings and out-of-scope questions without tools (see [Agent v1 tool selection](#evaluation-agent-v1-tool-selection)).
 - MCP server (`src/mcp_server/`): any MCP client can ask agent v2 questions, run read-only SQL through the guard, search the policy documents and use the calculator, over stdio or local streamable HTTP (see [MCP server](#mcp-server)). Tested offline with a scripted model (CI) and in a scripted session with Claude Haiku 5.5. No authentication for remote HTTP.
 - Answer quality: an LLM judge of the final answer agrees with the owner's hand labels on 49 of 50 dev answers (kappa 0.95) and runs at about $0.0001 per answer (see [Answer quality](#answer-quality-an-llm-judge-calibrated-against-hand-labels)).
 - Observability: agents, LLM calls and eval runs are traced to Langfuse (see [Observability](#observability)).
@@ -58,6 +58,8 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Where `agent_v2` still fails (Haiku, test) | 72 of 125 wrong queries return the right shape with wrong values | [`error_shapes.json`](evals/reports/2026-10-19-haiku-test-350/error_shapes.json) |
 | Answer judge vs human (50 dev answers) | Haiku 5.5 kappa 0.95 [0.84, 1.00] | [Answer quality](#answer-quality-an-llm-judge-calibrated-against-hand-labels) |
 | Tool selection of agent v1 (the agent the API serves), 37 test queries | 100% exact with Haiku 5.5 and Sonnet 5.5; answers 93.9% [84.8, 100.0] (Haiku) and 97.0% [90.9, 100.0] (Sonnet) as scored, 97.0% and 97.0% after a scorer fix | [Agent v1 tool selection](#evaluation-agent-v1-tool-selection), [ADR-010](docs/ADR-010-v1-tool-selection-eval.md) |
+| The same, mean of repeat runs (Haiku 10, Sonnet 5) | tool selection 100% in every run; answers 99.7% (range 97.0–100.0) and 98.2% (97.0–100.0); without tools 12.7% (12.1–15.2) and 27.9% (24.2–33.3) | [Run-to-run noise](#run-to-run-noise) |
+| `agent_v2` vs `baseline`, paired, mean of repeat runs | Haiku +2.8 pts [+0.2, +5.4] (5 runs, 350 questions); Sonnet +2.8 [−2.8, +8.3] (3 runs, a 120-question sample) | [Run-to-run noise](#run-to-run-noise) |
 
 ## At a glance
 
@@ -65,11 +67,12 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 |---|---|
 | Benchmark | BIRD Mini-Dev (SQLite), 500 questions split once into 150 dev / 350 test |
 | SQL guard | 152/152 stopped (145 blocked, 7 bounded by timeout/row cap), 0 of 540 legitimate queries blocked |
+| Run-to-run noise | BIRD test, Haiku: 8–9% of questions change verdict between identical runs; to detect a 3-point paired difference takes about 750 questions with one run, 460 with five |
 | Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
 | CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
-| Tests | 859 tests (856 without services) |
+| Tests | 888 tests (885 without services; 859 before the run-to-run noise work) |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
@@ -180,6 +183,25 @@ Paired differences on the same 350 questions (95% CI):
 3. **The check step does not pay off on Haiku.** It doubles calls and latency for -0.3 pts on test (+1.3 and +0.0 on the two dev runs). It is precise but rarely acts: on test it changed 24 of 350 queries, 6 wrong to right, 3 right to wrong, 12 still wrong, 3 still right. On Sonnet its effect is measured within the run only (first query 68.3% -> final 69.7%; 8 wrong to right, 3 right to wrong); there is no Sonnet `agent_v2_nocheck` control. On Sonnet most check answers explain the review before saying OK; the parser counted them as OK, and the full check text was not stored, so a fix written outside a ```sql block cannot be ruled out ([report](evals/reports/2026-10-19-sonnet-test-350/README.md)).
 4. **Dev overstates the gain.** v2 led by +7 to +9 pts on dev and by +3.7 on test, after one prompt iteration on dev. Most remaining errors return the right shape with wrong values (72 of agent v2's 125 errors with Haiku, 57 of 106 with Sonnet): a wrong table, filter or interpretation, and some quirks of the gold queries (extra columns, booleans per row). Error shapes are computed with `python -m evals.text2sql.error_shapes <report>`.
 
+### Run-to-run noise
+
+Every number above is one run of each configuration. To see how much a single run moves, the two headline evals were run again with nothing changed (same code, prompts, models, effort `low` and questions): tool selection on its test set 10 times with Haiku and 5 with Sonnet, BIRD test 5 times with Haiku (350 questions) and 3 times with Sonnet (a stratified sample of 120). Intervals below come from a two-stage bootstrap (questions resampled, then each question's runs), so they include the run-to-run noise as well as the choice of questions; differences are paired on the same questions and runs. Method, power analysis and per-run tables: [`evals/reports/2026-11-16-noise-README.md`](evals/reports/2026-11-16-noise-README.md); cost $6.30.
+
+| BIRD test, EX | One run (published) | Mean of N runs [CI with run noise] | Range of the N runs |
+|---|---|---|---|
+| Haiku `agent_v2` (N = 5, 350 q.) | 64.3% [59.1, 69.4] | 63.7% [58.9, 68.6] | 63.1–64.3 |
+| Haiku `baseline` | 60.6% [55.4, 65.7] | 60.9% [55.8, 65.9] | 59.4–62.3 |
+| Haiku `agent_v2` - `baseline` | +3.7 pts [+0.6, +7.1] | +2.8 pts [+0.2, +5.4] | +1.4 to +4.9 |
+| Sonnet `agent_v2` - `baseline` (N = 3, 120 of the 350 q.) | +4.2 pts on these 120 | +2.8 pts [−2.8, +8.3] | +0.8 to +4.2 |
+
+- The published runs are single draws from these distributions: every one lies inside the range of its repeats, some at its edge (Haiku `agent_v2` 64.3% is the highest of five; Sonnet without tools, 33.3% of answers, the highest of its five, whose mean is 27.9%).
+- The agent v2 gain holds with Haiku but is smaller than the one run said: +2.8 points averaged over five runs against +3.7 in the published run. With Sonnet, 120 questions cannot separate the same +2.8 from zero.
+- On BIRD a question is mostly right or mostly wrong (ICC about 0.9): 32 of 350 change verdict between Haiku runs for `agent_v2`, 29 for `baseline`. Repeating runs narrows a single system's interval little; it helps a paired comparison more.
+- Power: detecting a 3-point paired difference with 80% power takes about 750 questions run once, or about 460 run five times; the 350-question test split run once is not enough for differences of that size.
+- Tool selection did not move: 100% in all 15 repeats; 1 of 33 answers changes between runs for `agent_v1`, 2 (Haiku) and 7 (Sonnet) without tools.
+
+The first attempt at these runs was cut short when the API credit ran out: the runners of the time scored the failed calls as wrong answers. That was fixed (a provider error now stops a run without scoring the call) and only the failed calls were run again; the report tells what happened.
+
 ### Local model: Ollama on CPU
 
 `qwen2.5:3b` through Ollama on a 4-core CPU without GPU, 20 stratified dev questions ([report](evals/reports/2026-10-19-ollama-qwen2.5-3b-dev-20/)):
@@ -206,7 +228,7 @@ Either judge reproduces the human reading on 49 of 50 answers (the one miss each
 
 ### Cost of the evaluation
 
-All API runs, including a [10-question pilot](evals/reports/2026-10-18-pilot-haiku-10/) and a [20-question Sonnet pilot](evals/reports/2026-10-19-sonnet-dev-20-pilot/) used to estimate costs, cost $3.57 in total (Haiku test run $0.36, Sonnet test run $2.51), as recorded in the reports' `llm_calls.jsonl`. The weekly API eval in CI (30 dev questions, `baseline` and `agent_v2` with Haiku) costs about $0.03 per run: $0.0282 on 2026-10-19 and $0.0289 on 2026-10-26, from the runs' logs.
+All API runs, including a [10-question pilot](evals/reports/2026-10-18-pilot-haiku-10/) and a [20-question Sonnet pilot](evals/reports/2026-10-19-sonnet-dev-20-pilot/) used to estimate costs, cost $3.57 in total (Haiku test run $0.36, Sonnet test run $2.51), as recorded in the reports' `llm_calls.jsonl`. The run-to-run noise repeats cost $6.30 more ([report](evals/reports/2026-11-16-noise-README.md)). The weekly API eval in CI (30 dev questions, `baseline` and `agent_v2` with Haiku) costs about $0.03 per run: $0.0282 on 2026-10-19 and $0.0289 on 2026-10-26, from the runs' logs.
 
 ### Reproduce
 
