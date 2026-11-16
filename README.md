@@ -69,6 +69,7 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
 | CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
+| Tests | 859 tests (856 without services) |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
