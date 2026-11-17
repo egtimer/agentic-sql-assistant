@@ -2,7 +2,8 @@
 
 Agent v2 without history and without memories must send exactly these prompts (the frozen
 prompts of ADR-004). The snapshot was recorded before the memory feature existed; regenerate
-it only on purpose, with ``UPDATE_SNAPSHOTS=1``.
+it only on purpose, with ``UPDATE_SNAPSHOTS=1``. The respond prompts changed on purpose in
+ADR-011 (the final SQL and the exact row count in the answer step); generate and check did not.
 """
 
 import json

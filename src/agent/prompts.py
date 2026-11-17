@@ -70,6 +70,20 @@ Instructions:
 - Be direct — answer the question first, then add context if relevant.
 - Keep it under 200 words."""
 
+CALC_FILL_PROMPT = """\
+You write one arithmetic expression for a calculator.
+
+Question: {query}
+Calculation needed: {reason}
+
+Results so far:
+{tool_results}
+
+Write only the expression, built from the numbers in the results above: digits, + - * / ( ) \
+and decimal points, with no units, no thousands separators and no words. If the results do not \
+hold the numbers the calculation needs, write NONE."""
+
+
 VALIDATION_PROMPT = """\
 You are reviewing tool execution results to determine if the user's question \
 can be answered.

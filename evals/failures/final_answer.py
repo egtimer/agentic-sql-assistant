@@ -5,9 +5,10 @@ The noise repetitions ran agent v2 with the respond step on, but the runner of t
 the answer (fixed in 7c93f44). This pass rebuilds it without re-running the agent: for every
 ``agent_v2`` prediction of the run it re-executes ``pred_sql`` read-only (the same
 ``run_query`` the agent uses, so the result text is the one the respond step saw), makes the
-respond call with the agent's own prompt (``RESPOND_SYSTEM``, ``respond_user``, tag
-``respond``), and grades the answer with the judge of ``evals/judge`` against the gold result.
-Two LLM calls per question. The SQL is not touched, so EX stays the run's.
+respond call (tag ``respond``) with the answer-step prompt chosen by ``--respond``
+(``respond_versions.py``: ``v1`` as in the committed runs, ``v2`` the agent's current one),
+and grades the answer with the judge of ``evals/judge`` against the gold result. Two LLM calls
+per question. The SQL is not touched, so EX stays the run's.
 
 Output in ``evals/results/failures/<run-id>/`` (gitignored):
 
@@ -20,7 +21,7 @@ Spends money with the Anthropic config; the owner runs it:
     uv run python -m evals.failures.final_answer \\
         --report 2026-11-16-noise-bird-haiku-test-350/run-r01 \\
         --llm-config configs/llm/claude-haiku-5-5.yaml --run-id final-answer-haiku-r01 \\
-        --budget-usd 0.15 --launched-by owner
+        --budget-usd 0.15 --launched-by owner [--respond v2]
 """
 
 import argparse
@@ -31,6 +32,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from evals.failures.respond_versions import VERSIONS
 from evals.judge.build_set import gold_preview, write_jsonl
 from evals.judge.judge import JUDGE_SYSTEM, judge_answer
 from evals.memory.common import (
@@ -47,7 +49,6 @@ from evals.text2sql.data import REPO_ROOT, Question, db_path, load_questions
 from evals.text2sql.run import PredictionWriter, load_llm_config
 from src.llm import CallUsage, LLMConfig, ProviderError
 from src.sql_agent.executor import run_query
-from src.sql_agent.prompts import RESPOND_SYSTEM, respond_user
 
 REPORTS = REPO_ROOT / "evals" / "reports"
 RESULTS_ROOT = REPO_ROOT / "evals" / "results" / "failures"
@@ -100,6 +101,7 @@ def run_final_answer(
     client_factory: ClientFactory | None = None,
     argv: list[str] | None = None,
     launched_by: str | None = None,
+    respond_version: str = "v1",
 ) -> dict[str, Any]:
     """Answer and judge every prediction (the run directory must be new); write the outputs."""
     box: dict[str, Any] = {}
@@ -139,9 +141,8 @@ def run_final_answer(
             }
             answer = None
             with timed_calls(client, run_id, "respond", q.question_id) as respond:
-                completion = respond.counting.complete(
-                    RESPOND_SYSTEM, respond_user(q.question, attempt), tag="respond"
-                )
+                system, user = VERSIONS[respond_version](q.question, attempt, database, timeout_s)
+                completion = respond.counting.complete(system, user, tag="respond")
                 answer = completion.text.strip()
             record["respond"] = _usage_totals(respond.counting.usages)
             if respond.error is not None or answer is None:
@@ -183,6 +184,7 @@ def run_final_answer(
             "kind": "final_answer",
             "report": report,
             "system": SYSTEM,
+            "respond_version": respond_version,
             "n_planned": len(predictions),
             "n_done": len(records),
             "judge_labels": dict(labels),
@@ -220,6 +222,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--budget-usd", type=float, help="hard cap on spend (anthropic: required)")
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument(
+        "--respond",
+        choices=sorted(VERSIONS),
+        default="v1",
+        help="answer-step prompt: v1 as in the committed runs, v2 the agent's current one",
+    )
+    parser.add_argument(
         "--launched-by", help=f"free text recorded in run.json (default: env {LAUNCHED_BY_ENV})"
     )
     return parser.parse_args(argv)
@@ -249,6 +257,7 @@ def main(argv: list[str] | None = None) -> None:
                 llm_config_name=str(args.llm_config),
                 argv=raw_argv,
                 launched_by=args.launched_by,
+                respond_version=args.respond,
             )
     except FileExistsError as e:
         raise SystemExit(str(e)) from e

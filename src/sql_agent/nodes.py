@@ -9,7 +9,13 @@ from langgraph.store.base import BaseStore
 
 from src.llm import get_client
 from src.observability import tracing
-from src.sql_agent.executor import Attempt, format_result, run_query, select_final_sql
+from src.sql_agent.executor import (
+    Attempt,
+    count_rows,
+    format_result,
+    run_query,
+    select_final_sql,
+)
 from src.sql_agent.extract import extract_check_sql, extract_sql
 from src.sql_agent.introspect import schema_block, schema_context
 from src.sql_agent.memory import recall
@@ -204,8 +210,13 @@ def respond_node(state: SqlAgentState) -> dict[str, Any]:
     history = [*state.history, turn]
     if state.skip_respond:
         return {"final_sql": final_sql, "response": "", "history": history}
+    total = (
+        count_rows(state.db_path, final.sql, policy=state.policy)
+        if final is not None and final.more_rows
+        else None
+    )
     completion = get_client().complete(
-        RESPOND_SYSTEM, respond_user(state.question, final), tag="respond"
+        RESPOND_SYSTEM, respond_user(state.question, final, total), tag="respond"
     )
     return {"final_sql": final_sql, "response": completion.text.strip(), "history": history}
 

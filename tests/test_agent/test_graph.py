@@ -7,10 +7,11 @@ import pytest
 
 from src.agent.graph import build_graph
 from src.agent.nodes import (
+    MAX_TOOL_OUTPUT_CHARS,
     _execute_tool,
     _extract_json,
+    _fill_placeholder,
     _format_tool_results,
-    _resolve_placeholder,
     execute_node,
     reason_node,
     respond_node,
@@ -102,36 +103,73 @@ class TestFormatToolResults:
     def test_format_truncates_long_output(self) -> None:
         results = [
             ToolResult(
-                tool="sql_query", input="SELECT *", output={"data": "x" * 2000}, success=True
-            )
-        ]
-        formatted = _format_tool_results(results)
-        assert "..." in formatted
-
-
-class TestResolvePlaceholder:
-    def test_replaces_with_two_row_values(self) -> None:
-        results = [
-            ToolResult(
                 tool="sql_query",
-                input="SELECT quarter, SUM(amount) FROM sales GROUP BY quarter",
-                output={"rows": [["Q2", 198000], ["Q3", 234500]], "columns": ["quarter", "sum"]},
+                input="SELECT *",
+                output={"data": "x" * (MAX_TOOL_OUTPUT_CHARS + 500)},
                 success=True,
             )
         ]
-        resolved = _resolve_placeholder("PLACEHOLDER", results)
-        assert "198000" in resolved
-        assert "234500" in resolved
-        assert "/" in resolved
+        formatted = _format_tool_results(results)
+        assert "more characters not shown]" in formatted
 
-    def test_keeps_placeholder_without_sql_results(self) -> None:
-        resolved = _resolve_placeholder("PLACEHOLDER", [])
-        assert resolved == "PLACEHOLDER"
+    def test_format_keeps_text_past_the_old_1500_cut(self) -> None:
+        text = "x" * 1800 + " Electrónica: 15 días"
+        results = [
+            ToolResult(tool="doc_search", input="q", output={"chunks": [text]}, success=True)
+        ]
+        assert "15 días" in _format_tool_results(results)
 
-    def test_keeps_placeholder_with_failed_sql(self) -> None:
-        results = [ToolResult(tool="sql_query", input="bad query", output={}, success=False)]
-        resolved = _resolve_placeholder("PLACEHOLDER", results)
-        assert resolved == "PLACEHOLDER"
+
+SQL_RESULT = ToolResult(
+    tool="sql_query",
+    input="SELECT name, price FROM products WHERE name = 'Teclado MechPro'",
+    output={"columns": ["name", "price"], "rows": [["Teclado MechPro", 129.0]]},
+    success=True,
+)
+CALC = ToolCall(tool=ToolName.CALCULATOR, input="PLACEHOLDER", reason="raise the price by 15%")
+
+
+class TestFillPlaceholder:
+    @patch("src.agent.nodes.get_client")
+    def test_model_writes_the_expression(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("129.0 * 1.15")
+        assert _fill_placeholder("New price?", CALC, [SQL_RESULT]) == "129.0 * 1.15"
+        _, user = mock_get_client.return_value.complete.call_args.args
+        assert "Teclado MechPro" in user and "raise the price by 15%" in user
+        assert mock_get_client.return_value.complete.call_args.kwargs == {"tag": "fill"}
+
+    @patch("src.agent.nodes.get_client")
+    def test_code_fences_are_stripped(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("`(268 - 275) / 275 * 100`")
+        assert _fill_placeholder("Change?", CALC, [SQL_RESULT]) == "(268 - 275) / 275 * 100"
+
+    @pytest.mark.parametrize("reply", ["NONE", "", "the price times 1.15", "129 * 1.15 euros"])
+    @patch("src.agent.nodes.get_client")
+    def test_no_usable_expression(self, mock_get_client: MagicMock, reply: str) -> None:
+        mock_get_client.return_value = _mock_client(reply)
+        assert _fill_placeholder("New price?", CALC, [SQL_RESULT]) is None
+
+    def test_no_results_no_call(self) -> None:
+        assert _fill_placeholder("New price?", CALC, []) is None
+
+    @patch("src.agent.nodes.get_client")
+    def test_execute_runs_the_filled_expression(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("129.0 * 1.15")
+        state = AgentState(query="New price?", planned_tools=[CALC], tool_results=[SQL_RESULT])
+        update = execute_node(state)
+        calc = update["tool_results"][-1]
+        assert calc.success and calc.input == "129.0 * 1.15"
+        assert abs(calc.output["result"] - 148.35) < 1e-9
+
+    @patch("src.agent.nodes.get_client")
+    def test_execute_reports_a_missing_expression(self, mock_get_client: MagicMock) -> None:
+        mock_get_client.return_value = _mock_client("NONE")
+        state = AgentState(query="New price?", planned_tools=[CALC], tool_results=[SQL_RESULT])
+        update = execute_node(state)
+        calc = update["tool_results"][-1]
+        assert not calc.success and calc.input == "PLACEHOLDER"
+        assert "no expression" in calc.output["error"]
+        assert update["current_tool_index"] == 1
 
 
 class TestExecuteTool:

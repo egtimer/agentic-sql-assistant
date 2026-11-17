@@ -79,6 +79,28 @@ def run_query(
     )
 
 
+def count_rows(
+    db_path: Path | str,
+    sql: str,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    policy: GuardPolicy | None = None,
+) -> int | None:
+    """Exact number of rows ``sql`` returns, counted under the SQL guard; None if it fails.
+
+    Used only to tell the answer step how large a result is when the preview fetch stopped
+    at ``MAX_ROWS``; the query itself is not changed.
+    """
+    inner = sql.strip().rstrip(";")
+    if not inner:
+        return None
+    policy = (policy or GuardPolicy()).model_copy(update={"timeout_s": timeout_s, "max_rows": 1})
+    result = guarded_execute(db_path, f"SELECT COUNT(*) FROM ({inner})", policy)
+    if result.error is not None or not result.rows:
+        return None
+    value = result.rows[0][0]
+    return int(value) if isinstance(value, int) else None
+
+
 def select_final_sql(attempts: list[Attempt]) -> str:
     """Last attempt that executed successfully; else the last attempt's SQL; else ""."""
     for attempt in reversed(attempts):

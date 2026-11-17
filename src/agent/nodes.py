@@ -8,6 +8,7 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.agent.prompts import (
+    CALC_FILL_PROMPT,
     DIRECT_RESPONSE_PROMPT,
     VALIDATION_PROMPT,
     build_response_prompt,
@@ -54,14 +55,22 @@ def _extract_json(text: str) -> Any:
     return json.loads(text)
 
 
+# Characters of each tool's output kept in the prompts. Was 1,500 until the 2026-11-17 failure
+# analysis found the passage with the answer cut off at about character 1,800 (ADR-011).
+MAX_TOOL_OUTPUT_CHARS = 6000
+
+
 def _format_tool_results(results: list[ToolResult]) -> str:
-    """Format tool results for inclusion in prompts."""
+    """Format tool results for inclusion in prompts, saying when an output was cut."""
     parts = []
     for i, r in enumerate(results, 1):
         status = "SUCCESS" if r.success else "FAILED"
         output_str = json.dumps(r.output, ensure_ascii=False, default=str)
-        if len(output_str) > 1500:
-            output_str = output_str[:1500] + "..."
+        if len(output_str) > MAX_TOOL_OUTPUT_CHARS:
+            cut = len(output_str) - MAX_TOOL_OUTPUT_CHARS
+            output_str = (
+                f"{output_str[:MAX_TOOL_OUTPUT_CHARS]}... [{cut} more characters not shown]"
+            )
         parts.append(f"[{i}] {r.tool}(input={r.input!r}) → {status}\n{output_str}")
     return "\n\n".join(parts)
 
@@ -137,8 +146,8 @@ def reason_node(state: AgentState) -> dict[str, Any]:
 def execute_node(state: AgentState) -> dict[str, Any]:
     """Execute the next planned tool and store its result.
 
-    Handles PLACEHOLDER inputs by substituting values from previous
-    tool results (e.g., calculator expressions that depend on SQL data).
+    A planned input of ``PLACEHOLDER`` (a calculation that depends on earlier results) is
+    written by the model from those results just before the tool runs (``_fill_placeholder``).
     """
     if state.current_tool_index >= len(state.planned_tools):
         return {}
@@ -146,8 +155,20 @@ def execute_node(state: AgentState) -> dict[str, Any]:
     tool_call = state.planned_tools[state.current_tool_index]
     tool_input = tool_call.input
 
-    if "PLACEHOLDER" in tool_input and state.tool_results:
-        tool_input = _resolve_placeholder(tool_input, state.tool_results)
+    if "PLACEHOLDER" in tool_input:
+        filled = _fill_placeholder(state.query, tool_call, state.tool_results)
+        if filled is None:
+            result = ToolResult(
+                tool=tool_call.tool.value,
+                input=tool_input,
+                output={"error": "no expression: the earlier results lack the numbers needed"},
+                success=False,
+            )
+            return {
+                "tool_results": [*state.tool_results, result],
+                "current_tool_index": state.current_tool_index + 1,
+            }
+        tool_input = filled
 
     result = _execute_tool(tool_call.tool, tool_input, state.db_path)
 
@@ -209,53 +230,29 @@ def _execute_tool(tool_name: ToolName, tool_input: str, db_path: str | None = No
         )
 
 
-def _resolve_placeholder(tool_input: str, results: list[ToolResult]) -> str:
-    """Attempt to replace PLACEHOLDER with data from previous results.
+_EXPRESSION = re.compile(r"^[\d\s.+\-*/()]+$")
 
-    For calculator expressions, extracts numeric values from the most
-    recent SQL query results and builds the expression.
+
+def _fill_placeholder(query: str, tool_call: ToolCall, results: list[ToolResult]) -> str | None:
+    """Ask the model for the calculator expression a ``PLACEHOLDER`` stands for.
+
+    Replaces a fixed growth-rate formula that was applied to every question: the 2026-11-17
+    failure analysis found it computed an unrelated number for 5 of the 6 question types that
+    reached it, and left the placeholder unfilled for the rest (ADR-011). Returns None when
+    there are no earlier results or the model says the numbers are missing.
     """
-    sql_results = [r for r in results if r.tool == "sql_query" and r.success]
-    if not sql_results:
-        return tool_input
-
-    last_sql = sql_results[-1]
-    output = last_sql.output
-    if isinstance(output, dict):
-        rows = output.get("rows", [])
-        if len(rows) >= 2:
-            val1 = _extract_number(rows[0])
-            val2 = _extract_number(rows[1])
-            if val1 is not None and val2 is not None:
-                return f"({val2} - {val1}) / {val1} * 100"
-        elif len(rows) == 1 and len(rows[0]) >= 2:
-            val1 = _extract_number_from_value(rows[0][0])
-            val2 = _extract_number_from_value(rows[0][1])
-            if val1 is not None and val2 is not None:
-                return f"({val2} - {val1}) / {val1} * 100"
-
-    return tool_input
-
-
-def _extract_number(row: list[Any]) -> float | None:
-    """Extract the first numeric value from a row."""
-    for val in row:
-        result = _extract_number_from_value(val)
-        if result is not None:
-            return result
-    return None
-
-
-def _extract_number_from_value(val: Any) -> float | None:
-    """Try to convert a value to a float."""
-    if isinstance(val, (int, float)):
-        return float(val)
-    if isinstance(val, str):
-        try:
-            return float(val.replace(",", ""))
-        except ValueError:
-            return None
-    return None
+    if not results:
+        return None
+    prompt = CALC_FILL_PROMPT.format(
+        query=query,
+        reason=tool_call.reason or "the calculation",
+        tool_results=_format_tool_results(results),
+    )
+    text = get_client().complete(None, prompt, tag="fill").text.strip()
+    expression = text.strip("`").strip().splitlines()[0].strip() if text.strip("`").strip() else ""
+    if not expression or expression.upper() == "NONE" or not _EXPRESSION.match(expression):
+        return None
+    return expression
 
 
 @trace_node("validate")

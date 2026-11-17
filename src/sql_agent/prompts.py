@@ -48,8 +48,12 @@ Otherwise optionally write one short line naming the problem, then give the corr
 query in a ```sql block."""
 
 RESPOND_SYSTEM = (
-    "You answer a data question in one or two short sentences, using only the query result "
-    "you are given. Do not mention SQL."
+    "You answer a data question using only the query result you are given. The query has "
+    "already been run on the database: every filter, join and condition in it has been "
+    "applied, so the rows you see already satisfy them. Answer directly and briefly. If the "
+    "question asks for a list and the result has more rows than you are shown, give the "
+    "total number of rows and say that you list only the first ones; never present a partial "
+    "list as complete and never guess the total. Do not mention SQL."
 )
 
 
@@ -134,9 +138,20 @@ def check_user(
     return "\n\n".join(parts)
 
 
-def respond_user(question: str, attempt: Attempt | None) -> str:
-    result = format_result(attempt) if attempt is not None else "No query result."
-    return f"Question: {question.strip()}\n\nQuery result:\n{result}"
+def respond_user(question: str, attempt: Attempt | None, total_rows: int | None = None) -> str:
+    """The answer step's prompt: the question, the query that ran and its result.
+
+    ``total_rows``: the exact row count when the result was larger than the fetch limit.
+    """
+    if attempt is None:
+        return f"Question: {question.strip()}\n\nQuery result:\nNo query result."
+    result = format_result(attempt)
+    if total_rows is not None and attempt.more_rows:
+        result = result.replace(
+            f"Row count: {attempt.row_count_text}", f"Row count: {total_rows}", 1
+        )
+    sql = attempt.sql.strip()
+    return f"Question: {question.strip()}\n\nQuery that ran:\n{sql}\n\nQuery result:\n{result}"
 
 
 __all__ = [

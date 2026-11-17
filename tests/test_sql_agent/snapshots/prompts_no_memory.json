@@ -20,9 +20,9 @@
   },
   {
    "tag": "respond",
-   "system": "You answer a data question in one or two short sentences, using only the query result you are given. Do not mention SQL.",
+   "system": "You answer a data question using only the query result you are given. The query has already been run on the database: every filter, join and condition in it has been applied, so the rows you see already satisfy them. Answer directly and briefly. If the question asks for a list and the result has more rows than you are shown, give the total number of rows and say that you list only the first ones; never present a partial list as complete and never guess the total. Do not mention SQL.",
    "prefix": null,
-   "user": "Question: How many accounts with a loan of more than 12 months have monthly issuance?\n\nQuery result:\nColumns: COUNT(*)\nRow count: 1\nRows:\n2"
+   "user": "Question: How many accounts with a loan of more than 12 months have monthly issuance?\n\nQuery that ran:\nSELECT COUNT(*) FROM loan WHERE duration > 12\n\nQuery result:\nColumns: COUNT(*)\nRow count: 1\nRows:\n2"
   }
  ],
  "schools_no_evidence_ok": [
@@ -60,9 +60,9 @@
   },
   {
    "tag": "respond",
-   "system": "You answer a data question in one or two short sentences, using only the query result you are given. Do not mention SQL.",
+   "system": "You answer a data question using only the query result you are given. The query has already been run on the database: every filter, join and condition in it has been applied, so the rows you see already satisfy them. Answer directly and briefly. If the question asks for a list and the result has more rows than you are shown, give the total number of rows and say that you list only the first ones; never present a partial list as complete and never guess the total. Do not mention SQL.",
    "prefix": null,
-   "user": "Question: List the account ids.\n\nQuery result:\nColumns: account_id\nRow count: 3\nRows:\n1\n2\n3"
+   "user": "Question: List the account ids.\n\nQuery that ran:\nSELECT account_id FROM account\n\nQuery result:\nColumns: account_id\nRow count: 3\nRows:\n1\n2\n3"
   }
  ]
 }
