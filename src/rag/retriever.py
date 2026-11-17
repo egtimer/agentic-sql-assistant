@@ -7,10 +7,10 @@ from collections import defaultdict
 from typing import Any
 
 from pydantic import BaseModel, Field
-from qdrant_client import QdrantClient
 
 from src.config import settings
 from src.rag.embedding import check_index_runtime, load_embedder
+from src.rag.qdrant import qdrant_client
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ def retrieve(
     collection_name = collection_name or settings.qdrant_collection
 
     if _client is None:
-        client = QdrantClient(url=qdrant_url)
+        client = qdrant_client(qdrant_url)
         check_index_runtime(client, collection_name, qdrant_url)
     else:
         client = _client

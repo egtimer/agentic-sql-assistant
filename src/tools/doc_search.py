@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.config import settings
 from src.rag.embedding import EmbeddingRuntimeMismatch, check_index_runtime, load_embedder
+from src.rag.qdrant import qdrant_client
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +120,7 @@ def _fallback_search(
     """Direct vector search fallback when hybrid retrieval fails."""
     try:
         if _client is None:
-            from qdrant_client import QdrantClient
-
-            client = QdrantClient(url=qdrant_url)
+            client = qdrant_client(qdrant_url)
             check_index_runtime(client, collection_name, qdrant_url)
         else:
             client = _client

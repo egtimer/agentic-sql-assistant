@@ -47,6 +47,7 @@ from src.llm import (
     set_client,
 )
 from src.rag.embedding import embedding_runtime, index_runtime
+from src.rag.qdrant import qdrant_client, server_version
 
 SET = Path(__file__).resolve().parent / "set" / "queries.jsonl"
 STEP_OUTPUT_CHARS = 2000
@@ -208,10 +209,8 @@ def rescore(run_dir: Path, systems: list[str]) -> int:
 
 
 def provenance(config_path: Path, argv: list[str]) -> dict[str, Any]:
-    from qdrant_client import QdrantClient
-
     db = Path(settings.sqlite_db_path)
-    client = QdrantClient(url=settings.qdrant_url)
+    client = qdrant_client(settings.qdrant_url)
     packages = {}
     for pkg in ("anthropic", "langgraph", "qdrant-client", "sentence-transformers"):
         try:
@@ -226,7 +225,7 @@ def provenance(config_path: Path, argv: list[str]) -> dict[str, Any]:
         "demo_db_sha256": hashlib.sha256(db.read_bytes()).hexdigest(),
         "embedding_runtime": embedding_runtime(),
         "index_runtime": index_runtime(client, settings.qdrant_collection),
-        "qdrant_server": client.info().version,
+        "qdrant_server": server_version(client, settings.qdrant_url),
         "packages": packages,
     }
 

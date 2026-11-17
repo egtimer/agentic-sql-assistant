@@ -5,11 +5,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
-from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from src.config import settings
 from src.rag.embedding import embedding_runtime, load_embedder
+from src.rag.qdrant import qdrant_client
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def ingest_to_qdrant(
     vector_size = embeddings.shape[1]
 
     logger.info("Connecting to Qdrant at %s", qdrant_url)
-    client = QdrantClient(url=qdrant_url)
+    client = qdrant_client(qdrant_url)
 
     collections = [c.name for c in client.get_collections().collections]
     if collection_name in collections:
