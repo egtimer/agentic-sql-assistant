@@ -167,7 +167,10 @@ def generate_node(state: SqlAgentState) -> dict[str, Any]:
     lambda s, u: _attempt_output(u["attempts"][-1]),
 )
 def execute_node(state: SqlAgentState) -> dict[str, Any]:
-    attempt = run_query(state.db_path, state.candidate_sql, policy=state.policy)
+    with tracing.span(f"{tracing.TOOL_SPAN_PREFIX}run_query") as tool_span:
+        attempt = run_query(state.db_path, state.candidate_sql, policy=state.policy)
+        if attempt.error is not None:
+            tool_span.update(level="ERROR", status_message=f"QueryError: {attempt.error}")
     return {"attempts": [*state.attempts, attempt]}
 
 

@@ -49,6 +49,7 @@ def trace_completion(
     *,
     tag: str,
     error: BaseException | None = None,
+    provider: str | None = None,
 ) -> None:
     """Record one finished (or failed) LLM call as a generation under the current trace.
 
@@ -72,6 +73,7 @@ def trace_completion(
             end=datetime.now(UTC),
             level="ERROR",
             status_message=f"{type(error).__name__}: {error}",
+            provider=provider,
         )
         return
     usage = completion.usage
@@ -95,6 +97,7 @@ def trace_completion(
             "latency_ms": round(usage.latency_ms, 1),
         },
         level="WARNING" if completion.is_failure else None,
+        provider=provider,
     )
 
 
@@ -150,7 +153,17 @@ class OllamaClient:
         try:
             response = self._get_llm().invoke(messages)
         except Exception as e:
-            trace_completion(self.config.model, system, None, user, None, started, tag=tag, error=e)
+            trace_completion(
+                self.config.model,
+                system,
+                None,
+                user,
+                None,
+                started,
+                tag=tag,
+                error=e,
+                provider=self.config.provider,
+            )
             raise ProviderError("ollama", e) from e
         latency_ms = (time.perf_counter() - start) * 1000
 
@@ -167,7 +180,16 @@ class OllamaClient:
         usage.cost_usd = cost_of(usage, self.config.pricing)
         self.tracker.record(usage)
         completion = Completion(text=text, usage=usage)
-        trace_completion(self.config.model, system, None, user, completion, started, tag=tag)
+        trace_completion(
+            self.config.model,
+            system,
+            None,
+            user,
+            completion,
+            started,
+            tag=tag,
+            provider=self.config.provider,
+        )
         return completion
 
 
@@ -227,7 +249,15 @@ class AnthropicClient:
             response = self._get_sdk().messages.create(**kwargs)
         except Exception as e:
             trace_completion(
-                self.config.model, system, prefix, user, None, started, tag=tag, error=e
+                self.config.model,
+                system,
+                prefix,
+                user,
+                None,
+                started,
+                tag=tag,
+                error=e,
+                provider=self.config.provider,
             )
             import anthropic
 
@@ -254,7 +284,16 @@ class AnthropicClient:
         if usage.stop_reason in FAILURE_STOP_REASONS:
             logger.warning("LLM call %s ended with stop_reason=%s", tag, usage.stop_reason)
         completion = Completion(text=text, usage=usage)
-        trace_completion(self.config.model, system, prefix, user, completion, started, tag=tag)
+        trace_completion(
+            self.config.model,
+            system,
+            prefix,
+            user,
+            completion,
+            started,
+            tag=tag,
+            provider=self.config.provider,
+        )
         return completion
 
 

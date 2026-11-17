@@ -70,14 +70,26 @@ def test_agent_v1_spans_and_generations(events: list[dict[str, Any]]) -> None:
     assert result["response"] == "The answer is 2."
 
     spans = of_type(events, "span-create")
-    assert [s["name"] for s in spans] == ["agent_query", "reason", "execute", "validate", "respond"]
+    assert [s["name"] for s in spans] == [
+        "agent_query",
+        "reason",
+        "execute",
+        "tool:calculator",
+        "validate",
+        "respond",
+    ]
     assert all(s["traceId"] == root.id for s in spans)
     gens = of_type(events, "generation-create")
     assert [g["name"] for g in gens] == ["reason", "respond"]
     assert [parent_name(events, g) for g in gens] == ["reason", "respond"]
-    assert [parent_name(events, s) for s in spans] == [None, "agent_query", "agent_query"] + [
-        "agent_query"
-    ] * 2
+    assert [parent_name(events, s) for s in spans] == [
+        None,
+        "agent_query",
+        "agent_query",
+        "execute",
+        "agent_query",
+        "agent_query",
+    ]
     for g in gens:
         assert g["model"] == "fake-model"
         assert g["usage"]["input"] == 11 and g["usage"]["output"] == 3
@@ -122,13 +134,18 @@ def test_sql_agent_v2_spans_with_check_and_fix(
         "introspect",
         "generate",
         "execute",
+        "tool:run_query",
         "check",
         "execute",
+        "tool:run_query",
         "check",
         "respond",
     ]
     assert all(s["traceId"] == root.id for s in spans)
-    assert all(parent_name(events, s) == "sql_agent_v2" for s in spans[1:])
+    assert all(
+        parent_name(events, s) == ("execute" if s["name"] == "tool:run_query" else "sql_agent_v2")
+        for s in spans[1:]
+    )
     gens = of_type(events, "generation-create")
     assert [(g["name"], parent_name(events, g)) for g in gens] == [
         ("generate", "generate"),

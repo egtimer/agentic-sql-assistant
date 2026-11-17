@@ -136,11 +136,16 @@ def check_trace(
         expected.update({"introspect": 1, "generate": 1, "execute": 1, "respond": 1})
         if record is not None and "verdicts" in record:
             expected["execute"] = len(record["attempts"])
+            expected["tool:run_query"] = len(record["attempts"])  # one tool span per execute
             expected["check"] = len(record["verdicts"])
     if not exception:
         for name, n in expected.items():
             got = span_counts.get(name, 0)
-            exact = agent == "agent_v2" and record is not None and name in ("execute", "check")
+            exact = (
+                agent == "agent_v2"
+                and record is not None
+                and name in ("execute", "tool:run_query", "check")
+            )
             if (exact and got != n) or got < n:
                 problems.append(f"span {name!r}: found {got}, expected {n}")
 

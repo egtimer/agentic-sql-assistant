@@ -30,6 +30,7 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)
 
+TOOL_SPAN_PREFIX = "tool:"  # a span named tool:<name> is one tool call (execute_tool in OTel)
 MAX_SPAN_TEXT = 20_000  # characters kept per string in span inputs/outputs
 MAX_DEPTH = 6
 
@@ -130,6 +131,7 @@ class Tracer(Protocol):
         metadata: Mapping[str, Any] | None = None,
         level: str | None = None,
         status_message: str | None = None,
+        provider: str | None = None,
     ) -> None: ...
 
     def score(
@@ -171,6 +173,8 @@ class _Node:
 
 
 _current: ContextVar[_Node | None] = ContextVar("tracing_current", default=None)
+# True inside any trace or span opened through this module, whatever the backend.
+_open: ContextVar[bool] = ContextVar("tracing_open", default=False)
 
 
 class _LangfuseHandle:
@@ -311,6 +315,7 @@ class LangfuseTracer:
         metadata: Mapping[str, Any] | None = None,
         level: str | None = None,
         status_message: str | None = None,
+        provider: str | None = None,
     ) -> None:
         parent = _current.get()
         if parent is None:
@@ -383,6 +388,63 @@ class LangfuseTracer:
             logger.warning("tracing: flush failed: %s", e)
 
 
+class _MultiHandle:
+    def __init__(self, handles: Sequence[Handle]) -> None:
+        self._handles = list(handles)
+
+    @property
+    def id(self) -> str | None:
+        return next((h.id for h in self._handles if h.id is not None), None)
+
+    def update(
+        self,
+        *,
+        output: Any = None,
+        metadata: Mapping[str, Any] | None = None,
+        level: str | None = None,
+        status_message: str | None = None,
+    ) -> None:
+        for handle in self._handles:
+            handle.update(
+                output=output, metadata=metadata, level=level, status_message=status_message
+            )
+
+
+class MultiTracer:
+    """Sends every observation to several tracers (Langfuse and OpenTelemetry, ADR-012)."""
+
+    enabled = True
+
+    def __init__(self, tracers: Sequence[Tracer]) -> None:
+        self.tracers = list(tracers)
+
+    @contextmanager
+    def trace(self, name: str, **kwargs: Any) -> Iterator[Handle]:
+        with contextlib.ExitStack() as stack:
+            handles = [stack.enter_context(t.trace(name, **kwargs)) for t in self.tracers]
+            yield _MultiHandle(handles)
+
+    @contextmanager
+    def span(self, name: str, **kwargs: Any) -> Iterator[Handle]:
+        with contextlib.ExitStack() as stack:
+            handles = [stack.enter_context(t.span(name, **kwargs)) for t in self.tracers]
+            yield _MultiHandle(handles)
+
+    def record_generation(self, name: str, **kwargs: Any) -> None:
+        for tracer in self.tracers:
+            tracer.record_generation(name, **kwargs)
+
+    def score(
+        self, trace_id: str | None, name: str, value: float, comment: str | None = None
+    ) -> None:
+        for tracer in self.tracers:
+            tracer.score(trace_id, name, value, comment)
+
+    def flush(self) -> None:
+        for tracer in self.tracers:
+            tracer.flush()
+
+
 _tracer: Tracer | None = None
 _lock = threading.Lock()
 
@@ -392,9 +454,9 @@ def configured() -> bool:
     return bool(settings.langfuse_public_key and settings.langfuse_secret_key)
 
 
-def _build_default() -> Tracer:
+def _build_langfuse() -> Tracer | None:
     if not configured():
-        return NoopTracer()
+        return None
     try:
         from langfuse import Langfuse
 
@@ -407,7 +469,18 @@ def _build_default() -> Tracer:
         return LangfuseTracer(client)
     except Exception as e:
         logger.warning("Langfuse could not be initialised, tracing disabled: %s", e)
+        return None
+
+
+def _build_default() -> Tracer:
+    """Langfuse when its keys are set, OpenTelemetry when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is
+    set, both through :class:`MultiTracer`, and the no-op tracer when neither is."""
+    from src.observability.otel import build_from_env
+
+    tracers = [t for t in (_build_langfuse(), build_from_env()) if t is not None]
+    if not tracers:
         return NoopTracer()
+    return tracers[0] if len(tracers) == 1 else MultiTracer(tracers)
 
 
 def get_tracer() -> Tracer:
@@ -445,7 +518,17 @@ def enabled() -> bool:
 
 def active() -> bool:
     """True when an observation is open in this context: payloads are worth building."""
-    return _current.get() is not None and get_tracer().enabled
+    return _open.get() and get_tracer().enabled
+
+
+@contextmanager
+def _marked(inner: contextlib.AbstractContextManager[Handle]) -> Iterator[Handle]:
+    token = _open.set(True)
+    try:
+        with inner as handle:
+            yield handle
+    finally:
+        _open.reset(token)
 
 
 def trace(
@@ -458,8 +541,13 @@ def trace(
     user_id: str | None = None,
 ) -> contextlib.AbstractContextManager[Handle]:
     """Open a trace (always a new root) for the duration of the block."""
-    return get_tracer().trace(
-        name, input=input, metadata=metadata, tags=tags, session_id=session_id, user_id=user_id
+    tracer = get_tracer()
+    if not tracer.enabled:
+        return contextlib.nullcontext(NOOP_HANDLE)
+    return _marked(
+        tracer.trace(
+            name, input=input, metadata=metadata, tags=tags, session_id=session_id, user_id=user_id
+        )
     )
 
 
@@ -468,9 +556,9 @@ def span(
 ) -> contextlib.AbstractContextManager[Handle]:
     """Open an observation under the current one (no-op when no trace is active)."""
     tracer = get_tracer()
-    if not tracer.enabled:
+    if not tracer.enabled or not _open.get():
         return contextlib.nullcontext(NOOP_HANDLE)
-    return tracer.span(name, input=input, metadata=metadata)
+    return _marked(tracer.span(name, input=input, metadata=metadata))
 
 
 def trace_or_span(
@@ -503,8 +591,11 @@ def record_generation(
     metadata: Mapping[str, Any] | None = None,
     level: str | None = None,
     status_message: str | None = None,
+    provider: str | None = None,
 ) -> None:
     """Log one finished LLM call under the current observation (no-op without a trace)."""
+    if not active():
+        return
     get_tracer().record_generation(
         name,
         model=model,
@@ -517,6 +608,7 @@ def record_generation(
         metadata=metadata,
         level=level,
         status_message=status_message,
+        provider=provider,
     )
 
 

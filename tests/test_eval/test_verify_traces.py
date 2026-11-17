@@ -37,6 +37,7 @@ def v2_trace(with_check: bool = True) -> list[dict]:
         obs("SPAN", "generate", "g", "root"),
         obs("GENERATION", "generate", "gg", "g"),
         obs("SPAN", "execute", "e", "root"),
+        obs("SPAN", "tool:run_query", "t", "e"),
         obs("SPAN", "respond", "r", "root"),
     ]
     if with_check:

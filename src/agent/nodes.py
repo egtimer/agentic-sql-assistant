@@ -23,6 +23,7 @@ from src.agent.state import (
     ToolResult,
 )
 from src.llm import get_client
+from src.observability import tracing
 from src.observability.langfuse_setup import trace_node
 from src.tools.calculator import calculate
 from src.tools.doc_search import doc_search
@@ -170,7 +171,10 @@ def execute_node(state: AgentState) -> dict[str, Any]:
             }
         tool_input = filled
 
-    result = _execute_tool(tool_call.tool, tool_input, state.db_path)
+    with tracing.span(f"{tracing.TOOL_SPAN_PREFIX}{tool_call.tool.value}") as tool_span:
+        result = _execute_tool(tool_call.tool, tool_input, state.db_path)
+        if not result.success:
+            tool_span.update(level="ERROR", status_message="ToolError: the tool reported a failure")
 
     logger.info(
         "Executed %s (success=%s): %s",
