@@ -110,6 +110,17 @@ jobs:
           fi
           uv run python -m evals.text2sql.check_regression \
             --reference "$reference" --current "evals/results/text2sql/$RUN_ID" --system agent_v2
+      - name: Production detectors (failed tool calls, loops, cost)
+        if: always() && steps.key.outputs.present == 'true'
+        env:
+          RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          run="evals/results/text2sql/$RUN_ID"
+          if [ ! -f "$run/predictions.jsonl" ]; then
+            echo "::notice title=Detectors skipped::no predictions in $run."
+            exit 0
+          fi
+          uv run python -m evals.monitor "$run" --system agent_v2
       - name: Upload the run directory
         if: always() && steps.key.outputs.present == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2

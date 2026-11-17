@@ -17,7 +17,10 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from evals.tools.metrics import check_answer  # the eval's own answer check
+from evals.tools.metrics import check_answer
+from src.monitoring.detectors import (
+    mentions_failure as _mentions_failure,  # the eval's own answer check
+)
 
 SILENT_TOOL_FAILURE = "silent_tool_failure"
 WRONG_TOOL = "wrong_tool"
@@ -90,17 +93,12 @@ _SYNTAX_ERROR = re.compile(
     r"could not parse|invalid syntax",
     re.IGNORECASE,
 )
-# What an answer says when it reports that a tool or query did not give it the data.
-_MENTIONS_FAILURE = re.compile(
-    r"fail|error|could ?n[o']t|unable|cannot|can't|not (?:available|found|returned)|"
-    r"no (?:data|result|rows)|returned nothing|empty|manual|no pude|no se pudo|fall[oó]",
-    re.IGNORECASE,
-)
 
 
 def mentions_failure(answer: str) -> bool:
-    """True when the answer says that a tool or query did not give it the data."""
-    return bool(_MENTIONS_FAILURE.search(answer or ""))
+    """True when the answer says that a tool or query did not give it the data (the same
+    rule as the production detector, ``src.monitoring.detectors.mentions_failure``)."""
+    return _mentions_failure(answer)
 
 
 def primary(tags: Sequence[str]) -> str:

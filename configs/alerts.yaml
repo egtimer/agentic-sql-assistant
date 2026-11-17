@@ -1,0 +1,23 @@
+# Limits for src/monitoring/detectors.py and evals/monitor.py (ADR-012).
+# A detector alerts when its value is above the limit. Set from the committed runs of
+# 2026-11-16/17, with room for noise: agent v2 had no failed SQL attempt on 350 BIRD test
+# questions with Haiku 5.5; agent v1 failed 19 of 555 tool runs' calculator calls before the
+# ADR-011 fix and none after; the costliest run averaged $0.0064 per question (Sonnet, tools).
+
+tool_failure_rate:
+  max_rate: 0.10        # share of tool calls (SQL attempts, tool steps) that failed
+
+silent_failures:
+  max_share: 0.0        # any answer that hides a failed tool call is worth a look
+
+loops:
+  max_steps: 6          # tool calls in one question (agent v2 makes at most 3)
+  max_repeats: 1        # the same tool with the same input more than once
+  max_share: 0.02       # share of questions that look like a loop
+
+cost:
+  max_mean_usd: 0.01    # mean per question
+  max_item_usd: 0.05    # any single question
+
+accuracy_drop:
+  max_drop_pts: 10.0    # EX or answer check below the reference by more than this, CI below 0
