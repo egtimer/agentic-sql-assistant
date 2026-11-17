@@ -71,9 +71,9 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Failure analysis | 153 failures classified by rules, 40 checked by hand: rules agree on 25 (kappa 0.56 [0.39, 0.73]); 4 of the 40 are BIRD gold errors; EX and the answer judge disagree on 50 of 348 questions ([report](evals/reports/2026-11-17-failure-analysis/README.md)) |
 | Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
-| Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
+| Observability | Langfuse 2.95.11 (self-hosted): node and tool spans, LLM generations with tokens and cost, eval runs linked to traces; OpenTelemetry GenAI spans (`invoke_agent`, `chat`, `execute_tool`) to any OTLP backend; detectors for failed tool calls, hidden failures, loops, cost and accuracy drops ([ADR-012](docs/ADR-012-production-observability.md)) |
 | CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
-| Tests | 924 tests (888 before the failure analysis; 859 before the run-to-run noise work) |
+| Tests | 940 tests (888 before the failure analysis; 859 before the run-to-run noise work) |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
@@ -405,7 +405,7 @@ Every request, agent node and LLM call can be inspected in Langfuse (self-hosted
 What you see:
 
 - **API:** one trace per `POST /agent/query` (optional `session_id` and `user_id` in the request body groups a conversation); the response carries `trace_id`.
-- **Agent v1:** spans `reason`, `execute`, `validate`, `respond`. **Agent v2:** spans `introspect`, `generate`, `execute` (SQL, columns, row count, error, guard block reason and layer, elapsed), `check` (verdict and fix), `respond`.
+- **Agent v1:** spans `reason`, `execute` (with a `tool:<name>` span per tool call), `validate`, `respond`. **Agent v2:** spans `introspect`, `generate`, `execute` (SQL, columns, row count, error, guard block reason and layer, elapsed; with a `tool:run_query` span), `check` (verdict and fix), `respond`.
 - **LLM calls:** a generation per call with the full prompt and answer, model, tokens (cache read and write in the metadata), cost, latency and stop reason.
 - **Evaluation runs:** with `--trace` each (question, system) pair is one trace in the session named after the run id, tagged with system, database, difficulty and split, scored with `execution_accuracy` and `cost_usd`; `trace_id` is stored in `predictions.jsonl`.
 
@@ -422,6 +422,12 @@ make langfuse-down
 `verify_traces` checks that every trace has its node spans nested under one root, that the generations match the LLM calls in `predictions.jsonl`, that each has tokens and cost, and that the scores exist; it writes a JSON report and exits 1 on any failure. A traced real-model run: `uv run python -m evals.text2sql.run --llm-config configs/llm/claude-haiku-5-5.yaml --system baseline,agent_v2 --limit 5 --skip-respond --budget-usd 0.05 --run-id <new-id> --trace`, then `verify_traces --session <new-id> --predictions evals/results/text2sql/<new-id>`.
 
 Tracing overhead with a scripted client (no LLM latency), measured with `python -m evals.observability.measure_overhead`: 5.1 ms per question and system on the calling thread (2.6 ms without tracing, 7.7 ms with; sd 2.5 ms of the paired difference, n=160), plus about 1 s to deliver 8 traces at the end of a pass. Details and limits in the ADR.
+
+### OpenTelemetry and detectors
+
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` and the same calls also go out as OpenTelemetry spans over OTLP/HTTP, following the GenAI semantic conventions: `invoke_agent agent_v1|agent_v2`, `chat {model}` (provider, model, input/output and cache tokens, finish reason, and the run's cost as `app.llm.cost_usd`, which the conventions do not define) and `execute_tool {tool}`. Prompts and answers stay in Langfuse and never go to the OTLP endpoint. With both configured, both receive every run. Design: [ADR-012](docs/ADR-012-production-observability.md).
+
+`python -m evals.monitor <run dir> [--reference <report>]` runs the detectors of `src/monitoring/` with the limits in `configs/alerts.yaml`: failed tool calls (over 10%), answers that hide a failed tool call (any), loops (more than 6 tool calls or the same call twice, over 2% of questions), cost (mean over $0.01 or any question over $0.05) and, against a reference, an accuracy drop over 10 points with the paired-bootstrap CI below zero. It writes `alerts.json` and exits 1 on an alert; the weekly API eval runs it. None of the 39 committed runs alerts.
 
 Real-model verification of a traced run ([report](evals/reports/2026-10-19-a5-trace-check/)): 5 dev questions with Claude Haiku 5.5, `baseline` and `agent_v2`; `verify_traces` found 10 of 10 traces with the expected node spans, 15 generations with tokens (including cache reads and writes) and cost, and both scores on every trace; the cost stored in Langfuse ($0.008050) equals the run's own call log.
 
@@ -482,6 +488,7 @@ Real-model demo ([transcript](docs/examples/mcp-demo.md), `python -m src.mcp_ser
 - [ADR-009: Answer judge and CI evals](docs/ADR-009-judge-and-ci-evals.md) — LLM judge of the final answer, its calibration against hand labels, and what runs in CI
 - [ADR-010: Agent v1 tool selection](docs/ADR-010-v1-tool-selection-eval.md) — the 60-query tool-selection set, the prompt fix made on dev, the single test run and a scorer fix made after it
 - [ADR-011: Fixes from the failure analysis](docs/ADR-011-fixes-from-failure-analysis.md) — calculator input written by the model, longer tool outputs, the SQL and exact row count in the answer step, measured before and after
+- [ADR-012: Production observability](docs/ADR-012-production-observability.md) — OpenTelemetry GenAI spans next to Langfuse, cost and content policy, and the detectors of failed tool calls, hidden failures, loops, cost and accuracy drops
 
 ## Stack
 
