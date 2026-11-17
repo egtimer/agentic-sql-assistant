@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-672",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 672,
+  "db_id": "codebase_community",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Among the users located in United Kingdom, how many users whose post have a total favorite amount of 4 or more?",
+    "evidence": "favorite amount of 4 or more refers to FavoriteCount > = 4; Location = 'United Kingdom';",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(*)\nFROM (\n    SELECT p.OwnerUserId\n    FROM posts p\n    JOIN users u ON u.Id = p.OwnerUserId\n    WHERE u.Location = 'United Kingdom'\n    GROUP BY p.OwnerUserId\n    HAVING SUM(p.FavoriteCount) >= 4\n) AS qualifying_users",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(*)\nFROM (\n    SELECT p.OwnerUserId\n    FROM posts p\n    JOIN users u ON u.Id = p.OwnerUserId\n    WHERE u.Location = 'United Kingdom'\n    GROUP BY p.OwnerUserId\n    HAVING SUM(p.FavoriteCount) >= 4\n) AS qualifying_users",
+    "answer": "There are 18 users located in the United Kingdom whose posts have a total favorite count of 4 or more."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-850",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 850,
+  "db_id": "formula_1",
+  "difficulty": "simple",
+  "primary": "answer_misread",
+  "tags": [
+    "answer_misread"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Please give the name of the race held on the circuits in Germany.",
+    "evidence": "Germany is a name of country;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT r.name\nFROM races r\nJOIN circuits c ON r.circuitId = c.circuitId\nWHERE c.country = 'Germany'",
+        "error": null,
+        "row_count": "3",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT r.name\nFROM races r\nJOIN circuits c ON r.circuitId = c.circuitId\nWHERE c.country = 'Germany'",
+    "answer": "The races held on circuits in Germany are the German Grand Prix and the European Grand Prix. The Luxembourg Grand Prix does not fit that description."
+  }
+}

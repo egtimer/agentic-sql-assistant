@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1404",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1404,
+  "db_id": "student_club",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 3,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Identify the type of expenses and their total value approved for 'October Meeting' event.",
+    "evidence": "total value refers to SUM(cost); 'October Meeting' is an event name;",
+    "attempts": [
+      {
+        "sql": "SELECT e.expense_description, SUM(e.cost) AS total_value\nFROM expense e\nJOIN budget b ON e.link_to_budget = b.budget_id\nJOIN event ev ON b.link_to_event = ev.event_id\nWHERE ev.event_name = 'October Meeting'\n  AND e.approved = 'true'\nGROUP BY e.expense_description",
+        "error": null,
+        "row_count": "3",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT e.expense_description, SUM(e.cost) AS total_value\nFROM expense e\nJOIN budget b ON e.link_to_budget = b.budget_id\nJOIN event ev ON b.link_to_event = ev.event_id\nWHERE ev.event_name = 'October Meeting'\n  AND e.approved = 'true'\nGROUP BY e.expense_description",
+    "answer": "The October Meeting expenses were Pizza ($51.81), Posters ($54.25), and Water, chips, cookies ($69.33)."
+  }
+}

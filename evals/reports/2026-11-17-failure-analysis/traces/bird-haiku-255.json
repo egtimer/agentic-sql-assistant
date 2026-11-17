@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-255",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 255,
+  "db_id": "toxicology",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What proportion of single bonds are carcinogenic? Please provide your answer as a percentage with five decimal places.",
+    "evidence": "single bond refers to bond_type = '-'; label = '+' mean molecules are carcinogenic; proportion = DIVIDE(SUM(label = '+') * 100, COUNT(bond_id)) where bond_type = '-'",
+    "attempts": [
+      {
+        "sql": "SELECT printf('%.5f', SUM(CASE WHEN m.label = '+' THEN 1 ELSE 0 END) * 100.0 / COUNT(b.bond_id)) AS proportion\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE b.bond_type = '-'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT printf('%.5f', SUM(CASE WHEN m.label = '+' THEN 1 ELSE 0 END) * 100.0 / COUNT(b.bond_id)) AS proportion\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE b.bond_type = '-'",
+    "answer": "The proportion of single bonds that are carcinogenic is 39.75203%."
+  }
+}

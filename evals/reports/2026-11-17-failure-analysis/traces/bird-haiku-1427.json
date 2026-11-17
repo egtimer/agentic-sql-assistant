@@ -1,0 +1,52 @@
+{
+  "failure_id": "bird-haiku-1427",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1427,
+  "db_id": "student_club",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 2,
+    "pred_rows": 4,
+    "gold_rows": 4
+  },
+  "trace": {
+    "question": "What are the budget category of the events located at MU 215 and a guest speaker type with a 0 budget spent?",
+    "evidence": "budget category refers to category; events located at refers to location; type = 'Guest Speaker'; 0 budget spent refers to spent = 0; ",
+    "attempts": [
+      {
+        "sql": "SELECT b.category\nFROM budget b\nJOIN event e ON b.link_to_event = e.event_id\nWHERE e.location = 'MU 215'\n  AND e.type = 'Guest Speaker'\n  AND b.spent = 0",
+        "error": null,
+        "row_count": "16",
+        "n_columns": 1
+      },
+      {
+        "sql": "SELECT DISTINCT b.category\nFROM budget b\nJOIN event e ON b.link_to_event = e.event_id\nWHERE e.location = 'MU 215'\n  AND e.type = 'Guest Speaker'\n  AND b.spent = 0",
+        "error": null,
+        "row_count": "4",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The query returns one row per matching budget, so categories repeat (for example, \"Speaker Gifts\" appears five times). The question asks which budget categories qualify, so each category should appear once.\n\n```sql\nSELECT DISTINCT b.category\nFROM budget b\nJOIN event e ON b.link_to_event = e.event_id\nWHERE e.location = 'MU 215'\n  AND e.type = 'Guest Speaker'\n  AND b.spent = 0\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT DISTINCT b.category\nFROM budget b\nJOIN event e ON b.link_to_event = e.event_id\nWHERE e.location = 'MU 215'\n  AND e.type = 'Guest Speaker'\n  AND b.spent = 0",
+    "answer": "The budget categories for the events at MU 215 with a guest speaker type and a zero spent amount are Speaker Gifts, Food, Parking, and Advertisement."
+  }
+}

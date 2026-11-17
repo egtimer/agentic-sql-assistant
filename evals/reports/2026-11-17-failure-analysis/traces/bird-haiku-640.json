@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-640",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 640,
+  "db_id": "codebase_community",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Calculate the difference in view count from post posted by Mornington and view count from posts posted by Amos.",
+    "evidence": "calculation = SUBTRACT(SUM(ViewCount where DisplayName = 'Mornington'), SUM(ViewCount where DisplayName = 'Amos'));",
+    "attempts": [
+      {
+        "sql": "SELECT SUM(CASE WHEN u.DisplayName = 'Mornington' THEN p.ViewCount ELSE 0 END)\n     - SUM(CASE WHEN u.DisplayName = 'Amos' THEN p.ViewCount ELSE 0 END) AS difference\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName IN ('Mornington', 'Amos')",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT SUM(CASE WHEN u.DisplayName = 'Mornington' THEN p.ViewCount ELSE 0 END)\n     - SUM(CASE WHEN u.DisplayName = 'Amos' THEN p.ViewCount ELSE 0 END) AS difference\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName IN ('Mornington', 'Amos')",
+    "answer": "The difference in view count between Mornington's posts and Amos's posts is -497, meaning Amos's posts have 497 more views than Mornington's."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-195",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 195,
+  "db_id": "toxicology",
+  "difficulty": "simple",
+  "primary": "answer_misread",
+  "tags": [
+    "answer_misread"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "What is the most common bond type?",
+    "evidence": "most common bond type refers MAX(COUNT(bond_type))",
+    "attempts": [
+      {
+        "sql": "SELECT bond_type\nFROM bond\nWHERE bond_type IS NOT NULL\nGROUP BY bond_type\nORDER BY COUNT(bond_type) DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT bond_type\nFROM bond\nWHERE bond_type IS NOT NULL\nGROUP BY bond_type\nORDER BY COUNT(bond_type) DESC\nLIMIT 1",
+    "answer": "The query result doesn't identify a most common bond type; it returned a single row with a blank value (\"-\"), so the data needed to answer isn't there."
+  }
+}

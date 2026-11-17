@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-119",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 119,
+  "db_id": "financial",
+  "difficulty": "moderate",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "For accounts in 1993 with statement issued after transaction, list the account ID, district name and district region.",
+    "evidence": "Records about district names could be found in A2; A3 contains the information about regions. 'POPLATEK PO OBRATU' stands for issuance after transaction",
+    "attempts": [
+      {
+        "sql": "SELECT a.account_id, d.A2 AS district_name, d.A3 AS district_region\nFROM account a\nJOIN district d ON a.district_id = d.district_id\nWHERE a.frequency = 'POPLATEK PO OBRATU'\n  AND strftime('%Y', a.date) = '1993'",
+        "error": null,
+        "row_count": "21",
+        "n_columns": 3
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT a.account_id, d.A2 AS district_name, d.A3 AS district_region\nFROM account a\nJOIN district d ON a.district_id = d.district_id\nWHERE a.frequency = 'POPLATEK PO OBRATU'\n  AND strftime('%Y', a.date) = '1993'",
+    "answer": "There are 21 matching accounts, including account 66 in Rychnov nad Kneznou (east Bohemia), account 273 in Karlovy Vary (west Bohemia), and account 1539 in Hl.m. Praha (Prague). The list shows 20 of them; the 21st was not included in the results."
+  }
+}

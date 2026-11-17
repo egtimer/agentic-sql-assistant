@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1227",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1227,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What is the average age of the male patient with high cholesterol?",
+    "evidence": "average age = DIVIDE(SUM(SUBTRACT(YEAR(NOW()), YEAR(birthday))), COUNT(ID)); male patient refers to sex = 'M'; high cholesterol refers to `T-CHO` > = 250;",
+    "attempts": [
+      {
+        "sql": "SELECT AVG(CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', p.Birthday) AS INTEGER)) AS average_age\nFROM Patient p\nWHERE p.SEX = 'M'\n  AND p.ID IN (SELECT l.ID FROM Laboratory l WHERE l.`T-CHO` >= 250)",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT AVG(CAST(strftime('%Y', 'now') AS INTEGER) - CAST(strftime('%Y', p.Birthday) AS INTEGER)) AS average_age\nFROM Patient p\nWHERE p.SEX = 'M'\n  AND p.ID IN (SELECT l.ID FROM Laboratory l WHERE l.`T-CHO` >= 250)",
+    "answer": "The average age of male patients with high cholesterol is about 71.95 years."
+  }
+}

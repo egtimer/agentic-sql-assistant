@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-260",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 260,
+  "db_id": "toxicology",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Calculate the total atoms with triple-bond molecules containing the element phosphorus or bromine.",
+    "evidence": "triple bond refers to bond_type = '#'; phosphorus refers to element = 'p'; bromine refers to element = 'br'",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(*) AS total_atoms\nFROM atom a\nWHERE a.molecule_id IN (\n        SELECT b.molecule_id\n        FROM bond b\n        WHERE b.bond_type = '#'\n    )\n  AND a.molecule_id IN (\n        SELECT a2.molecule_id\n        FROM atom a2\n        WHERE a2.element IN ('p', 'br')\n    )",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(*) AS total_atoms\nFROM atom a\nWHERE a.molecule_id IN (\n        SELECT b.molecule_id\n        FROM bond b\n        WHERE b.bond_type = '#'\n    )\n  AND a.molecule_id IN (\n        SELECT a2.molecule_id\n        FROM atom a2\n        WHERE a2.element IN ('p', 'br')\n    )",
+    "answer": "The total number of atoms in triple-bond molecules containing phosphorus or bromine is 4."
+  }
+}

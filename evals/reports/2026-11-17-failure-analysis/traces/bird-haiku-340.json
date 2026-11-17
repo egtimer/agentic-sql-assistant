@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-340",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 340,
+  "db_id": "card_games",
+  "difficulty": "simple",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 17544,
+    "gold_rows": 25061
+  },
+  "trace": {
+    "question": "Which are the cards that have incredibly powerful foils.",
+    "evidence": "incredibly poweful foils refers to cardKingdomFoilId is not null AND cardKingdomId is not null",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT name\nFROM cards\nWHERE cardKingdomFoilId IS NOT NULL\n  AND cardKingdomId IS NOT NULL",
+        "error": null,
+        "row_count": ">1000",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT name\nFROM cards\nWHERE cardKingdomFoilId IS NOT NULL\n  AND cardKingdomId IS NOT NULL",
+    "answer": "The query returned more than 1,000 cards, but it only shows names, so it doesn't say which foils are the most powerful. The first 20 are Ballista Squad, Bandage, Beacon of Immortality, Cho-Manno, Revolutionary, Condemn, Demystify, Ghost Warden, Glorious Anthem, Hail of Arrows, High Ground, Honor Guard, Icatian Priest, Reviving Dose, Righteousness, Samite Healer, Academy Researchers, Ambassador Laquatus, Boomerang, Cancel, and Cephalid Constable."
+  }
+}

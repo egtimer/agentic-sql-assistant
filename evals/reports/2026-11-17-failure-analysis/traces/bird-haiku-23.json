@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-23",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 23,
+  "db_id": "california_schools",
+  "difficulty": "moderate",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 5,
+    "gold_columns": 2,
+    "pred_rows": 1239,
+    "gold_rows": 1239
+  },
+  "trace": {
+    "question": "List the names of schools with more than 30 difference in enrollements between K-12 and ages 5-17? Please also give the full street adress of the schools.",
+    "evidence": "Diffrence in enrollement = `Enrollment (K-12)` - `Enrollment (Ages 5-17)`",
+    "attempts": [
+      {
+        "sql": "SELECT s.School AS school_name,\n       s.Street,\n       s.City,\n       s.State,\n       s.Zip\nFROM frpm f\nJOIN schools s ON s.CDSCode = f.CDSCode\nWHERE f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)` > 30",
+        "error": null,
+        "row_count": ">1000",
+        "n_columns": 5
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.School AS school_name,\n       s.Street,\n       s.City,\n       s.State,\n       s.Zip\nFROM frpm f\nJOIN schools s ON s.CDSCode = f.CDSCode\nWHERE f.`Enrollment (K-12)` - f.`Enrollment (Ages 5-17)` > 30",
+    "answer": "More than 1,000 schools meet the criterion. The first 20 are shown with their full street addresses, starting with Alameda County Community (313 West Winton Avenue, Hayward, CA 94544-1136) and California School for the Deaf-Fremont (39350 Gallaudet Drive, Fremont, CA 94538-2308). The enrollment figures themselves aren't included in the result."
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "failure_id": "bird-haiku-1375",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1375,
+  "db_id": "student_club",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 2,
+    "pred_rows": 5,
+    "gold_rows": 5
+  },
+  "trace": {
+    "question": "List all the members of the \"School of Applied Sciences, Technology and Education\" department.",
+    "evidence": "list all members means to list all the full name; full name refers to first_name, last_name;",
+    "attempts": [
+      {
+        "sql": "SELECT m.first_name || ' ' || m.last_name AS full_name\nFROM member m\nJOIN major j ON m.link_to_major = j.major_id\nWHERE j.college = 'School of Applied Sciences, Technology and Education'",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      },
+      {
+        "sql": "SELECT m.first_name || ' ' || m.last_name AS full_name\nFROM member m\nJOIN major j ON m.link_to_major = j.major_id\nWHERE j.department LIKE '%School of Applied Sciences, Technology and Education%'\n   OR j.college LIKE '%School of Applied Sciences, Technology and Education%'",
+        "error": null,
+        "row_count": "5",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The filter uses the `college` column, but the question asks about a \"department,\" and the empty result suggests the value doesn't match. I'll match the value against both columns with `LIKE` to tolerate formatting differences.\n\n```sql\nSELECT m.first_name || ' ' || m.last_name AS full_name\nFROM member m\nJOIN major j ON m.link_to_major = j.major_id\nWHERE j.department LIKE '%School of Applied Sciences, Technology and Education%'\n   OR j.college LIKE '%School of Applied Sciences, Technology and Education%'\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT m.first_name || ' ' || m.last_name AS full_name\nFROM member m\nJOIN major j ON m.link_to_major = j.major_id\nWHERE j.department LIKE '%School of Applied Sciences, Technology and Education%'\n   OR j.college LIKE '%School of Applied Sciences, Technology and Education%'",
+    "answer": "The School of Applied Sciences, Technology and Education has five members: Angela Sanders, Dean O'Reilly, Edwardo Ing, Mccauley Nash, and Brent Thomason."
+  }
+}

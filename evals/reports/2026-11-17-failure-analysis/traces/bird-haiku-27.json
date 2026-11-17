@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-27",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 27,
+  "db_id": "california_schools",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 3,
+    "gold_columns": 3,
+    "pred_rows": 813,
+    "gold_rows": 8574
+  },
+  "trace": {
+    "question": "What is the average score in writing for the schools that were opened after 1991 or closed before 2000? List the school names along with the score. Also, list the communication number of the schools if there is any.",
+    "evidence": "Communication number refers to phone number.",
+    "attempts": [
+      {
+        "sql": "SELECT s.School,\n       sat.AvgScrWrite AS AvgWritingScore,\n       s.Phone\nFROM schools s\nJOIN satscores sat ON sat.cds = s.CDSCode\nWHERE CAST(strftime('%Y', s.OpenDate) AS INTEGER) > 1991\n   OR CAST(strftime('%Y', s.ClosedDate) AS INTEGER) < 2000",
+        "error": null,
+        "row_count": "813",
+        "n_columns": 3
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.School,\n       sat.AvgScrWrite AS AvgWritingScore,\n       s.Phone\nFROM schools s\nJOIN satscores sat ON sat.cds = s.CDSCode\nWHERE CAST(strftime('%Y', s.OpenDate) AS INTEGER) > 1991\n   OR CAST(strftime('%Y', s.ClosedDate) AS INTEGER) < 2000",
+    "answer": "The result doesn't show the opening or closing dates, so I can't confirm which schools meet the filter. Among the 20 rows shown, 15 have writing scores, averaging about 434.9. The full 813-row result would be needed for the overall average."
+  }
+}

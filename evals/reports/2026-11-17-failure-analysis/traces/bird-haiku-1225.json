@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-1225",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1225,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 2,
+    "gold_rows": 10
+  },
+  "trace": {
+    "question": "List and group all patients by sex for total bilirubin (T-BIL) level not within the normal range.",
+    "evidence": "List refers to GROUP_CONCAT(DISTINCT ID); total bilirubin (T-BIL) not within normal range refers to T-BIL > = 2.0",
+    "attempts": [
+      {
+        "sql": "SELECT p.SEX, GROUP_CONCAT(DISTINCT p.ID) AS ID_List\nFROM Patient p\nJOIN Laboratory l ON p.ID = l.ID\nWHERE l.`T-BIL` >= 2.0\nGROUP BY p.SEX",
+        "error": null,
+        "row_count": "2",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT p.SEX, GROUP_CONCAT(DISTINCT p.ID) AS ID_List\nFROM Patient p\nJOIN Laboratory l ON p.ID = l.ID\nWHERE l.`T-BIL` >= 2.0\nGROUP BY p.SEX",
+    "answer": "Patients with abnormal total bilirubin (T-BIL) levels are grouped by sex: females are IDs 250391, 1180510, 2308236, 2931207, and 4862013, while males are IDs 43003, 444499, 1137040, 2307640, and 4618443."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-758",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 758,
+  "db_id": "superhero",
+  "difficulty": "moderate",
+  "primary": "answer_misread",
+  "tags": [
+    "answer_misread"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Provide the hair colour of the human superhero who is 185 cm tall.",
+    "evidence": "185 cm tall refers to height_cm = 185; human superhero refers to race = 'human'; hair colour refers to colour where hair_colour_id = colour.id;",
+    "attempts": [
+      {
+        "sql": "SELECT c.colour\nFROM superhero s\nJOIN race r ON s.race_id = r.id\nJOIN colour c ON s.hair_colour_id = c.id\nWHERE s.height_cm = 185 AND r.race = 'Human'",
+        "error": null,
+        "row_count": "11",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT c.colour\nFROM superhero s\nJOIN race r ON s.race_id = r.id\nJOIN colour c ON s.hair_colour_id = c.id\nWHERE s.height_cm = 185 AND r.race = 'Human'",
+    "answer": "The results list 11 hair colours, including Blond, Brown, Black, Brown/White, and No Colour, so they don't identify a single colour for the 185 cm human superhero."
+  }
+}

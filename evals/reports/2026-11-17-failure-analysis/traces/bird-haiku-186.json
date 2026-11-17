@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-186",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 186,
+  "db_id": "financial",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What percentage of male clients request for weekly statements to be issued?",
+    "evidence": "Percentage of male clients = [count(male clients who requested weekly statements / count(clients who requested weekly statements)] * 100%; Male means gender = 'M'; 'POPLATEK TYDNE' stands for weekly issuance",
+    "attempts": [
+      {
+        "sql": "SELECT CAST(SUM(CASE WHEN c.gender = 'M' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(*) AS male_weekly_statement_percentage\nFROM (\n    SELECT DISTINCT cl.client_id, cl.gender\n    FROM client cl\n    JOIN disp d ON cl.client_id = d.client_id\n    JOIN account a ON d.account_id = a.account_id\n    WHERE a.frequency = 'POPLATEK TYDNE'\n) c",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT CAST(SUM(CASE WHEN c.gender = 'M' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(*) AS male_weekly_statement_percentage\nFROM (\n    SELECT DISTINCT cl.client_id, cl.gender\n    FROM client cl\n    JOIN disp d ON cl.client_id = d.client_id\n    JOIN account a ON d.account_id = a.account_id\n    WHERE a.frequency = 'POPLATEK TYDNE'\n) c",
+    "answer": "About 52.13% of male clients request weekly statements."
+  }
+}

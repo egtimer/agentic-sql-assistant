@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-11",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 11,
+  "db_id": "california_schools",
+  "difficulty": "simple",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Please list the codes of the schools with a total enrollment of over 500.",
+    "evidence": "Total enrollment can be represented by `Enrollment (K-12)` + `Enrollment (Ages 5-17)`",
+    "attempts": [
+      {
+        "sql": "SELECT CDSCode\nFROM frpm\nWHERE `Enrollment (K-12)` + `Enrollment (Ages 5-17)` > 500",
+        "error": null,
+        "row_count": ">1000",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT CDSCode\nFROM frpm\nWHERE `Enrollment (K-12)` + `Enrollment (Ages 5-17)` > 500",
+    "answer": "There are more than 1,000 schools with a total enrollment over 500. The first 20 codes are 01100170109835, 01100170112607, 01100170124172, 01100170125567, 01100176001788, 01100176002000, 01316170131763, 01611190111765, 01611190119222, 01611190122085, 01611190126656, 01611190130229, 01611190130609, 01611190132878, 01611196090005, 01611196090013, 01611196090021, 01611196090039, 01611196090047, and 01611196090054."
+  }
+}

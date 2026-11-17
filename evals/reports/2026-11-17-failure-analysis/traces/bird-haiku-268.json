@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-268",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 268,
+  "db_id": "toxicology",
+  "difficulty": "challenging",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 2
+  },
+  "trace": {
+    "question": "What are the elements for bond id TR001_10_11?",
+    "evidence": "TR001_10_11 is the bond id;",
+    "attempts": [
+      {
+        "sql": "SELECT a1.element AS element_1, a2.element AS element_2\nFROM connected c\nJOIN atom a1 ON a1.atom_id = c.atom_id\nJOIN atom a2 ON a2.atom_id = c.atom_id2\nWHERE c.bond_id = 'TR001_10_11'\n  AND c.atom_id < c.atom_id2",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT a1.element AS element_1, a2.element AS element_2\nFROM connected c\nJOIN atom a1 ON a1.atom_id = c.atom_id\nJOIN atom a2 ON a2.atom_id = c.atom_id2\nWHERE c.bond_id = 'TR001_10_11'\n  AND c.atom_id < c.atom_id2",
+    "answer": "The bond TR001_10_11 connects the elements carbon (c) and oxygen (o)."
+  }
+}

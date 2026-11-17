@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-484",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 484,
+  "db_id": "card_games",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 12,
+    "gold_rows": 155
+  },
+  "trace": {
+    "question": "Please list the Italian names of the cards in the set Coldsnap with the highest converted mana cost.",
+    "evidence": "card set Coldsnap refers to name = 'Coldsnap'; Italian refers to language = 'Italian'; highest converted mana cost refers to MAX(convertedManaCost)",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT fd.name\nFROM foreign_data fd\nJOIN cards c ON fd.uuid = c.uuid\nWHERE fd.language = 'Italian'\n  AND c.setCode = (SELECT code FROM sets WHERE name = 'Coldsnap')\n  AND c.convertedManaCost = (\n      SELECT MAX(c2.convertedManaCost)\n      FROM cards c2\n      WHERE c2.setCode = (SELECT code FROM sets WHERE name = 'Coldsnap')\n  )",
+        "error": null,
+        "row_count": "12",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT fd.name\nFROM foreign_data fd\nJOIN cards c ON fd.uuid = c.uuid\nWHERE fd.language = 'Italian'\n  AND c.setCode = (SELECT code FROM sets WHERE name = 'Coldsnap')\n  AND c.convertedManaCost = (\n      SELECT MAX(c2.convertedManaCost)\n      FROM cards c2\n      WHERE c2.setCode = (SELECT code FROM sets WHERE name = 'Coldsnap')\n  )",
+    "answer": "The Italian names of the Coldsnap cards with the highest converted mana cost are: Devastazione Solare, Requisire, Jokulmorder, Gufo Gelopiuma, Araldo di Leshrac, Inchioda Anima, Cavalcacieli di Tresserhorn, Furia dell'Orda, Drago Geloscaglia, Cavalca Allosauro, Wurm Panglaciale, and Garza Zol, Regina della Peste."
+  }
+}

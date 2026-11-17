@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-473",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 473,
+  "db_id": "card_games",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 5
+  },
+  "trace": {
+    "question": "Is the set of cards with Adarkar Valkyrie only available outside the United States?",
+    "evidence": "card set Adarkar Valkyrie refers to name = 'Adarkar Valkyrie'; isForeignOnly = 1 means only available outside the United States;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT s.isForeignOnly\nFROM cards c\nJOIN sets s ON c.setCode = s.code\nWHERE c.name = 'Adarkar Valkyrie'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT s.isForeignOnly\nFROM cards c\nJOIN sets s ON c.setCode = s.code\nWHERE c.name = 'Adarkar Valkyrie'",
+    "answer": "No, the Adarkar Valkyrie cards are not limited to outside the United States; the result indicates the set is not foreign-only."
+  }
+}

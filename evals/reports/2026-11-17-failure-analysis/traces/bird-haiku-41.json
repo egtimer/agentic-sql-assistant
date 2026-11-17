@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-41",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 41,
+  "db_id": "california_schools",
+  "difficulty": "simple",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 4,
+    "gold_rows": 34
+  },
+  "trace": {
+    "question": "List the names of virtual schools that are among the top 5 in their respective counties based on average reading scores.",
+    "evidence": "Exclusively virtual refers to Virtual = 'F'; respective counties means PARTITION BY County",
+    "attempts": [
+      {
+        "sql": "WITH ranked AS (\n    SELECT sc.School,\n           ROW_NUMBER() OVER (PARTITION BY sc.County ORDER BY s.AvgScrRead DESC) AS rn\n    FROM satscores s\n    JOIN schools sc ON s.cds = sc.CDSCode\n    WHERE sc.Virtual = 'F'\n      AND s.AvgScrRead IS NOT NULL\n)\nSELECT School\nFROM ranked\nWHERE rn <= 5",
+        "error": null,
+        "row_count": "4",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "WITH ranked AS (\n    SELECT sc.School,\n           ROW_NUMBER() OVER (PARTITION BY sc.County ORDER BY s.AvgScrRead DESC) AS rn\n    FROM satscores s\n    JOIN schools sc ON s.cds = sc.CDSCode\n    WHERE sc.Virtual = 'F'\n      AND s.AvgScrRead IS NOT NULL\n)\nSELECT School\nFROM ranked\nWHERE rn <= 5",
+    "answer": "The virtual schools in the top 5 for their counties by average reading score are California Virtual Academy @ Los Angeles, Insight @ Los Angeles, Capistrano Connections Academy, and California Connections Academy @ Ripon."
+  }
+}

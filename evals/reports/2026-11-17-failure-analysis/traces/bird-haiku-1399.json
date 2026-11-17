@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-1399",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1399,
+  "db_id": "student_club",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 14
+  },
+  "trace": {
+    "question": "Did Maya Mclean attend the 'Women's Soccer' event?",
+    "evidence": "Maya Mclean is the full name; full name refers to first_name, last_name; 'Women's Soccer' is an event_name",
+    "attempts": [
+      {
+        "sql": "SELECT CASE WHEN EXISTS (\n    SELECT 1\n    FROM attendance a\n    JOIN member m ON a.link_to_member = m.member_id\n    JOIN event e ON a.link_to_event = e.event_id\n    WHERE m.first_name = 'Maya'\n      AND m.last_name = 'Mclean'\n      AND e.event_name = 'Women''s Soccer'\n) THEN 'Yes' ELSE 'No' END AS attended",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT CASE WHEN EXISTS (\n    SELECT 1\n    FROM attendance a\n    JOIN member m ON a.link_to_member = m.member_id\n    JOIN event e ON a.link_to_event = e.event_id\n    WHERE m.first_name = 'Maya'\n      AND m.last_name = 'Mclean'\n      AND e.event_name = 'Women''s Soccer'\n) THEN 'Yes' ELSE 'No' END AS attended",
+    "answer": "Yes, Maya Mclean attended the Women's Soccer event."
+  }
+}

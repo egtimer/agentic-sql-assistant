@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-1209",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1209,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Please provide the diagnosis of patients with ALT glutamic pylvic transaminase beyond the normal range by ascending order of their date of birth.",
+    "evidence": "ALT glutamic pylvic transaminase beyond the normal range refers to GPT > 60; The larger the birthday value, the younger the person is, and vice versa; ",
+    "attempts": [
+      {
+        "sql": "SELECT p.Diagnosis\nFROM Patient p\nJOIN Laboratory l ON p.ID = l.ID\nWHERE l.GPT > 60\nGROUP BY p.ID\nORDER BY p.Birthday ASC",
+        "error": null,
+        "row_count": "90",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT p.Diagnosis\nFROM Patient p\nJOIN Laboratory l ON p.ID = l.ID\nWHERE l.GPT > 60\nGROUP BY p.ID\nORDER BY p.Birthday ASC",
+    "answer": "The query returned 90 diagnoses for patients with abnormal ALT levels, ordered from earliest to latest date of birth. The first entries include MRA, SLE, RA, Adult STILL, and SJS."
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-978",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 978,
+  "db_id": "formula_1",
+  "difficulty": "simple",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 4,
+    "gold_columns": 3,
+    "pred_rows": 3,
+    "gold_rows": 2
+  },
+  "trace": {
+    "question": "How many times the circuits were held in Austria? Please give their location and coordinates.",
+    "evidence": "location coordinates refers to (lat,lng); Austria refers to country = 'Austria';",
+    "attempts": [
+      {
+        "sql": "SELECT c.location, c.lat, c.lng, COUNT(r.raceId) AS times_held\nFROM circuits c\nJOIN races r ON r.circuitId = c.circuitId\nWHERE c.country = 'Austria'\nGROUP BY c.circuitId, c.location, c.lat, c.lng",
+        "error": null,
+        "row_count": "3",
+        "n_columns": 4
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT c.location, c.lat, c.lng, COUNT(r.raceId) AS times_held\nFROM circuits c\nJOIN races r ON r.circuitId = c.circuitId\nWHERE c.country = 'Austria'\nGROUP BY c.circuitId, c.location, c.lat, c.lng",
+    "answer": "The circuits were held **30 times** in Austria: at Spielburg (47.2197, 14.7647) 25 + 4 = 29 times, and at Styria (47.2039, 14.7478) once."
+  }
+}

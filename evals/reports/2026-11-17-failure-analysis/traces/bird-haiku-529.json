@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-529",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 529,
+  "db_id": "card_games",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 0,
+    "gold_rows": 121
+  },
+  "trace": {
+    "question": "Find and list the names of sets which doesn't have Japanese translation but have Korean translation.",
+    "evidence": "names of sets refers to name; doesn't have Japanese translation refers to language not like '%Japanese%'; have Korean translation refers to language = 'Korean'",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT s.name\nFROM sets s\nJOIN set_translations kt ON kt.setCode = s.code AND kt.language = 'Korean'\nWHERE s.code NOT IN (\n    SELECT setCode FROM set_translations WHERE language LIKE '%Japanese%' AND setCode IS NOT NULL\n)",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT s.name\nFROM sets s\nJOIN set_translations kt ON kt.setCode = s.code AND kt.language = 'Korean'\nWHERE s.code NOT IN (\n    SELECT setCode FROM set_translations WHERE language LIKE '%Japanese%' AND setCode IS NOT NULL\n)",
+    "answer": "No sets meet that condition: every set that has a Korean translation also has a Japanese translation, so no names are returned."
+  }
+}

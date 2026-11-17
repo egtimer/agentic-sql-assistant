@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1505",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1505,
+  "db_id": "debit_card_specializing",
+  "difficulty": "simple",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Among the customers who paid in euro, how many of them have a monthly consumption of over 1000?",
+    "evidence": "Pays in euro = Currency = 'EUR'.",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(DISTINCT c.CustomerID)\nFROM customers c\nJOIN yearmonth y ON y.CustomerID = c.CustomerID\nWHERE c.Currency = 'EUR'\n  AND y.Consumption > 1000",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(DISTINCT c.CustomerID)\nFROM customers c\nJOIN yearmonth y ON y.CustomerID = c.CustomerID\nWHERE c.Currency = 'EUR'\n  AND y.Consumption > 1000",
+    "answer": "There are 391 customers who paid in euro and have a monthly consumption of over 1000."
+  }
+}

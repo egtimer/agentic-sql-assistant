@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-215",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 215,
+  "db_id": "toxicology",
+  "difficulty": "challenging",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 2,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "How many atoms with iodine and with sulfur type elements are there in single bond molecules?",
+    "evidence": "with iodine element refer to element = 'i'; with sulfur element refers to element = 's'; single type bond refers to bond_type = '-'; Should consider the distinct atoms when counting;",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(DISTINCT a.atom_id) AS atom_count\nFROM atom AS a\nJOIN molecule AS m ON a.molecule_id = m.molecule_id\nJOIN bond AS b ON b.molecule_id = m.molecule_id\nWHERE a.element IN ('i', 's')\n  AND b.bond_type = '-'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(DISTINCT a.atom_id) AS atom_count\nFROM atom AS a\nJOIN molecule AS m ON a.molecule_id = m.molecule_id\nJOIN bond AS b ON b.molecule_id = m.molecule_id\nWHERE a.element IN ('i', 's')\n  AND b.bond_type = '-'",
+    "answer": "There are 97 atoms in total that are iodine or sulfur in single-bond molecules."
+  }
+}

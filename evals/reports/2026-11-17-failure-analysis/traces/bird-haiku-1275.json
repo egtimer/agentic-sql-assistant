@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1275",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1275,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Among the patients who has a normal level of anti-centromere and a normal level of anti-SSB, how many of them are male?",
+    "evidence": "normal level of anti-centromere refers to CENTROMEA IN('-', '+-'); normal level of anti-SSB refers to SSB IN('-', '+-'); male refers to Sex = 'M'; Should consider DISTINCT in the final result;",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(DISTINCT p.ID) AS male_patient_count\nFROM Patient AS p\nJOIN Laboratory AS l ON l.ID = p.ID\nWHERE p.SEX = 'M'\n  AND l.CENTROMEA IN ('-', '+-')\n  AND l.SSB IN ('-', '+-')",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(DISTINCT p.ID) AS male_patient_count\nFROM Patient AS p\nJOIN Laboratory AS l ON l.ID = p.ID\nWHERE p.SEX = 'M'\n  AND l.CENTROMEA IN ('-', '+-')\n  AND l.SSB IN ('-', '+-')",
+    "answer": "None of the patients with normal anti-centromere and normal anti-SSB levels are male; the count is zero."
+  }
+}

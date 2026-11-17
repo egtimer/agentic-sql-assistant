@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1107",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1107,
+  "db_id": "european_football_2",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "When was the first time did Kevin Constant have his highest crossing score? Give the date.",
+    "evidence": "Kevin Constant refers to player_name = 'Kevin Constant'; highest crossing score refers to MAX(crossing)",
+    "attempts": [
+      {
+        "sql": "SELECT pa.date\nFROM Player_Attributes pa\nJOIN Player p ON pa.player_api_id = p.player_api_id\nWHERE p.player_name = 'Kevin Constant'\n  AND pa.crossing = (\n    SELECT MAX(pa2.crossing)\n    FROM Player_Attributes pa2\n    JOIN Player p2 ON pa2.player_api_id = p2.player_api_id\n    WHERE p2.player_name = 'Kevin Constant'\n  )\nORDER BY pa.date ASC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT pa.date\nFROM Player_Attributes pa\nJOIN Player p ON pa.player_api_id = p.player_api_id\nWHERE p.player_name = 'Kevin Constant'\n  AND pa.crossing = (\n    SELECT MAX(pa2.crossing)\n    FROM Player_Attributes pa2\n    JOIN Player p2 ON pa2.player_api_id = p2.player_api_id\n    WHERE p2.player_name = 'Kevin Constant'\n  )\nORDER BY pa.date ASC\nLIMIT 1",
+    "answer": "Kevin Constant's highest crossing score first occurred on February 15, 2013."
+  }
+}

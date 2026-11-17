@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1524",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1524,
+  "db_id": "debit_card_specializing",
+  "difficulty": "simple",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What's the nationality of the customer who spent 548.4 in 2012/8/24?",
+    "evidence": "'2012/8/24' can be represented by '2012-08-24'",
+    "attempts": [
+      {
+        "sql": "SELECT c.Currency\nFROM transactions_1k t\nJOIN customers c ON c.CustomerID = t.CustomerID\nWHERE t.Date = '2012-08-24'\n  AND t.Price = 548.4",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT c.Currency\nFROM transactions_1k t\nJOIN customers c ON c.CustomerID = t.CustomerID\nWHERE t.Date = '2012-08-24'\n  AND t.Price = 548.4",
+    "answer": "The data only shows the currency, CZK (Czech koruna), which suggests the customer is Czech, but it doesn't state their nationality directly."
+  }
+}

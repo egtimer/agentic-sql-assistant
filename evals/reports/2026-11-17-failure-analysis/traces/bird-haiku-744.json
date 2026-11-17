@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-744",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 744,
+  "db_id": "superhero",
+  "difficulty": "challenging",
+  "primary": "answer_misread",
+  "tags": [
+    "answer_misread"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Between DC and Marvel Comics, which publisher has published more superheroes? Find the difference in the number of superheroes they have published.",
+    "evidence": "DC refers to publisher_name = 'DC Comics'; Marvel Comics refers to publisher_name = 'Marvel Comics'; calculation = SUBTRACT(SUM(publisher_name = 'Marvel Comics'), SUM(publisher_name = 'DC Comics'))",
+    "attempts": [
+      {
+        "sql": "SELECT SUM(CASE WHEN p.publisher_name = 'Marvel Comics' THEN 1 ELSE 0 END)\n     - SUM(CASE WHEN p.publisher_name = 'DC Comics' THEN 1 ELSE 0 END) AS difference\nFROM superhero s\nJOIN publisher p ON s.publisher_id = p.id",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT SUM(CASE WHEN p.publisher_name = 'Marvel Comics' THEN 1 ELSE 0 END)\n     - SUM(CASE WHEN p.publisher_name = 'DC Comics' THEN 1 ELSE 0 END) AS difference\nFROM superhero s\nJOIN publisher p ON s.publisher_id = p.id",
+    "answer": "DC Comics has published 163 more superheroes than Marvel Comics.\n\nWait, I need to be careful here: the result gives only the difference, not which publisher is ahead. So I can't say for certain which one has published more based on this result alone.\n\nThe difference between DC and Marvel's superhero counts is 163."
+  }
+}

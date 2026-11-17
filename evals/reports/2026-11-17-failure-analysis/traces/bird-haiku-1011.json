@@ -1,0 +1,51 @@
+{
+  "failure_id": "bird-haiku-1011",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1011,
+  "db_id": "formula_1",
+  "difficulty": "challenging",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 3,
+    "pred_rows": 20,
+    "gold_rows": 20
+  },
+  "trace": {
+    "question": "Which top 20 driver created the shortest lap time ever record in a Formula_1 race? Please give them full names.",
+    "evidence": "shortest lap time refers to MIN(time); the time format for the shortest lap time is 'MM:SS.mmm' or 'M:SS.mmm'; full name of the driver refers to forename, surname",
+    "attempts": [
+      {
+        "sql": "SELECT d.forename || ' ' || d.surname AS full_name\nFROM lapTimes lt\nJOIN drivers d ON d.driverId = lt.driverId\nWHERE lt.milliseconds IS NOT NULL\nORDER BY lt.milliseconds ASC\nLIMIT 20",
+        "error": null,
+        "row_count": "20",
+        "n_columns": 1
+      },
+      {
+        "sql": "SELECT d.forename || ' ' || d.surname AS full_name\nFROM lapTimes lt\nJOIN drivers d ON d.driverId = lt.driverId\nWHERE lt.milliseconds IS NOT NULL\nGROUP BY d.driverId, d.forename, d.surname\nORDER BY MIN(lt.milliseconds) ASC\nLIMIT 20",
+        "error": null,
+        "row_count": "20",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The query returns one row per lap record, so drivers repeat (Lewis Hamilton appears 6 times). The question asks for the top 20 drivers, which is a list of entities, so each driver should appear once, ranked by their fastest lap.\n\n```sql\nSELECT d.forename || ' ' || d.surname AS full_name\nFROM lapTimes lt\nJOIN drivers d ON d.driverId = lt.driverId\nWHERE lt.milliseconds IS NOT NULL\nGROUP BY d.driverId, d.forename, d.surname\nORDER BY MIN(lt.milliseconds) ASC\nLIMIT 20\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT d.forename || ' ' || d.surname AS full_name\nFROM lapTimes lt\nJOIN drivers d ON d.driverId = lt.driverId\nWHERE lt.milliseconds IS NOT NULL\nGROUP BY d.driverId, d.forename, d.surname\nORDER BY MIN(lt.milliseconds) ASC\nLIMIT 20",
+    "answer": "The query result lists 20 drivers, but it doesn't indicate which of them set the shortest lap time ever, so I can't single out one name. It only shows the top 20 drivers by that measure, with Lewis Hamilton listed first."
+  }
+}

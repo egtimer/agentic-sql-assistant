@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-1130",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1130,
+  "db_id": "european_football_2",
+  "difficulty": "moderate",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "What are the short name of team who played safe while creating chance of passing?",
+    "evidence": "played safe while creating chance of passing refers to chanceCreationPassingClass = 'Safe'; short name of team refers to team_short_name",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT t.team_short_name\nFROM Team t\nJOIN Team_Attributes ta ON ta.team_api_id = t.team_api_id\nWHERE ta.chanceCreationPassingClass = 'Safe'",
+        "error": null,
+        "row_count": "43",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT t.team_short_name\nFROM Team t\nJOIN Team_Attributes ta ON ta.team_api_id = t.team_api_id\nWHERE ta.chanceCreationPassingClass = 'Safe'",
+    "answer": "The query returned 43 team short names, including HAA, ARK, ARL, ARS, BAR, BMU, BOL, BRE, CAG, CAT, COR, DUF, EMP, COT, UTR, FRE, FRO, GEN, GRF, and HER, among others. The results don't indicate which teams played safe or created chances of passing, so the list alone can't answer that specific question."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-198",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 198,
+  "db_id": "toxicology",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "On average how many carcinogenic molecules are single bonded?",
+    "evidence": "carcinogenic molecules refers to label = '+'; single-bonded refers to bond_type = '-'; average = DIVIDE(SUM(bond_type = '-'), COUNT(atom_id))",
+    "attempts": [
+      {
+        "sql": "SELECT CAST(SUM(b.bond_type = '-') AS REAL) / COUNT(a.atom_id) AS average_single_bonded\nFROM molecule m\nJOIN atom a ON a.molecule_id = m.molecule_id\nJOIN bond b ON b.molecule_id = m.molecule_id\nWHERE m.label = '+'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT CAST(SUM(b.bond_type = '-') AS REAL) / COUNT(a.atom_id) AS average_single_bonded\nFROM molecule m\nJOIN atom a ON a.molecule_id = m.molecule_id\nJOIN bond b ON b.molecule_id = m.molecule_id\nWHERE m.label = '+'",
+    "answer": "On average, carcinogenic molecules have about 0.82 single bonds each."
+  }
+}

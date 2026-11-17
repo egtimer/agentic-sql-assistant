@@ -1,0 +1,58 @@
+{
+  "failure_id": "bird-haiku-83",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 83,
+  "db_id": "california_schools",
+  "difficulty": "challenging",
+  "primary": "loop_or_extra_steps",
+  "tags": [
+    "loop_or_extra_steps",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 20,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Of the schools that offers a magnet program serving a grade span of Kindergarten to 8th grade, how many offers Multiple Provision Types? List the number of cities that offers a Kindergarten to 8th grade span and indicate how many schools are there serving such grade span for each city.",
+    "evidence": "Kindergarten to 8th grade refers to K-8; 'Offers a magnet program' means Magnet = 1; Multiple Provision Types refers to `NSLP Provision Status` = 'Multiple Provision Types'",
+    "attempts": [
+      {
+        "sql": "SELECT s.City, COUNT(*) AS school_count\nFROM schools s\nJOIN frpm f ON f.CDSCode = s.CDSCode\nWHERE s.Magnet = 1\n  AND s.GSoffered = 'K-8'\n  AND f.`NSLP Provision Status` = 'Multiple Provision Types'\nGROUP BY s.City",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      },
+      {
+        "sql": "SELECT City, COUNT(*) AS school_count\nFROM schools\nWHERE GSoffered = 'K-8'\n  AND City IS NOT NULL\nGROUP BY City\nORDER BY City",
+        "error": null,
+        "row_count": "537",
+        "n_columns": 2
+      },
+      {
+        "sql": "SELECT City, COUNT(*) AS school_count\nFROM schools\nWHERE GSoffered = 'K-8'\n  AND Magnet = 1\n  AND City IS NOT NULL\nGROUP BY City\nORDER BY City",
+        "error": null,
+        "row_count": "20",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The query applies the magnet, K-8, and \"Multiple Provision Types\" filters to both parts of the question. The second part asks only for cities with K-8 schools and a per-city count, with no magnet or provision filter. The inner join to `frpm` also drops schools that have no `frpm` record. The corrected query uses `schools` alone for the second part:\n\n```sql\nSELECT City, COUNT(*) AS school_count\nFROM schools\nWHERE GSoffered = 'K-8'\n  AND City IS NOT NULL\nGROUP BY City\nORDER BY City\n```"
+      },
+      {
+        "kind": "fix",
+        "text": "The query ignores the magnet condition. The question asks about schools that offer a magnet program, and the external knowledge defines that as `Magnet = 1`, so the filter is missing.\n\n```sql\nSELECT City, COUNT(*) AS school_count\nFROM schools\nWHERE GSoffered = 'K-8'\n  AND Magnet = 1\n  AND City IS NOT NULL\nGROUP BY City\nORDER BY City\n```"
+      }
+    ],
+    "fixes_used": 2,
+    "final_sql": "SELECT City, COUNT(*) AS school_count\nFROM schools\nWHERE GSoffered = 'K-8'\n  AND Magnet = 1\n  AND City IS NOT NULL\nGROUP BY City\nORDER BY City",
+    "answer": "There are 20 cities with schools that offer a magnet program serving grades K-8 and multiple provision types. Stockton has the most, with 9 schools, followed by Ontario, San Jose, and Vallejo with 3 each, and Fresno, Los Angeles, and San Diego with 2 each. The remaining 11 cities have 1 school each."
+  }
+}

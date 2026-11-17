@@ -1,0 +1,58 @@
+{
+  "failure_id": "bird-haiku-944",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 944,
+  "db_id": "formula_1",
+  "difficulty": "challenging",
+  "primary": "loop_or_extra_steps",
+  "tags": [
+    "loop_or_extra_steps",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 0,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "How much faster in percentage is the champion than the driver who finished the race last in the 2008 Australian Grand Prix?",
+    "evidence": "how much faster in percentage = divide(subtract(incremental time, champion time), last_driver time) * 100; last driver finished time = incremental time + champion time; only champion's finished time is represented by 'HH:MM:SS.mmm'; finished the game refers to time is not null",
+    "attempts": [
+      {
+        "sql": "WITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.time IS NOT NULL AND res.time LIKE '+%'\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(REPLACE(l.time, '+', '') AS REAL)\n        / (CAST(REPLACE(l.time, '+', '') AS REAL)\n           + (CAST(substr(c.time, 1, instr(c.time, ':') - 1) AS REAL) * 3600\n              + CAST(substr(c.time, instr(c.time, ':') + 1, 2) AS REAL) * 60\n              + CAST(substr(c.time, instr(c.time, ':') + 4) AS REAL)))) * 100 AS percentage_faster\nFROM c, l",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      },
+      {
+        "sql": "WITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.time IS NOT NULL\n      AND res.time LIKE '+%'\n      AND res.time NOT LIKE '%Lap%'\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(REPLACE(l.time, '+', '') AS REAL)\n        / (CAST(REPLACE(l.time, '+', '') AS REAL)\n           + (CAST(substr(c.time, 1, instr(c.time, ':') - 1) AS REAL) * 3600\n              + CAST(substr(c.time, instr(c.time, ':') + 1, 2) AS REAL) * 60\n              + CAST(substr(c.time, instr(c.time, ':') + 4) AS REAL)))) * 100 AS percentage_faster\nFROM c, l",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      },
+      {
+        "sql": "WITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.milliseconds IS NOT NULL\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(l.ms - c.ms AS REAL) / l.ms) * 100 AS percentage_faster\nFROM c, l",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The `l` filter (`time LIKE '+%'`) is the likely cause of the empty result. If no row for this race matches it, the `FROM c, l` cross join returns nothing. The champion's `c` branch and the percentage formula look correct. I can't confirm the exact data without running it, so this fix is a best guess: it keeps only numeric gaps and drops lapped entries such as '+1 Lap'.\n\n```sql\nWITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.time\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.time IS NOT NULL\n      AND res.time LIKE '+%'\n      AND res.time NOT LIKE '%Lap%'\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(REPLACE(l.time, '+', '') AS REAL)\n        / (CAST(REPLACE(l.time, '+', '') AS REAL)\n           + (CAST(substr(c.time, 1, instr(c.time, ':') - 1) AS REAL) * 3600\n              + CAST(substr(c.time, instr(c.time, ':') + 1, 2) AS REAL) * 60\n              + CAST(substr(c.time, instr(c.time, ':') + 4) AS REAL)))) * 100 AS percentage_faster\nFROM c, l\n```"
+      },
+      {
+        "kind": "fix",
+        "text": "The query returns no rows because the `l` CTE requires a time that starts with `+` and excludes `'%Lap%'`. If the last classified finisher is lapped (e.g. `+1 Lap`), that CTE is empty and the join yields nothing. The `results.milliseconds` column avoids this string parsing and gives the same percentage: (last finish − champion) / last finish × 100.\n\n```sql\nWITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.milliseconds IS NOT NULL\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(l.ms - c.ms AS REAL) / l.ms) * 100 AS percentage_faster\nFROM c, l;\n```"
+      }
+    ],
+    "fixes_used": 2,
+    "final_sql": "WITH r AS (\n    SELECT raceId FROM races WHERE year = 2008 AND name = 'Australian Grand Prix'\n),\nc AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.positionOrder = 1\n),\nl AS (\n    SELECT res.milliseconds AS ms\n    FROM results res\n    JOIN r ON res.raceId = r.raceId\n    WHERE res.milliseconds IS NOT NULL\n    ORDER BY res.positionOrder DESC\n    LIMIT 1\n)\nSELECT (CAST(l.ms - c.ms AS REAL) / l.ms) * 100 AS percentage_faster\nFROM c, l",
+    "answer": "The query returned no results, so I can't determine how much faster the champion was than the last-place finisher at the 2008 Australian Grand Prix."
+  }
+}

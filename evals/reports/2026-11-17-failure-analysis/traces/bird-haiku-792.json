@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-792",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 792,
+  "db_id": "superhero",
+  "difficulty": "simple",
+  "primary": "answer_misread",
+  "tags": [
+    "answer_misread"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "What is Abomination's superpower?",
+    "evidence": "Abomination refers to superhero_name = 'Abomination'; superpower refers to power_name;",
+    "attempts": [
+      {
+        "sql": "SELECT sp.power_name\nFROM superhero s\nJOIN hero_power hp ON hp.hero_id = s.id\nJOIN superpower sp ON sp.id = hp.power_id\nWHERE s.superhero_name = 'Abomination'",
+        "error": null,
+        "row_count": "8",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT sp.power_name\nFROM superhero s\nJOIN hero_power hp ON hp.hero_id = s.id\nJOIN superpower sp ON sp.id = hp.power_id\nWHERE s.superhero_name = 'Abomination'",
+    "answer": "The query result lists eight powers but doesn't indicate which ones belong to Abomination, so I can't say his specific superpower from this data. The list includes Super Strength, Accelerated Healing, and Stamina, but it doesn't link any of them to him."
+  }
+}

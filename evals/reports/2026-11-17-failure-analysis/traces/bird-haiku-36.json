@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-36",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 36,
+  "db_id": "california_schools",
+  "difficulty": "challenging",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 6,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.",
+    "evidence": "full name means first name, last name; There are at most 3 administrators for each school; SAT Scores are greater or equal to 1500 refers to NumGE1500",
+    "attempts": [
+      {
+        "sql": "SELECT s.AdmFName1 AS first_name, s.AdmLName1 AS last_name\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nORDER BY sat.NumGE1500 DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.AdmFName1 AS first_name, s.AdmLName1 AS last_name\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nORDER BY sat.NumGE1500 DESC\nLIMIT 1",
+    "answer": "The school with the highest number of students scoring 1500 or more on the SAT is under the administration of Michelle King."
+  }
+}

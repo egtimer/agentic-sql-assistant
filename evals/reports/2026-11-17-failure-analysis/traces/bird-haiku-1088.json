@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-1088",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1088,
+  "db_id": "european_football_2",
+  "difficulty": "moderate",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Please list the names of the players whose volley score and dribbling score are over 70.",
+    "evidence": "volley score are over 70 refers to volleys > 70; dribbling score refers to dribbling are over 70 refers to dribbling > 70;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT p.player_name\nFROM Player p\nJOIN Player_Attributes pa ON p.player_api_id = pa.player_api_id\nWHERE pa.volleys > 70 AND pa.dribbling > 70",
+        "error": null,
+        "row_count": ">1000",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT p.player_name\nFROM Player p\nJOIN Player_Attributes pa ON p.player_api_id = pa.player_api_id\nWHERE pa.volleys > 70 AND pa.dribbling > 70",
+    "answer": "The query returned more than 1,000 players whose volley and dribbling scores are both above 70, including names such as Aaron Hunt, Aaron Ramsey, Adam Lallana, and Adel Taarabt. The list is too long to show in full here."
+  }
+}

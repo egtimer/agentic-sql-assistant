@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1302",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1302,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "For the patients with a normal range of creatinine phosphokinase, how many of them have a positive measure of degree of coagulation?",
+    "evidence": "normal range of creatinine phosphokinase refers to CPK < 250; positive measure of degree of coagulation refers to KCT = '+' or RVVT = '+' or LAC = '+' ;",
+    "attempts": [
+      {
+        "sql": "SELECT COUNT(DISTINCT e.ID)\nFROM Examination e\nJOIN Laboratory l ON l.ID = e.ID\nWHERE l.CPK < 250\n  AND (e.KCT = '+' OR e.RVVT = '+' OR e.LAC = '+')",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT COUNT(DISTINCT e.ID)\nFROM Examination e\nJOIN Laboratory l ON l.ID = e.ID\nWHERE l.CPK < 250\n  AND (e.KCT = '+' OR e.RVVT = '+' OR e.LAC = '+')",
+    "answer": "One patient has a normal creatinine phosphokinase level and a positive measure of coagulation."
+  }
+}

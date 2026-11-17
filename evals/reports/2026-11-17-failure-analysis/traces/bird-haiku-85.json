@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-85",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 85,
+  "db_id": "california_schools",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What is the Percent (%) Eligible Free (K-12) in the school administered by an administrator whose first name is Alusine. List the district code of the school.",
+    "evidence": "Percent (%) Eligible Free (K-12) = `Free Meal Count (K-12)` / `Enrollment (K-12)` * 100%",
+    "attempts": [
+      {
+        "sql": "SELECT f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)` * 100 AS `Percent (%) Eligible Free (K-12)`,\n       f.`District Code`\nFROM frpm f\nJOIN schools s ON f.CDSCode = s.CDSCode\nWHERE 'Alusine' IN (s.AdmFName1, s.AdmFName2, s.AdmFName3)",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT f.`Free Meal Count (K-12)` / f.`Enrollment (K-12)` * 100 AS `Percent (%) Eligible Free (K-12)`,\n       f.`District Code`\nFROM frpm f\nJOIN schools s ON f.CDSCode = s.CDSCode\nWHERE 'Alusine' IN (s.AdmFName1, s.AdmFName2, s.AdmFName3)",
+    "answer": "The school administered by Alusine has 70.15% of students (K-12) eligible for free meals, and its district code is 64857."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-17",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 17,
+  "db_id": "california_schools",
+  "difficulty": "simple",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 3,
+    "pred_rows": 58,
+    "gold_rows": 58
+  },
+  "trace": {
+    "question": "Rank schools by their average score in Writing where the score is greater than 499, showing their charter numbers.",
+    "evidence": "Valid charter number means the number is not null",
+    "attempts": [
+      {
+        "sql": "SELECT s.CharterNum\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nWHERE sat.AvgScrWrite > 499\n  AND s.CharterNum IS NOT NULL\nORDER BY sat.AvgScrWrite DESC",
+        "error": null,
+        "row_count": "58",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.CharterNum\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nWHERE sat.AvgScrWrite > 499\n  AND s.CharterNum IS NOT NULL\nORDER BY sat.AvgScrWrite DESC",
+    "answer": "The query returned 58 schools with average Writing scores above 499, identified by their charter numbers. The results are listed by charter number only, with no average scores shown, so the ranking order cannot be confirmed from this output (for example, 0210, 0890, 0290 appear first)."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-639",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 639,
+  "db_id": "codebase_community",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Based on posts posted by Community, calculate the percentage of posts that use the R language.",
+    "evidence": "DIVIDE(COUNT(PostId WHERE TagName = 'r')), (COUNT(PostId WHERE DisplayName = 'Community')) as percentage; R language refers to tagname = 'r'",
+    "attempts": [
+      {
+        "sql": "SELECT 100.0 * SUM(CASE WHEN p.Tags LIKE '%<r>%' THEN 1 ELSE 0 END) / COUNT(*) AS percentage\nFROM posts AS p\nJOIN users AS u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName = 'Community'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT 100.0 * SUM(CASE WHEN p.Tags LIKE '%<r>%' THEN 1 ELSE 0 END) / COUNT(*) AS percentage\nFROM posts AS p\nJOIN users AS u ON p.OwnerUserId = u.Id\nWHERE u.DisplayName = 'Community'",
+    "answer": "Based on the query result, 0% of posts by Community use the R language."
+  }
+}

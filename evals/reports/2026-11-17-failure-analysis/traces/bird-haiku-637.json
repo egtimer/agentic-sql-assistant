@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-637",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 637,
+  "db_id": "codebase_community",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 5
+  },
+  "trace": {
+    "question": "State all the tags used by Mark Meckes in his posts that doesn't have comments.",
+    "evidence": "used by Mark Meckes refers to DisplayName = 'Mark Meckes'; Doen't have comments refers to CommentCount = 0;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT t.TagName\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nJOIN tags t ON p.Tags LIKE '%<' || t.TagName || '>%'\nWHERE u.DisplayName = 'Mark Meckes'\n  AND p.CommentCount = 0",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT t.TagName\nFROM posts p\nJOIN users u ON p.OwnerUserId = u.Id\nJOIN tags t ON p.Tags LIKE '%<' || t.TagName || '>%'\nWHERE u.DisplayName = 'Mark Meckes'\n  AND p.CommentCount = 0",
+    "answer": "Mark Meckes used one tag in his posts without comments: \"books.\""
+  }
+}

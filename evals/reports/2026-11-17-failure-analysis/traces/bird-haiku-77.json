@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-77",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 77,
+  "db_id": "california_schools",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 0,
+    "gold_rows": 2
+  },
+  "trace": {
+    "question": "Which schools served a grade span of Kindergarten to 9th grade in the county of Los Angeles and what is its Percent (%) Eligible FRPM (Ages 5-17)?",
+    "evidence": "Percent (%) Eligible FRPM (Ages 5-17) can be acquired by `FRPM Count (Ages 5-17)` / `Enrollment (Ages 5-17)` * 100",
+    "attempts": [
+      {
+        "sql": "SELECT `School Name`,\n       `FRPM Count (Ages 5-17)` / `Enrollment (Ages 5-17)` * 100 AS `Percent (%) Eligible FRPM (Ages 5-17)`\nFROM frpm\nWHERE `County Name` = 'Los Angeles'\n  AND `Low Grade` = 'K'\n  AND `High Grade` = '9'",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT `School Name`,\n       `FRPM Count (Ages 5-17)` / `Enrollment (Ages 5-17)` * 100 AS `Percent (%) Eligible FRPM (Ages 5-17)`\nFROM frpm\nWHERE `County Name` = 'Los Angeles'\n  AND `Low Grade` = 'K'\n  AND `High Grade` = '9'",
+    "answer": "The query returned no matching schools, so there are no Los Angeles County schools with a Kindergarten to 9th grade span in the data provided, and no FRPM percentages to report."
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-772",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 772,
+  "db_id": "superhero",
+  "difficulty": "challenging",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 3,
+    "gold_columns": 3,
+    "pred_rows": 5,
+    "gold_rows": 5
+  },
+  "trace": {
+    "question": "List the eyes, hair and skin colour of all female superheroes published by Dark Horse Comics.",
+    "evidence": "eyes refers to eye_colour_id; hair refers to hair_colour_id; skin colour refers to skin_colour_id; female superheroes refers to gender = 'Female'; published by Dark Horse Comics refers to publisher_name = 'Dark Horse Comics';",
+    "attempts": [
+      {
+        "sql": "SELECT ec.colour AS eye_colour, hc.colour AS hair_colour, sc.colour AS skin_colour\nFROM superhero s\nJOIN gender g ON s.gender_id = g.id\nJOIN publisher p ON s.publisher_id = p.id\nJOIN colour ec ON s.eye_colour_id = ec.id\nJOIN colour hc ON s.hair_colour_id = hc.id\nJOIN colour sc ON s.skin_colour_id = sc.id\nWHERE g.gender = 'Female'\n  AND p.publisher_name = 'Dark Horse Comics'",
+        "error": null,
+        "row_count": "5",
+        "n_columns": 3
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT ec.colour AS eye_colour, hc.colour AS hair_colour, sc.colour AS skin_colour\nFROM superhero s\nJOIN gender g ON s.gender_id = g.id\nJOIN publisher p ON s.publisher_id = p.id\nJOIN colour ec ON s.eye_colour_id = ec.id\nJOIN colour hc ON s.hair_colour_id = hc.id\nJOIN colour sc ON s.skin_colour_id = sc.id\nWHERE g.gender = 'Female'\n  AND p.publisher_name = 'Dark Horse Comics'",
+    "answer": "The female Dark Horse superheroes in the data have a range of colours: green, brown, and violet eyes; blond and black hair, plus brown hair; and mostly no skin colour, with one silver. Several entries have no eye or hair colour recorded."
+  }
+}

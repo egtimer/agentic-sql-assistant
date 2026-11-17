@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-1457",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1457,
+  "db_id": "student_club",
+  "difficulty": "challenging",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 3,
+    "pred_rows": 3,
+    "gold_rows": 3
+  },
+  "trace": {
+    "question": "Give the full name and contact number of members who had to spend more than average on each expense.",
+    "evidence": "full name refers to first_name, last_name; contact number refers to phone; had spent more than average on each expense refers to cost > AVG(cost)",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT m.first_name || ' ' || m.last_name AS full_name,\n       m.phone AS contact_number\nFROM member m\nJOIN expense e ON e.link_to_member = m.member_id\nWHERE e.cost > (SELECT AVG(cost) FROM expense)",
+        "error": null,
+        "row_count": "3",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT m.first_name || ' ' || m.last_name AS full_name,\n       m.phone AS contact_number\nFROM member m\nJOIN expense e ON e.link_to_member = m.member_id\nWHERE e.cost > (SELECT AVG(cost) FROM expense)",
+    "answer": "Sacha Harrison (840-555-4781), Phillip Cullen (905-555-5035), and Elijah Allen (724-555-5721) each had expenses above the average."
+  }
+}

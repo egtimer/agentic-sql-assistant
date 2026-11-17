@@ -1,0 +1,52 @@
+{
+  "failure_id": "bird-haiku-1179",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1179,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 3,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "For the patient who was diagnosed with SLE on 1994/2/19, what was his/her anti-Cardiolipin antibody concentration status on 1993/11/12?",
+    "evidence": "diagnosed with SLE refers to Diagnosis = 'SLE'; 1994/2/19 refers to Description = '1994-02-19'; anti-Cardiolipin refers to aCL IgM; 1993/11/12 refers to Examination Date = '1993/11/12'",
+    "attempts": [
+      {
+        "sql": "SELECT E.`aCL IgM`\nFROM Patient P\nJOIN Examination E ON E.ID = P.ID\nWHERE P.Diagnosis = 'SLE'\n  AND P.Description = '1994-02-19'\n  AND E.`Examination Date` = '1993/11/12'",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      },
+      {
+        "sql": "SELECT E.`aCL IgM`\nFROM Patient P\nJOIN Examination E ON E.ID = P.ID\nWHERE P.Diagnosis = 'SLE'\n  AND P.Description = '1994-02-19'\n  AND REPLACE(E.`Examination Date`, '/', '-') = '1993-11-12'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The date literal `'1993/11/12'` likely doesn't match the stored format. `Description` is given in hyphenated form (`'1994-02-19'`), so `Examination Date` is probably stored as `'1993-11-12'` too. Normalizing the slashes in the comparison keeps the filter correct either way.\n\n```sql\nSELECT E.`aCL IgM`\nFROM Patient P\nJOIN Examination E ON E.ID = P.ID\nWHERE P.Diagnosis = 'SLE'\n  AND P.Description = '1994-02-19'\n  AND REPLACE(E.`Examination Date`, '/', '-') = '1993-11-12'\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT E.`aCL IgM`\nFROM Patient P\nJOIN Examination E ON E.ID = P.ID\nWHERE P.Diagnosis = 'SLE'\n  AND P.Description = '1994-02-19'\n  AND REPLACE(E.`Examination Date`, '/', '-') = '1993-11-12'",
+    "answer": "The patient's anti-Cardiolipin IgM concentration on 1993/11/12 was 4.1."
+  }
+}

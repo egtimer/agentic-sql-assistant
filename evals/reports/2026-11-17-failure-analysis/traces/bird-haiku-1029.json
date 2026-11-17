@@ -1,0 +1,51 @@
+{
+  "failure_id": "bird-haiku-1029",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1029,
+  "db_id": "european_football_2",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 4,
+    "gold_rows": 4
+  },
+  "trace": {
+    "question": "What are the speed in which attacks are put together of the top 4 teams with the highest build Up Play Speed?",
+    "evidence": "speed in which attacks are put together refers to buildUpPlaySpeed;highest build up play speed refers to MAX(buildUpPlaySpeed)",
+    "attempts": [
+      {
+        "sql": "SELECT buildUpPlaySpeed\nFROM Team_Attributes\nORDER BY buildUpPlaySpeed DESC\nLIMIT 4",
+        "error": null,
+        "row_count": "4",
+        "n_columns": 1
+      },
+      {
+        "sql": "SELECT buildUpPlaySpeed\nFROM (\n    SELECT team_api_id, MAX(buildUpPlaySpeed) AS buildUpPlaySpeed\n    FROM Team_Attributes\n    GROUP BY team_api_id\n)\nORDER BY buildUpPlaySpeed DESC\nLIMIT 4",
+        "error": null,
+        "row_count": "4",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The query ranks attribute rows, not teams. A team with several Team_Attributes rows (one per date) can take more than one of the top 4 slots. The question asks for the top 4 teams, and the external knowledge points to MAX(buildUpPlaySpeed) per team, so the query should take each team's maximum first.\n\n```sql\nSELECT buildUpPlaySpeed\nFROM (\n    SELECT team_api_id, MAX(buildUpPlaySpeed) AS buildUpPlaySpeed\n    FROM Team_Attributes\n    GROUP BY team_api_id\n)\nORDER BY buildUpPlaySpeed DESC\nLIMIT 4\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT buildUpPlaySpeed\nFROM (\n    SELECT team_api_id, MAX(buildUpPlaySpeed) AS buildUpPlaySpeed\n    FROM Team_Attributes\n    GROUP BY team_api_id\n)\nORDER BY buildUpPlaySpeed DESC\nLIMIT 4",
+    "answer": "The top 4 teams with the highest build-up play speed have values of 80, 78, 78, and 77."
+  }
+}

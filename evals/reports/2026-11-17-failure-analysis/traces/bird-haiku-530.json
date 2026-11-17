@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-530",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 530,
+  "db_id": "card_games",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 3,
+    "gold_columns": 3,
+    "pred_rows": 83,
+    "gold_rows": 83
+  },
+  "trace": {
+    "question": "List all the frame styles and cards Allen Williams worked on and find any banned cards if there are any.",
+    "evidence": "frame styles refers to frameVersion; cards Allen Williams worked on refers to artist = 'Allen Williams'; banned cards refers to status = 'Banned'",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT c.frameVersion, c.name, l.status\nFROM cards c\nLEFT JOIN legalities l\n  ON l.uuid = c.uuid AND l.status = 'Banned'\nWHERE c.artist = 'Allen Williams'",
+        "error": null,
+        "row_count": "83",
+        "n_columns": 3
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT c.frameVersion, c.name, l.status\nFROM cards c\nLEFT JOIN legalities l\n  ON l.uuid = c.uuid AND l.status = 'Banned'\nWHERE c.artist = 'Allen Williams'",
+    "answer": "Allen Williams's cards span the 1993, 1997, 2003, and 2015 frame styles. None of the visible rows show a banned status (all are NULL), but the remaining 63 rows aren't shown, so I can't confirm whether any banned cards exist."
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "failure_id": "bird-haiku-231",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 231,
+  "db_id": "toxicology",
+  "difficulty": "challenging",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Which bond type accounted for the majority of the bonds found in molecule TR010 and state whether or not this molecule is carcinogenic?",
+    "evidence": "TR010 is the molecule id; majority of the bond found refers to MAX(COUNT(bond_type)); ",
+    "attempts": [
+      {
+        "sql": "SELECT b.bond_type,\n       CASE WHEN m.label = '+' THEN 'Yes' ELSE 'No' END AS carcinogenic\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE m.molecule_id = 'TR010'\nGROUP BY b.bond_type, m.label\nORDER BY COUNT(*) DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      },
+      {
+        "sql": "SELECT b.bond_type,\n       CASE WHEN m.label = '+' THEN 'Yes' ELSE 'No' END AS carcinogenic\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE m.molecule_id = 'TR010'\n  AND b.bond_type IS NOT NULL\n  AND b.bond_type <> ''\nGROUP BY b.bond_type, m.label\nORDER BY COUNT(*) DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "fix",
+        "text": "The result's `bond_type` is blank, which is not a valid bond type (the data uses '-', '=', '#'). The top group is probably NULL or empty `bond_type` rows, so the query should exclude them before ranking.\n\n```sql\nSELECT b.bond_type,\n       CASE WHEN m.label = '+' THEN 'Yes' ELSE 'No' END AS carcinogenic\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE m.molecule_id = 'TR010'\n  AND b.bond_type IS NOT NULL\n  AND b.bond_type <> ''\nGROUP BY b.bond_type, m.label\nORDER BY COUNT(*) DESC\nLIMIT 1\n```"
+      },
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 1,
+    "final_sql": "SELECT b.bond_type,\n       CASE WHEN m.label = '+' THEN 'Yes' ELSE 'No' END AS carcinogenic\nFROM bond b\nJOIN molecule m ON b.molecule_id = m.molecule_id\nWHERE m.molecule_id = 'TR010'\n  AND b.bond_type IS NOT NULL\n  AND b.bond_type <> ''\nGROUP BY b.bond_type, m.label\nORDER BY COUNT(*) DESC\nLIMIT 1",
+    "answer": "The query result doesn't identify a majority bond type; it only shows a single row with no bond type value, indicating that TR010 is not carcinogenic."
+  }
+}

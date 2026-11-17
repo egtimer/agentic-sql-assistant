@@ -1,0 +1,39 @@
+{
+  "run_id": "final-answer-haiku-r01",
+  "argv": [
+    "evals/failures/final_answer.py",
+    "--report",
+    "2026-11-16-noise-bird-haiku-test-350/run-r01",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--run-id",
+    "final-answer-haiku-r01",
+    "--budget-usd",
+    "0.15",
+    "--workers",
+    "4",
+    "--launched-by",
+    "block 2 final-answer pass"
+  ],
+  "started_at": "2026-11-17T08:09:19.812822+00:00",
+  "finished_at": "2026-11-17T08:12:34.040668+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "448bccdefe954d2ec55dd2bbabdbf5e12d77ed50",
+    "dirty": true
+  },
+  "user": "root",
+  "hostname": "vm",
+  "pid": 608,
+  "ppid": 606,
+  "parent_cmdline": "/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1794902400489-xgt8n7.sh 2>/dev/null || true && \\builtin export BUN_OPTIONS=\"--smol${BUN_OPTIONS:+ $BUN_OPTIONS}\" && \\builtin shopt -u extglob 2>/dev/null || true && { \\builtin unalias -- 'which'; \\builtin unset -f -- 'which'; } >/dev/null 2>&1 || true && { \\builtin unalias -- 'unsetenv'; \\builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && { { \\builtin echo 0 >| /sys/fs/cgroup/pids/process_api/cc-shell/tasks; } 2>/dev/null || :; } && eval 'export ANTHROPIC_API_KEY=$(cat ~/.secrets/anthropic_key) && .venv/bin/python -m evals.failures.final_answer --report 2026-11-16-noise-bird-haiku-test-350/run-r01 --llm-config configs/llm/claude-haiku-5-5.yaml --run-id final-answer-haiku-r01 --budget-usd 0.15 --workers 4 --launched-by \"block 2 final-answer pass\" 2>&1 | tail -8; cat evals/results/failures/final-answer-haiku-r01/summary.json | head -30' < /dev/null && pwd -P >| /tmp/claude-5fb3-cwd",
+  "python": "3.12.3",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.15
+  },
+  "launched_by": "block 2 final-answer pass",
+  "resumes": []
+}

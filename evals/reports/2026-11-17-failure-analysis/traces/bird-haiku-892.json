@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-892",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 892,
+  "db_id": "formula_1",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 3,
+    "gold_columns": 3,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "State the driver with the most points scored. Find his full name with that points.",
+    "evidence": "the most points scored refers to max(points); Full name of the driver refers to drivers.forename and drivers.surname;",
+    "attempts": [
+      {
+        "sql": "SELECT d.forename, d.surname, r.points\nFROM results r\nJOIN drivers d ON r.driverId = d.driverId\nORDER BY r.points DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 3
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT d.forename, d.surname, r.points\nFROM results r\nJOIN drivers d ON r.driverId = d.driverId\nORDER BY r.points DESC\nLIMIT 1",
+    "answer": "Lewis Hamilton has the most points, with 50.0."
+  }
+}

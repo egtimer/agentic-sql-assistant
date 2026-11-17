@@ -1,0 +1,61 @@
+{
+  "bird": {
+    "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+    "answers": "final-answer-haiku-r01",
+    "items": 350,
+    "excluded": {
+      "gold query failed (not scored)": 2
+    },
+    "failures": 149,
+    "tags_on_all_items": {
+      "wrong_query_logic": 98,
+      "wrong_output_shape": 29,
+      "answer_ok_ex_wrong": 28,
+      "answer_on_large_result": 17,
+      "answer_misread": 5,
+      "loop_or_extra_steps": 4
+    }
+  },
+  "tools": {
+    "reports": [
+      "2026-11-16-noise-tools-haiku-test",
+      "2026-11-16-noise-tools-sonnet-test"
+    ],
+    "items": 555,
+    "failures": 4,
+    "tags_on_all_items": {
+      "bad_arguments": 19,
+      "tool_output_cut": 4
+    },
+    "tags_on_items_answered_correctly": {
+      "bad_arguments": 19
+    }
+  },
+  "primary_counts": {
+    "bird": {
+      "loop_or_extra_steps": 2,
+      "answer_on_large_result": 17,
+      "answer_misread": 5,
+      "answer_ok_ex_wrong": 28,
+      "wrong_output_shape": 15,
+      "wrong_query_logic": 82
+    },
+    "tools": {
+      "tool_output_cut": 4
+    }
+  },
+  "review_sample": {
+    "n": 40,
+    "per_category_max": 5,
+    "seed": 0,
+    "by_rule_category": {
+      "tool_output_cut": 1,
+      "wrong_query_logic": 8,
+      "answer_on_large_result": 8,
+      "answer_misread": 5,
+      "answer_ok_ex_wrong": 8,
+      "wrong_output_shape": 8,
+      "loop_or_extra_steps": 2
+    }
+  }
+}

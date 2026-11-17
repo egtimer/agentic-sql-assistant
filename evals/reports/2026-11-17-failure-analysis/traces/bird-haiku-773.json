@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-773",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 773,
+  "db_id": "superhero",
+  "difficulty": "challenging",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Which superhero has the same eyes, hair and skin colour? Indicate the publisher of the superhero.",
+    "evidence": "which superhero refers to superhero_name; the same eyes, hair and skin colour refers to hair_colour_id = skin_colour_id AND hair_colour_id = eye_colour_id; publisher refers to publisher_name;",
+    "attempts": [
+      {
+        "sql": "SELECT s.superhero_name, p.publisher_name\nFROM superhero s\nJOIN publisher p ON s.publisher_id = p.id\nWHERE s.hair_colour_id = s.skin_colour_id\n  AND s.hair_colour_id = s.eye_colour_id",
+        "error": null,
+        "row_count": "157",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.superhero_name, p.publisher_name\nFROM superhero s\nJOIN publisher p ON s.publisher_id = p.id\nWHERE s.hair_colour_id = s.skin_colour_id\n  AND s.hair_colour_id = s.eye_colour_id",
+    "answer": "The query result doesn't include eye, hair, or skin colour, so I can't tell which superhero matches. It lists only superhero names and their publishers."
+  }
+}

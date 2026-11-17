@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-1153",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1153,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "simple",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "What is the disease patient '30609' diagnosed with. List all the date of laboratory tests done for this patient.",
+    "evidence": "'30609' is the Patient ID; disease means Diagnosis",
+    "attempts": [
+      {
+        "sql": "SELECT p.Diagnosis, l.Date\nFROM Patient p\nJOIN Laboratory l ON l.ID = p.ID\nWHERE p.ID = 30609",
+        "error": null,
+        "row_count": "60",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT p.Diagnosis, l.Date\nFROM Patient p\nJOIN Laboratory l ON l.ID = p.ID\nWHERE p.ID = 30609",
+    "answer": "Patient 30609 is diagnosed with SLE and MCTD. The laboratory test dates run from July 12, 1984 onward, with 60 dates in total; the first 20 are shown above, ranging from July 12, 1984 to December 12, 1985."
+  }
+}

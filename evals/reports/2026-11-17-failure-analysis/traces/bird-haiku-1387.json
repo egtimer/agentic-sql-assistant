@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-1387",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1387,
+  "db_id": "student_club",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 2,
+    "pred_rows": 2,
+    "gold_rows": 4
+  },
+  "trace": {
+    "question": "Which student has been entrusted to manage the budget for the Yearly Kickoff?",
+    "evidence": "name of students means the full name; full name refers to first_name, last_name;'Yearly Kickoff' is an event name;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT m.first_name || ' ' || m.last_name AS full_name\nFROM event e\nJOIN budget b ON b.link_to_event = e.event_id\nJOIN expense x ON x.link_to_budget = b.budget_id\nJOIN member m ON m.member_id = x.link_to_member\nWHERE e.event_name = 'Yearly Kickoff'",
+        "error": null,
+        "row_count": "2",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT m.first_name || ' ' || m.last_name AS full_name\nFROM event e\nJOIN budget b ON b.link_to_event = e.event_id\nJOIN expense x ON x.link_to_budget = b.budget_id\nJOIN member m ON m.member_id = x.link_to_member\nWHERE e.event_name = 'Yearly Kickoff'",
+    "answer": "The budget for the Yearly Kickoff has been entrusted to two students: Sacha Harrison and Elijah Allen."
+  }
+}

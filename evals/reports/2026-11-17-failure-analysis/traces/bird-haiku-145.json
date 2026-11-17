@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-145",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 145,
+  "db_id": "financial",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 770,
+    "gold_rows": 4484
+  },
+  "trace": {
+    "question": "Who are the account holder identification numbers whose who have transactions on the credit card with the amount is less than the average, in 1998?",
+    "evidence": "Operation = 'VYBER KARTOU' refers to credit card withdrawal",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT d.client_id\nFROM trans t\nJOIN disp d ON d.account_id = t.account_id\nWHERE t.operation = 'VYBER KARTOU'\n  AND strftime('%Y', t.date) = '1998'\n  AND t.amount < (\n      SELECT AVG(t2.amount)\n      FROM trans t2\n      WHERE t2.operation = 'VYBER KARTOU'\n        AND strftime('%Y', t2.date) = '1998'\n  )",
+        "error": null,
+        "row_count": "770",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT d.client_id\nFROM trans t\nJOIN disp d ON d.account_id = t.account_id\nWHERE t.operation = 'VYBER KARTOU'\n  AND strftime('%Y', t.date) = '1998'\n  AND t.amount < (\n      SELECT AVG(t2.amount)\n      FROM trans t2\n      WHERE t2.operation = 'VYBER KARTOU'\n        AND strftime('%Y', t2.date) = '1998'\n  )",
+    "answer": "There are 770 such account holder identification numbers, including 19, 41, 51, 56, 57, 76, 79, 83, 84, 87, 112, 113, 114, 115, 116, 117, 128, 130, 131, and 132 (among others)."
+  }
+}

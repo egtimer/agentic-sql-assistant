@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-169",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 169,
+  "db_id": "financial",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What was the growth rate of the total amount of loans across all accounts for a male client between 1996 and 1997?",
+    "evidence": "Growth rate = (sum of amount_1997 - sum of amount_1996) / (sum of amount_1996) * 100%; Male refers to gender = 'M'",
+    "attempts": [
+      {
+        "sql": "SELECT (SUM(CASE WHEN strftime('%Y', l.date) = '1997' THEN l.amount ELSE 0 END)\n      - SUM(CASE WHEN strftime('%Y', l.date) = '1996' THEN l.amount ELSE 0 END)) * 100.0\n      / SUM(CASE WHEN strftime('%Y', l.date) = '1996' THEN l.amount ELSE 0 END) AS growth_rate\nFROM loan l\nWHERE strftime('%Y', l.date) IN ('1996', '1997')\n  AND EXISTS (\n      SELECT 1\n      FROM disp d\n      JOIN client c ON c.client_id = d.client_id\n      WHERE d.account_id = l.account_id\n        AND c.gender = 'M'\n  )",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT (SUM(CASE WHEN strftime('%Y', l.date) = '1997' THEN l.amount ELSE 0 END)\n      - SUM(CASE WHEN strftime('%Y', l.date) = '1996' THEN l.amount ELSE 0 END)) * 100.0\n      / SUM(CASE WHEN strftime('%Y', l.date) = '1996' THEN l.amount ELSE 0 END) AS growth_rate\nFROM loan l\nWHERE strftime('%Y', l.date) IN ('1996', '1997')\n  AND EXISTS (\n      SELECT 1\n      FROM disp d\n      JOIN client c ON c.client_id = d.client_id\n      WHERE d.account_id = l.account_id\n        AND c.gender = 'M'\n  )",
+    "answer": "The total amount of loans for male clients grew by about 25.36% between 1996 and 1997."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-37",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 37,
+  "db_id": "california_schools",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 4,
+    "gold_columns": 4,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What is the complete address of the school with the lowest excellence rate? Indicate the Street, City, Zip and State.",
+    "evidence": "Execellence Rate = NumGE1500 / NumTstTakr; complete address has Street, City, State, Zip code",
+    "attempts": [
+      {
+        "sql": "SELECT s.Street, s.City, s.Zip, s.State\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nWHERE sat.NumTstTakr > 0 AND sat.NumGE1500 IS NOT NULL\nORDER BY CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr ASC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 4
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT s.Street, s.City, s.Zip, s.State\nFROM satscores AS sat\nJOIN schools AS s ON s.CDSCode = sat.cds\nWHERE sat.NumTstTakr > 0 AND sat.NumGE1500 IS NOT NULL\nORDER BY CAST(sat.NumGE1500 AS REAL) / sat.NumTstTakr ASC\nLIMIT 1",
+    "answer": "The school with the lowest excellence rate is located at 2607 Myrtle Street, Oakland, CA 94607-3415."
+  }
+}

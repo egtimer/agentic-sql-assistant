@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1255",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1255,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "For the patients with an abnormal Ig M level, what is the most common disease they are diagnosed with?",
+    "evidence": "abnormal Ig M level refers to IGM <=40 OR IGM >= 400; most common disease refers to MAX(COUNT(Diagnosis));",
+    "attempts": [
+      {
+        "sql": "SELECT p.Diagnosis\nFROM Patient p\nJOIN Laboratory l ON l.ID = p.ID\nWHERE l.IGM <= 40 OR l.IGM >= 400\nGROUP BY p.Diagnosis\nORDER BY COUNT(DISTINCT l.ID) DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT p.Diagnosis\nFROM Patient p\nJOIN Laboratory l ON l.ID = p.ID\nWHERE l.IGM <= 40 OR l.IGM >= 400\nGROUP BY p.Diagnosis\nORDER BY COUNT(DISTINCT l.ID) DESC\nLIMIT 1",
+    "answer": "The most common diagnosis among patients with an abnormal IgM level is SLE (systemic lupus erythematosus)."
+  }
+}

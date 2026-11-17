@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-532",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 532,
+  "db_id": "codebase_community",
+  "difficulty": "simple",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Please list the display names of all the users whose accounts were created in the year 2011.",
+    "evidence": "account created in the year 2011 refers to year(CreationDate) = 2011",
+    "attempts": [
+      {
+        "sql": "SELECT DisplayName\nFROM users\nWHERE strftime('%Y', CreationDate) = '2011'",
+        "error": null,
+        "row_count": ">1000",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DisplayName\nFROM users\nWHERE strftime('%Y', CreationDate) = '2011'",
+    "answer": "There are more than 1,000 users created in 2011. The first 20 display names include Rob, Anubhav, Betamoo, dram, dcurtis, DavidDong, varuman, ennuikiller, Jaime, Sean Hill, grenade, Mathias Bynens, Ringold, binil, murgatroid99, Ben Jackson, Judy, speciousfool, Jonathan Andrews, and Adi Shavit."
+  }
+}

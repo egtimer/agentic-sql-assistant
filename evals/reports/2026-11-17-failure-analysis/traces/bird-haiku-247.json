@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-247",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 247,
+  "db_id": "toxicology",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 5,
+    "gold_rows": 3
+  },
+  "trace": {
+    "question": "List all the elements of atoms that can not bond with any other atoms.",
+    "evidence": " atoms cannot bond with other atoms means atom_id NOT in connected table;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT element\nFROM atom\nWHERE atom_id NOT IN (SELECT atom_id FROM connected)\n  AND atom_id NOT IN (SELECT atom_id2 FROM connected)",
+        "error": null,
+        "row_count": "5",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT element\nFROM atom\nWHERE atom_id NOT IN (SELECT atom_id FROM connected)\n  AND atom_id NOT IN (SELECT atom_id2 FROM connected)",
+    "answer": "The query returned sodium (na), chlorine (cl), hydrogen (h), zinc (zn), and potassium (k). However, these elements all form bonds readily, so the result doesn't match the question's intent and may reflect a faulty filter."
+  }
+}

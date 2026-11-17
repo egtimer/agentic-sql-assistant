@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1482",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1482,
+  "db_id": "debit_card_specializing",
+  "difficulty": "challenging",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 3,
+    "pred_rows": 2,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Which of the three segments—SME, LAM and KAM—has the biggest and lowest percentage increases in consumption paid in EUR between 2012 and 2013?",
+    "evidence": "Increase or Decrease = consumption for 2013 - consumption for 2012; Percentage of Increase = (Increase or Decrease / consumption for 2013) * 100%; The first 4 strings of the Date values in the yearmonth table can represent year",
+    "attempts": [
+      {
+        "sql": "WITH seg AS (\n    SELECT c.Segment,\n           SUM(CASE WHEN substr(y.Date, 1, 4) = '2013' THEN y.Consumption ELSE 0 END) AS c2013,\n           SUM(CASE WHEN substr(y.Date, 1, 4) = '2012' THEN y.Consumption ELSE 0 END) AS c2012\n    FROM customers c\n    JOIN yearmonth y ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR'\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment\n),\npct AS (\n    SELECT Segment, (c2013 - c2012) * 100.0 / c2013 AS Percentage_Increase\n    FROM seg\n)\nSELECT Segment, Percentage_Increase\nFROM (SELECT Segment, Percentage_Increase FROM pct ORDER BY Percentage_Increase DESC LIMIT 1)\nUNION ALL\nSELECT Segment, Percentage_Increase\nFROM (SELECT Segment, Percentage_Increase FROM pct ORDER BY Percentage_Increase ASC LIMIT 1)",
+        "error": null,
+        "row_count": "2",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "WITH seg AS (\n    SELECT c.Segment,\n           SUM(CASE WHEN substr(y.Date, 1, 4) = '2013' THEN y.Consumption ELSE 0 END) AS c2013,\n           SUM(CASE WHEN substr(y.Date, 1, 4) = '2012' THEN y.Consumption ELSE 0 END) AS c2012\n    FROM customers c\n    JOIN yearmonth y ON y.CustomerID = c.CustomerID\n    WHERE c.Currency = 'EUR'\n      AND c.Segment IN ('SME', 'LAM', 'KAM')\n    GROUP BY c.Segment\n),\npct AS (\n    SELECT Segment, (c2013 - c2012) * 100.0 / c2013 AS Percentage_Increase\n    FROM seg\n)\nSELECT Segment, Percentage_Increase\nFROM (SELECT Segment, Percentage_Increase FROM pct ORDER BY Percentage_Increase DESC LIMIT 1)\nUNION ALL\nSELECT Segment, Percentage_Increase\nFROM (SELECT Segment, Percentage_Increase FROM pct ORDER BY Percentage_Increase ASC LIMIT 1)",
+    "answer": "SME had the biggest increase at about 88.02%, and LAM had the lowest at about 84.37%. The results don't include KAM, so it can't be compared."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-149",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 149,
+  "db_id": "financial",
+  "difficulty": "challenging",
+  "primary": "wrong_output_shape",
+  "tags": [
+    "wrong_output_shape"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 1,
+    "pred_rows": 0,
+    "gold_rows": 461
+  },
+  "trace": {
+    "question": "Please list the account types that are not eligible for loans, and the average income of residents in the district where the account is located exceeds $8000 but is no more than $9000.",
+    "evidence": "A11 represents the average salary; Salary and income share the similar meanings; when the account type = 'OWNER', it's eligible for loans",
+    "attempts": [
+      {
+        "sql": "SELECT d.type, AVG(di.A11) AS average_income\nFROM disp d\nJOIN account a ON d.account_id = a.account_id\nJOIN district di ON a.district_id = di.district_id\nWHERE d.type <> 'OWNER'\nGROUP BY d.type\nHAVING AVG(di.A11) > 8000 AND AVG(di.A11) <= 9000",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT d.type, AVG(di.A11) AS average_income\nFROM disp d\nJOIN account a ON d.account_id = a.account_id\nJOIN district di ON a.district_id = di.district_id\nWHERE d.type <> 'OWNER'\nGROUP BY d.type\nHAVING AVG(di.A11) > 8000 AND AVG(di.A11) <= 9000",
+    "answer": "No account types meet both conditions: the query returned no rows, so there are no non-loan-eligible account types whose district average income falls between $8,000 and $9,000."
+  }
+}

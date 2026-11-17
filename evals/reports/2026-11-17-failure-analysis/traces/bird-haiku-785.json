@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-785",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 785,
+  "db_id": "superhero",
+  "difficulty": "simple",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Describe the names of neutral alignment superheroes.",
+    "evidence": "names of superheroes refers to superhero_name; neutral alignment refers to alignment = 'Neutral';",
+    "attempts": [
+      {
+        "sql": "SELECT T1.superhero_name\nFROM superhero AS T1\nINNER JOIN alignment AS T2 ON T1.alignment_id = T2.id\nWHERE T2.alignment = 'Neutral'",
+        "error": null,
+        "row_count": "28",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT T1.superhero_name\nFROM superhero AS T1\nINNER JOIN alignment AS T2 ON T1.alignment_id = T2.id\nWHERE T2.alignment = 'Neutral'",
+    "answer": "There are 28 neutral-alignment superheroes in total, including Ares, Bizarro, Deadpool, Deathstroke, Galactus, Lobo, and Raven. The list shown is partial, so eight more names are not displayed."
+  }
+}

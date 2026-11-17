@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-194",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 194,
+  "db_id": "financial",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 88,
+    "gold_rows": 88
+  },
+  "trace": {
+    "question": "Provide the IDs and age of the client with high level credit card, which is eligible for loans.",
+    "evidence": "the credit card is high-level refers to card.type = 'gold'; eligible for loans refers to disp.type = 'OWNER'",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT c.client_id,\n       CAST((julianday('now') - julianday(c.birth_date)) / 365.25 AS INTEGER) AS age\nFROM client c\nJOIN disp d ON c.client_id = d.client_id\nJOIN card cd ON cd.disp_id = d.disp_id\nWHERE cd.type = 'gold'\n  AND d.type = 'OWNER'",
+        "error": null,
+        "row_count": "88",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT c.client_id,\n       CAST((julianday('now') - julianday(c.birth_date)) / 365.25 AS INTEGER) AS age\nFROM client c\nJOIN disp d ON c.client_id = d.client_id\nJOIN card cd ON cd.disp_id = d.disp_id\nWHERE cd.type = 'gold'\n  AND d.type = 'OWNER'",
+    "answer": "There are 88 clients with a high-level credit card eligible for loans. Their IDs and ages are listed in the query result, ranging from client 9 (age 91) to client 1536 (age 59) among the first 20 rows shown."
+  }
+}

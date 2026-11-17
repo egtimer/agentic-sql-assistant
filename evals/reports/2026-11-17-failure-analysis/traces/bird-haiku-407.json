@@ -1,0 +1,36 @@
+{
+  "failure_id": "bird-haiku-407",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 407,
+  "db_id": "card_games",
+  "difficulty": "moderate",
+  "primary": "answer_on_large_result",
+  "tags": [
+    "answer_on_large_result"
+  ],
+  "ex_correct": true,
+  "judge_label": "incorrect",
+  "shape": null,
+  "trace": {
+    "question": "Lists all types of cards in German.",
+    "evidence": "German refer to language; all types refer to the subtypes, supertypes; subtypes is not null AND supertypes is not null",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT c.subtypes, c.supertypes\nFROM cards AS c\nINNER JOIN foreign_data AS f ON f.uuid = c.uuid\nWHERE f.language = 'German'\n  AND c.subtypes IS NOT NULL\n  AND c.supertypes IS NOT NULL",
+        "error": null,
+        "row_count": "408",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT c.subtypes, c.supertypes\nFROM cards AS c\nINNER JOIN foreign_data AS f ON f.uuid = c.uuid\nWHERE f.language = 'German'\n  AND c.subtypes IS NOT NULL\n  AND c.supertypes IS NOT NULL",
+    "answer": "The query results don't include German names. They show English card supertypes (such as \"Legendary\") and subtypes (such as Human, Wizard, Angel, and Zombie), across 408 rows."
+  }
+}

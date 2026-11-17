@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-847",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 847,
+  "db_id": "formula_1",
+  "difficulty": "simple",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What is the surname of the driver with the best lap time in race number 19 in the second qualifying period?",
+    "evidence": "race number refers to raceId; second qualifying period refers to q2; best lap time refers to MIN(q2);",
+    "attempts": [
+      {
+        "sql": "SELECT d.surname\nFROM qualifying q\nJOIN drivers d ON q.driverId = d.driverId\nWHERE q.raceId = 19\n  AND q.q2 IS NOT NULL\n  AND q.q2 <> ''\nORDER BY q.q2 ASC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT d.surname\nFROM qualifying q\nJOIN drivers d ON q.driverId = d.driverId\nWHERE q.raceId = 19\n  AND q.q2 IS NOT NULL\n  AND q.q2 <> ''\nORDER BY q.q2 ASC\nLIMIT 1",
+    "answer": "The driver with the best lap time in race 19's second qualifying period was Räikkönen."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1028",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1028,
+  "db_id": "european_football_2",
+  "difficulty": "challenging",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "In Scotland Premier League, which away team won the most during the 2010 season?",
+    "evidence": "Final result should return the Team.team_long_name; Scotland Premier League refers to League.name = 'Scotland Premier League'; away team refers to away_team_api_id; away team that won the most refers to MAX(SUBTRACT(away_team_goal, home_team_goal) > 0); 2010 season refers to season = '2009/2010'; won the most refers to MAX(COUNT(*));",
+    "attempts": [
+      {
+        "sql": "SELECT t.team_long_name\nFROM Match m\nJOIN League l ON m.league_id = l.id\nJOIN Team t ON t.team_api_id = m.away_team_api_id\nWHERE l.name = 'Scotland Premier League'\n  AND m.season = '2009/2010'\n  AND m.away_team_goal > m.home_team_goal\nGROUP BY m.away_team_api_id, t.team_long_name\nORDER BY COUNT(*) DESC\nLIMIT 1",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT t.team_long_name\nFROM Match m\nJOIN League l ON m.league_id = l.id\nJOIN Team t ON t.team_api_id = m.away_team_api_id\nWHERE l.name = 'Scotland Premier League'\n  AND m.season = '2009/2010'\n  AND m.away_team_goal > m.home_team_goal\nGROUP BY m.away_team_api_id, t.team_long_name\nORDER BY COUNT(*) DESC\nLIMIT 1",
+    "answer": "Rangers won the most away matches in the Scottish Premier League during the 2010 season."
+  }
+}

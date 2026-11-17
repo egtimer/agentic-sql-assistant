@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-1501",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1501,
+  "db_id": "debit_card_specializing",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 0,
+    "gold_rows": 2
+  },
+  "trace": {
+    "question": "Please list the countries of the gas stations with transactions taken place in June, 2013.",
+    "evidence": "June 2013 refers to '201306'; The first 4 strings of the Date values in the yearmonth table can represent year; The 5th and 6th string of the date can refer to month;",
+    "attempts": [
+      {
+        "sql": "SELECT DISTINCT g.Country\nFROM \"transactions_1k\" t\nJOIN gasstations g ON t.GasStationID = g.GasStationID\nWHERE substr(replace(t.Date, '-', ''), 1, 6) = '201306'",
+        "error": null,
+        "row_count": "0",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT DISTINCT g.Country\nFROM \"transactions_1k\" t\nJOIN gasstations g ON t.GasStationID = g.GasStationID\nWHERE substr(replace(t.Date, '-', ''), 1, 6) = '201306'",
+    "answer": "There are no gas stations with transactions in June 2013, so no countries are returned."
+  }
+}

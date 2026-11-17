@@ -1,0 +1,41 @@
+{
+  "failure_id": "bird-haiku-604",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 604,
+  "db_id": "codebase_community",
+  "difficulty": "moderate",
+  "primary": "wrong_query_logic",
+  "tags": [
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "incorrect",
+  "shape": {
+    "pred_columns": 2,
+    "gold_columns": 2,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "What is the average of the up votes and the average user age for users creating more than 10 posts?",
+    "evidence": "creating more than 10 post refers to Count (UserId) > 10; average of the up votes = Divide (Sum(UpVotes), Count (UserId)); average age = Divide (Sum(Age), Count(UserId))",
+    "attempts": [
+      {
+        "sql": "SELECT SUM(u.UpVotes) * 1.0 / COUNT(u.Id) AS avg_upvotes,\n       SUM(u.Age) * 1.0 / COUNT(u.Id) AS avg_age\nFROM users u\nWHERE u.Id IN (\n    SELECT p.OwnerUserId\n    FROM posts p\n    GROUP BY p.OwnerUserId\n    HAVING COUNT(p.Id) > 10\n)",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 2
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT SUM(u.UpVotes) * 1.0 / COUNT(u.Id) AS avg_upvotes,\n       SUM(u.Age) * 1.0 / COUNT(u.Id) AS avg_age\nFROM users u\nWHERE u.Id IN (\n    SELECT p.OwnerUserId\n    FROM posts p\n    GROUP BY p.OwnerUserId\n    HAVING COUNT(p.Id) > 10\n)",
+    "answer": "For users who created more than 10 posts, the average upvotes is about 182.3 and the average user age is about 9.1."
+  }
+}

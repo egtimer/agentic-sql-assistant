@@ -1,0 +1,42 @@
+{
+  "failure_id": "bird-haiku-1149",
+  "source": "bird",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "item": 1149,
+  "db_id": "thrombosis_prediction",
+  "difficulty": "moderate",
+  "primary": "answer_ok_ex_wrong",
+  "tags": [
+    "answer_ok_ex_wrong",
+    "wrong_query_logic"
+  ],
+  "ex_correct": false,
+  "judge_label": "correct",
+  "shape": {
+    "pred_columns": 1,
+    "gold_columns": 1,
+    "pred_rows": 1,
+    "gold_rows": 1
+  },
+  "trace": {
+    "question": "Are there more in-patient or outpatient who were male? What is the deviation in percentage?",
+    "evidence": "male refers to SEX = 'M'; in-patient refers to Admission = '+'; outpatient refers to Admission = '-'; percentage = DIVIDE(COUNT(ID) where SEX = 'M' and Admission = '+', COUNT(ID) where SEX  = 'M' and Admission = '-')",
+    "attempts": [
+      {
+        "sql": "SELECT (SUM(CASE WHEN Admission = '+' THEN 1 ELSE 0 END) - SUM(CASE WHEN Admission = '-' THEN 1 ELSE 0 END)) * 100.0\n       / SUM(CASE WHEN Admission = '-' THEN 1 ELSE 0 END) AS deviation_percentage\nFROM Patient\nWHERE SEX = 'M'",
+        "error": null,
+        "row_count": "1",
+        "n_columns": 1
+      }
+    ],
+    "verdicts": [
+      {
+        "kind": "ok",
+        "text": "OK"
+      }
+    ],
+    "fixes_used": 0,
+    "final_sql": "SELECT (SUM(CASE WHEN Admission = '+' THEN 1 ELSE 0 END) - SUM(CASE WHEN Admission = '-' THEN 1 ELSE 0 END)) * 100.0\n       / SUM(CASE WHEN Admission = '-' THEN 1 ELSE 0 END) AS deviation_percentage\nFROM Patient\nWHERE SEX = 'M'",
+    "answer": "Outpatients had more male patients than in-patients. The male in-patient count was about 16.82% lower than the outpatient count."
+  }
+}
