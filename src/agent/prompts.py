@@ -84,43 +84,6 @@ and decimal points, with no units, no thousands separators and no words. If the 
 hold the numbers the calculation needs, write NONE."""
 
 
-VALIDATION_PROMPT = """\
-You are reviewing tool execution results to determine if the user's question \
-can be answered.
-
-**User question:** {query}
-
-**Planned tools:** {planned_tools}
-
-**Executed results:**
-{tool_results}
-
-Check the following:
-1. Did all tools execute successfully?
-2. Do the results contain enough data to answer the question?
-3. Are there any PLACEHOLDER calculator inputs that need to be filled with actual data?
-
-Respond with ONLY a JSON object:
-{{
-  "is_complete": true/false,
-  "reason": "brief explanation",
-  "additional_tools": []
-}}
-
-If a calculator has "PLACEHOLDER" input, fill it with actual numbers from the tool results:
-{{
-  "is_complete": false,
-  "reason": "Calculator needs actual values from SQL results",
-  "additional_tools": [{{"tool": "calculator", "input": "(actual_expression)", "reason": "Calculate with real data"}}]
-}}
-
-If everything looks good:
-{{
-  "is_complete": true,
-  "reason": "All data available to answer the question",
-  "additional_tools": []
-}}"""
-
 # --- SQL-only profile (arbitrary database, e.g. BIRD) -------------------------------------
 # Layout matters: everything stable across questions (instructions, tools, schema) comes
 # first and the per-question text is last, so Ollama can reuse its KV cache for the prefix.

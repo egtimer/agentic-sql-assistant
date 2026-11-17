@@ -10,7 +10,6 @@ from langchain_core.messages import AIMessage, HumanMessage
 from src.agent.prompts import (
     CALC_FILL_PROMPT,
     DIRECT_RESPONSE_PROMPT,
-    VALIDATION_PROMPT,
     build_response_prompt,
     build_tool_selection_parts,
 )
@@ -261,52 +260,13 @@ def _fill_placeholder(query: str, tool_call: ToolCall, results: list[ToolResult]
 
 @trace_node("validate")
 def validate_node(state: AgentState) -> dict[str, Any]:
-    """Check if all tools have been executed and results are sufficient.
+    """Route back to ``execute`` while planned tools remain, else on to ``respond``.
 
-    If there are PLACEHOLDER calculator inputs remaining, uses the LLM
-    to determine what expression to compute with the actual data.
+    It used to ask the model to fill a ``PLACEHOLDER`` calculator input here, but ``execute``
+    runs every planned tool before this node, so that path never ran; the placeholder is now
+    filled where the tool runs (``_fill_placeholder``, ADR-011).
     """
-    has_placeholder = any(
-        tc.input == "PLACEHOLDER" and state.current_tool_index <= i
-        for i, tc in enumerate(state.planned_tools)
-    )
-
-    if has_placeholder and state.tool_results:
-        prompt = VALIDATION_PROMPT.format(
-            query=state.query,
-            planned_tools=json.dumps(
-                [tc.model_dump() for tc in state.planned_tools], ensure_ascii=False
-            ),
-            tool_results=_format_tool_results(state.tool_results),
-        )
-        response_text = get_client().complete(None, prompt, tag="validate").text
-
-        try:
-            validation = _extract_json(response_text)
-            if not validation.get("is_complete", True) and validation.get("additional_tools"):
-                additional = []
-                for tc in validation["additional_tools"]:
-                    try:
-                        additional.append(
-                            ToolCall(
-                                tool=ToolName(tc["tool"]),
-                                input=tc.get("input", ""),
-                                reason=tc.get("reason", ""),
-                            )
-                        )
-                    except (ValueError, KeyError):
-                        continue
-
-                if additional:
-                    return {
-                        "planned_tools": list(state.planned_tools) + additional,
-                        "needs_more_tools": True,
-                    }
-        except (json.JSONDecodeError, TypeError):
-            logger.warning("Failed to parse validation response: %s", response_text[:200])
-
-    all_executed = state.current_tool_index >= len(state.planned_tools)
-    return {"needs_more_tools": not all_executed}
+    return {"needs_more_tools": state.current_tool_index < len(state.planned_tools)}
 
 
 @trace_node("respond")
