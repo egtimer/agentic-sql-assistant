@@ -1,0 +1,72 @@
+{
+  "eval": "tools",
+  "n": 5,
+  "prefix": "2026-11-17-fix-tools-haiku-before/run",
+  "budget_usd_per_run": 0.05,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--split",
+    "test",
+    "--systems",
+    "agent_v1"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-17-fix-tools-haiku-before/run-r01",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-haiku-before/run-r01",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-haiku-before/run-r01 --budget-usd 0.05",
+      "started_at": "2026-11-17T11:58:06.479917+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T11:59:40.363303+00:00",
+      "status": "done",
+      "cost_usd": 0.0108441,
+      "share_of_cap": 0.216882
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-haiku-before/run-r02",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-haiku-before/run-r02",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-haiku-before/run-r02 --budget-usd 0.05",
+      "started_at": "2026-11-17T11:59:40.365160+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:01:21.075966+00:00",
+      "status": "done",
+      "cost_usd": 0.011172300000000001,
+      "share_of_cap": 0.223446
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-haiku-before/run-r03",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-haiku-before/run-r03",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-haiku-before/run-r03 --budget-usd 0.05",
+      "started_at": "2026-11-17T12:01:21.079346+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:03:00.089384+00:00",
+      "status": "done",
+      "cost_usd": 0.0111582,
+      "share_of_cap": 0.223164
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-haiku-before/run-r04",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-haiku-before/run-r04",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-haiku-before/run-r04 --budget-usd 0.05",
+      "started_at": "2026-11-17T12:03:00.092318+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:04:40.177803+00:00",
+      "status": "done",
+      "cost_usd": 0.011156000000000001,
+      "share_of_cap": 0.22312
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-haiku-before/run-r05",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-haiku-before/run-r05",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-haiku-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-haiku-before/run-r05 --budget-usd 0.05",
+      "started_at": "2026-11-17T12:04:40.182983+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:06:18.177215+00:00",
+      "status": "done",
+      "cost_usd": 0.0109946,
+      "share_of_cap": 0.219892
+    }
+  ],
+  "cost_usd_total": 0.055325200000000005
+}

@@ -1,0 +1,62 @@
+{
+  "run_id": "final-answer-haiku-r01-v2-rep1",
+  "kind": "final_answer",
+  "report": "2026-11-16-noise-bird-haiku-test-350/run-r01",
+  "system": "agent_v2",
+  "respond_version": "v2",
+  "n_planned": 350,
+  "n_done": 350,
+  "judge_labels": {
+    "correct": 229,
+    "incorrect": 119,
+    "no_reference": 2
+  },
+  "ex_vs_judge": {
+    "ex_ok/judge_correct": 199,
+    "ex_ok/judge_incorrect": 22,
+    "ex_wrong/judge_incorrect": 97,
+    "ex_wrong/judge_correct": 30,
+    "ex_wrong/judge_no_reference": 2
+  },
+  "n_empty_answer": 0,
+  "totals": {
+    "respond": 0.028505100000000002,
+    "judge": 0.0377296,
+    "cost_usd": 0.06623470000000001
+  },
+  "judge_prompt_chars": 843,
+  "aborted": null,
+  "tracker": {
+    "cost_usd_this_invocation": 0.06623469999999995,
+    "budget_usd": 0.15
+  },
+  "workers": 4,
+  "llm_config_file": "configs/llm/claude-haiku-5-5.yaml",
+  "llm_config": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "max_tokens": 16000,
+    "temperature": null,
+    "effort": "low",
+    "num_ctx": null,
+    "base_url": null,
+    "prompt_caching": true,
+    "pricing": {
+      "input_per_mtok": 0.1,
+      "output_per_mtok": 0.5,
+      "cache_read_per_mtok": 0.01,
+      "cache_write_per_mtok": 0.125,
+      "long_context_threshold": 100000,
+      "long_input_per_mtok": 0.5,
+      "long_output_per_mtok": 2.5,
+      "long_cache_read_per_mtok": 0.05,
+      "long_cache_write_per_mtok": 0.625
+    }
+  },
+  "git": {
+    "commit": "f010868a2fb29a998093354f36253f1a39ae48fd",
+    "dirty": true
+  },
+  "started_at": "2026-11-17T11:55:23.149421+00:00",
+  "finished_at": "2026-11-17T11:58:42.879050+00:00"
+}

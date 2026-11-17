@@ -1,0 +1,50 @@
+{
+  "eval": "tools",
+  "n": 3,
+  "prefix": "2026-11-17-fix-tools-sonnet-before/run",
+  "budget_usd_per_run": 0.4,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--split",
+    "test",
+    "--systems",
+    "agent_v1"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-before/run-r01",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-before/run-r01",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-before/run-r01 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:06:18.236557+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:08:49.960167+00:00",
+      "status": "done",
+      "cost_usd": 0.241056,
+      "share_of_cap": 0.60264
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-before/run-r02",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-before/run-r02",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-before/run-r02 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:08:49.963014+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:11:19.838841+00:00",
+      "status": "done",
+      "cost_usd": 0.232402,
+      "share_of_cap": 0.581005
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-before/run-r03",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-before/run-r03",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-before/run-r03 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:11:19.842950+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:13:51.165091+00:00",
+      "status": "done",
+      "cost_usd": 0.234558,
+      "share_of_cap": 0.5863949999999999
+    }
+  ],
+  "cost_usd_total": 0.708016
+}

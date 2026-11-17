@@ -130,7 +130,9 @@ What this says about the rules and about the agent:
   answer says it cannot tell (whether colours match, which hero the powers belong to) or drops
   rows the query returned. The respond step is given the question and the result rows only.
 
-## Fixes this points to (not applied here)
+## Fixes this points to
+
+Applied and measured before and after in [`2026-11-17-fixes`](../2026-11-17-fixes/README.md) ([ADR-011](../../../docs/ADR-011-fixes-from-failure-analysis.md)). The list as written before the fixes:
 
 Each changes the agent, so each needs its own before/after run on the same items, with the
 numbers above kept:

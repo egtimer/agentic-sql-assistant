@@ -1,0 +1,50 @@
+{
+  "eval": "tools",
+  "n": 3,
+  "prefix": "2026-11-17-fix-tools-sonnet-after/run",
+  "budget_usd_per_run": 0.4,
+  "passthrough": [
+    "--llm-config",
+    "configs/llm/claude-sonnet-5-5.yaml",
+    "--split",
+    "test",
+    "--systems",
+    "agent_v1"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-after/run-r01",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-after/run-r01",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-after/run-r01 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:06:32.166580+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:09:00.591023+00:00",
+      "status": "done",
+      "cost_usd": 0.240884,
+      "share_of_cap": 0.6022099999999999
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-after/run-r02",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-after/run-r02",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-after/run-r02 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:09:00.593229+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:11:33.377180+00:00",
+      "status": "done",
+      "cost_usd": 0.244754,
+      "share_of_cap": 0.611885
+    },
+    {
+      "run_id": "2026-11-17-fix-tools-sonnet-after/run-r03",
+      "run_dir": "evals/reports/2026-11-17-fix-tools-sonnet-after/run-r03",
+      "command": "-m evals.tools.run --llm-config configs/llm/claude-sonnet-5-5.yaml --split test --systems agent_v1 --run-id 2026-11-17-fix-tools-sonnet-after/run-r03 --budget-usd 0.4",
+      "started_at": "2026-11-17T12:11:33.380040+00:00",
+      "returncode": 0,
+      "finished_at": "2026-11-17T12:14:04.048536+00:00",
+      "status": "done",
+      "cost_usd": 0.241174,
+      "share_of_cap": 0.602935
+    }
+  ],
+  "cost_usd_total": 0.726812
+}

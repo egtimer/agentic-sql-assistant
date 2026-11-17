@@ -1,0 +1,41 @@
+{
+  "run_id": "final-answer-haiku-r01-v1-rep2",
+  "argv": [
+    "evals/failures/final_answer.py",
+    "--report",
+    "2026-11-16-noise-bird-haiku-test-350/run-r01",
+    "--llm-config",
+    "configs/llm/claude-haiku-5-5.yaml",
+    "--run-id",
+    "final-answer-haiku-r01-v1-rep2",
+    "--budget-usd",
+    "0.15",
+    "--workers",
+    "4",
+    "--respond",
+    "v1",
+    "--launched-by",
+    "fix 3 before/after (v1)"
+  ],
+  "started_at": "2026-11-17T11:52:02.522119+00:00",
+  "finished_at": "2026-11-17T11:55:21.856754+00:00",
+  "status": "completed",
+  "git": {
+    "commit": "d8247d27e241bcfef0e4776c016585260768a27c",
+    "dirty": true
+  },
+  "user": "root",
+  "hostname": "vm",
+  "pid": 3913,
+  "ppid": 3911,
+  "parent_cmdline": "/bin/bash -c source /root/.claude/shell-snapshots/snapshot-bash-1794915732464-1q7lgj.sh 2>/dev/null || true && \\builtin export BUN_OPTIONS=\"--smol${BUN_OPTIONS:+ $BUN_OPTIONS}\" && \\builtin shopt -u extglob 2>/dev/null || true && { \\builtin unalias -- 'which'; \\builtin unset -f -- 'which'; } >/dev/null 2>&1 || true && { \\builtin unalias -- 'unsetenv'; \\builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && { { \\builtin echo 0 >| /sys/fs/cgroup/pids/process_api/cc-shell/tasks; } 2>/dev/null || :; } && eval 'export ANTHROPIC_API_KEY=$(cat ~/.secrets/anthropic_key) && for spec in \"v1 final-answer-haiku-r01-v1-rep2\" \"v2 final-answer-haiku-r01-v2-rep1\" \"v2 final-answer-haiku-r01-v2-rep2\"; do set -- $spec; .venv/bin/python -m evals.failures.final_answer --report 2026-11-16-noise-bird-haiku-test-350/run-r01 --llm-config configs/llm/claude-haiku-5-5.yaml --run-id $2 --budget-usd 0.15 --workers 4 --respond $1 --launched-by \"fix 3 before/after ($1)\" 2>&1 | tail -2; done' < /dev/null && pwd -P >| /tmp/claude-ecab-cwd",
+  "python": "3.12.3",
+  "llm_config": {
+    "path": "configs/llm/claude-haiku-5-5.yaml",
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5",
+    "budget_usd": 0.15
+  },
+  "launched_by": "fix 3 before/after (v1)",
+  "resumes": []
+}

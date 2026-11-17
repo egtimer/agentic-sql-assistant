@@ -73,7 +73,7 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
 | CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
-| Tests | 909 tests (888 before the failure analysis; 859 before the run-to-run noise work) |
+| Tests | 924 tests (888 before the failure analysis; 859 before the run-to-run noise work) |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
@@ -236,7 +236,15 @@ Where the agents go wrong, by cause ([report, traces and labels](evals/reports/2
 - **All 4 tool-eval failures are one cause:** agent v1 cuts tool output to 1,500 characters, and the passage with the answer came at about character 1,800. A second bug, an unfilled `PLACEHOLDER` passed to the calculator, appears in 19 of 555 runs; the agent always said so and did the arithmetic itself.
 - **The rules are partly right.** On the 40 checked by hand they agree on 25 (accuracy 0.62 [0.47, 0.78], kappa 0.56 [0.39, 0.73]): the rules that compare EX with the judge hold up, the ones built on result shape or fix count do not. 4 of the 40 are errors in BIRD's gold queries.
 
-None of the bugs is fixed here; each fix gets its own before/after run.
+**Fixed and measured before and after** ([report](evals/reports/2026-11-17-fixes/README.md), [ADR-011](docs/ADR-011-fixes-from-failure-analysis.md), $1.73):
+
+| Fix | Before | After |
+|---|---|---|
+| Agent v1: the model writes the calculator expression (was a fixed growth formula for every question) | 8 of 48 calculator results equal the gold value; 8 calls failed | 49 of 49; 0 failed |
+| Agent v1: tool output kept to 6,000 characters (was 1,500, cut silently) | the 4 runs with the answer past character 1,500 were all wrong | the 1 such run was right |
+| Agent v2: the answer step sees the final SQL and the exact row count | judge accepts 64.9% of answers | 65.9% (+1.0 [−1.3, +3.3], within noise); the 5 misreads right in both passes |
+
+The calculator was wrong without failing anything: the answers were right before and after because the respond step ignored it, so no score had caught it.
 
 ### Cost of the evaluation
 
@@ -473,6 +481,7 @@ Real-model demo ([transcript](docs/examples/mcp-demo.md), `python -m src.mcp_ser
 - [ADR-008: MCP Server](docs/ADR-008-mcp-server.md) — tools, transports, database allowlist, state, budget and safety model of the MCP server
 - [ADR-009: Answer judge and CI evals](docs/ADR-009-judge-and-ci-evals.md) — LLM judge of the final answer, its calibration against hand labels, and what runs in CI
 - [ADR-010: Agent v1 tool selection](docs/ADR-010-v1-tool-selection-eval.md) — the 60-query tool-selection set, the prompt fix made on dev, the single test run and a scorer fix made after it
+- [ADR-011: Fixes from the failure analysis](docs/ADR-011-fixes-from-failure-analysis.md) — calculator input written by the model, longer tool outputs, the SQL and exact row count in the answer step, measured before and after
 
 ## Stack
 
