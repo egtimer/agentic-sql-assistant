@@ -1,0 +1,41 @@
+review_id,failure_id,rule_category,human_category,note
+r-01,tools-sonnet-run-r03-sqldoc_03,tool_output_cut,tool_output_cut,El propio agente dice que el pasaje de excepciones llega cortado.
+r-02,bird-haiku-118,wrong_query_logic,benchmark_issue,El agente aplica la fórmula del conocimiento externo (por importe); el gold cuenta cuentas.
+r-03,bird-haiku-964,answer_on_large_result,answer_on_large_result,Solo ve 20 de 157 filas y no puede dar los códigos.
+r-04,bird-haiku-27,wrong_query_logic,wrong_query_logic,813 filas frente a 8574; además la respuesta promedia solo 20 filas.
+r-05,bird-haiku-1505,wrong_query_logic,benchmark_issue,La pregunta pide clientes; el agente cuenta clientes distintos (391) y el gold cuenta filas cliente-mes (2730).
+r-06,bird-haiku-738,answer_on_large_result,not_a_failure,Da el total correcto (368 distintos) y avisa de que muestra los 20 primeros; un usuario lo daría por bueno.
+r-07,bird-haiku-744,answer_misread,answer_misread,163 es Marvel menos DC: gana Marvel; la respuesta dice DC y luego se contradice.
+r-08,bird-haiku-1225,answer_ok_ex_wrong,answer_ok_ex_wrong,Mismos 10 ID agrupados por sexo.
+r-09,bird-haiku-195,answer_misread,answer_misread,"""-"" es el enlace simple, no un valor vacío."
+r-10,bird-haiku-728,wrong_output_shape,loop_or_extra_steps,
+r-11,bird-haiku-1155,answer_on_large_result,answer_on_large_result,"Dice ""listed above"" pero solo da 2 de 103 pacientes."
+r-12,bird-haiku-944,loop_or_extra_steps,benchmark_issue,"Dudoso. El gold devuelve NULL, así que no hay respuesta correcta con la que comparar."
+r-13,bird-haiku-1524,wrong_query_logic,wrong_query_logic,Devuelve Currency en lugar de Country.
+r-14,bird-haiku-1375,answer_ok_ex_wrong,answer_ok_ex_wrong,"Mismos 5 nombres, concatenados."
+r-15,bird-haiku-850,answer_misread,answer_misread,El SQL trae 3 carreras y el agente descarta Luxembourg GP por su cuenta.
+r-16,bird-haiku-36,answer_ok_ex_wrong,answer_ok_ex_wrong,Michelle King; las otras columnas del gold son NULL.
+r-17,bird-haiku-1168,wrong_output_shape,answer_ok_ex_wrong,"Dudoso. Da 69 años y 1981-07-31 como primera fecha, igual que el gold; solo añade las demás fechas."
+r-18,bird-haiku-83,loop_or_extra_steps,wrong_query_logic,El SQL no filtra por Multiple Provision Types y la respuesta afirma que sí; 20 ciudades frente a 1.
+r-19,bird-haiku-586,wrong_output_shape,wrong_output_shape,Da los dos usuarios del gold; sin la columna Title no ve que son dos posts distintos y duda sin motivo.
+r-20,bird-haiku-125,wrong_output_shape,wrong_output_shape,Dudoso. El gold no incluye el distrito que pide la pregunta ni quita duplicados; la respuesta es solo un resumen.
+r-21,bird-haiku-758,answer_misread,not_a_failure,"Dudoso. Enumera los 5 colores del gold y avisa de que no hay un único héroe; dice ""11 colores"" cuando son 11 filas."
+r-22,bird-haiku-407,answer_on_large_result,answer_misread,"El SQL es válido (EX ok), pero el agente cree que faltan nombres en alemán y no lista nada."
+r-23,bird-haiku-11,answer_on_large_result,answer_on_large_result,"Dudoso. Dice ""más de 1.000"" cuando son 7806 y da 20 códigos."
+r-24,bird-haiku-1011,wrong_output_shape,answer_misread,Tiene los 20 nombres y no los da; solo menciona a Hamilton.
+r-25,bird-haiku-149,wrong_output_shape,wrong_query_logic,Usa HAVING AVG por tipo en vez de filtrar cada distrito por A11; 0 filas frente a 461.
+r-26,bird-haiku-528,answer_on_large_result,answer_on_large_result,Además dice que los ejemplos son legales en 5 formatos cuando lo son en 8.
+r-27,bird-haiku-1092,wrong_query_logic,wrong_query_logic,Hay empate de 4 ligas y LIMIT 1 devuelve solo una.
+r-28,bird-haiku-773,answer_on_large_result,answer_misread,El SQL ya filtra por colores iguales; el agente dice que no puede saberlo porque no ve los colores.
+r-29,bird-haiku-1149,answer_ok_ex_wrong,answer_ok_ex_wrong,"16,82 % menos equivale al 83,18 % del gold, y responde quién tiene más."
+r-30,bird-haiku-792,answer_misread,answer_misread,Los 8 poderes son de Abomination; el agente dice que no puede vincularlos.
+r-31,bird-haiku-1001,answer_ok_ex_wrong,answer_ok_ex_wrong,Felipe Massa.
+r-32,bird-haiku-248,answer_ok_ex_wrong,answer_ok_ex_wrong,Mismos 4 átomos.
+r-33,bird-haiku-640,wrong_query_logic,benchmark_issue,"El agente sigue la fórmula; -1491 es exactamente 3 x -497, lo que apunta a filas duplicadas por un join en el gold."
+r-34,bird-haiku-1506,answer_on_large_result,answer_on_large_result,Lista 20 de 21 productos sin avisar de que falta uno.
+r-35,bird-haiku-215,wrong_output_shape,wrong_query_logic,97 no cuadra con 3 + 77 = 80; no es solo cuestión de columnas.
+r-36,bird-haiku-896,wrong_query_logic,wrong_query_logic,Dudoso. Usa results y el gold driverStandings; además position > 1 deja fuera los abandonos.
+r-37,bird-haiku-955,wrong_query_logic,answer_on_large_result,Dudoso. Los valores visibles coinciden con el gold; falla por ver 20 de 25 filas y resumir en vez de dar la tabla.
+r-38,bird-haiku-226,answer_ok_ex_wrong,answer_ok_ex_wrong,3.84615 como texto en vez de número.
+r-39,bird-haiku-1427,answer_ok_ex_wrong,answer_ok_ex_wrong,Mismas 4 categorías.
+r-40,bird-haiku-726,wrong_output_shape,wrong_output_shape,"Orden correcto, pero sin alturas y solo 8 de 387."

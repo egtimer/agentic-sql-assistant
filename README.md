@@ -68,11 +68,12 @@ BIRD Mini-Dev test split (SQLite, 350 questions, run once). Intervals are 95% bo
 | Benchmark | BIRD Mini-Dev (SQLite), 500 questions split once into 150 dev / 350 test |
 | SQL guard | 152/152 stopped (145 blocked, 7 bounded by timeout/row cap), 0 of 540 legitimate queries blocked |
 | Run-to-run noise | BIRD test, Haiku: 8–9% of questions change verdict between identical runs; to detect a 3-point paired difference takes about 750 questions with one run, 460 with five |
+| Failure analysis | 153 failures classified by rules, 40 checked by hand: rules agree on 25 (kappa 0.56 [0.39, 0.73]); 4 of the 40 are BIRD gold errors; EX and the answer judge disagree on 50 of 348 questions ([report](evals/reports/2026-11-17-failure-analysis/README.md)) |
 | Memory (test, Haiku) | taught definitions add +6.3 points EX [+2.6, +10.0] |
 | Interfaces | FastAPI (agent v1), MCP server over stdio or HTTP (agent v2) |
 | Observability | Langfuse 2.95.11 (self-hosted): node spans, LLM generations with tokens and cost, eval runs linked to traces |
 | CI | lint, tests, Docker build and image health check, and offline evals on every push; API eval weekly, capped at 0.20 USD, with a regression gate |
-| Tests | 888 tests (885 without services; 859 before the run-to-run noise work) |
+| Tests | 909 tests (888 before the failure analysis; 859 before the run-to-run noise work) |
 | Agent v1 demo data | 10 products, 20 customers, 150 sales; 3 policy files for RAG |
 
 ## Quick Start
@@ -225,6 +226,17 @@ EX scores the SQL, but a user reads the sentence the respond step writes. An LLM
 | Judge (Haiku 5.5) vs EX | 0.86 [0.76, 0.94] | 0.66 [0.40, 0.87] |
 
 Either judge reproduces the human reading on 49 of 50 answers (the one miss each is a long result the 10-row preview cannot show in full), so the Haiku judge, at about $0.0001 per answer, is the answer-level metric. Human and EX disagree on 8 of 50 answers in both directions: 5 right queries whose answer lists only part of a long result or misreads a percentage, and 3 queries EX marks wrong whose answer is right (column shape, floating-point rounding, repeated rows). Answers judged correct by the human: 68% [54, 80], against 72% [60, 84] EX on the same questions. One labeler and n = 50, so the intervals are wide; dev only. Cost: $0.12 for the answers and both judges.
+
+### Failure analysis
+
+Where the agents go wrong, by cause ([report, traces and labels](evals/reports/2026-11-17-failure-analysis/README.md); code in `evals/failures/`). Agent v2's final answers for one Haiku BIRD run were rebuilt from the run's own SQL and graded by the calibrated judge ($0.053): EX and the judge disagree on 50 of 348 questions, 22 right queries with a wrong answer and 28 rejected queries with an acceptable one. Rules then classified 149 BIRD failures and the 4 tool-eval failures (of 555 runs), and the author checked 40 of them by hand.
+
+- **No SQL errors.** No attempt in the 350 questions hit a syntax error, an unknown column or the guard; the failures are queries that run and compute the wrong thing, and the answer step.
+- **The answer step loses what it is not shown:** results larger than the 20 rows it sees, and the SQL itself, so it doubts filters the query already applied.
+- **All 4 tool-eval failures are one cause:** agent v1 cuts tool output to 1,500 characters, and the passage with the answer came at about character 1,800. A second bug, an unfilled `PLACEHOLDER` passed to the calculator, appears in 19 of 555 runs; the agent always said so and did the arithmetic itself.
+- **The rules are partly right.** On the 40 checked by hand they agree on 25 (accuracy 0.62 [0.47, 0.78], kappa 0.56 [0.39, 0.73]): the rules that compare EX with the judge hold up, the ones built on result shape or fix count do not. 4 of the 40 are errors in BIRD's gold queries.
+
+None of the bugs is fixed here; each fix gets its own before/after run.
 
 ### Cost of the evaluation
 

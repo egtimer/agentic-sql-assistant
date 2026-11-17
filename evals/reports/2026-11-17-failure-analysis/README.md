@@ -58,7 +58,7 @@ order.
 The reviewer has two more labels no rule can give: `not_a_failure` and `benchmark_issue` (the
 gold query or the question is wrong or ambiguous).
 
-## Results (rules; hand review pending)
+## Results (rules)
 
 | Category | BIRD agent v2 (348) | Tool eval agent v1 (555 runs) |
 |---|---|---|
@@ -93,13 +93,52 @@ What the rules found:
 
 ## Hand review
 
-40 failures were sampled for the author to label (up to 5 per category, then topped up from
-the largest, the same question at most once per category, seed 0):
-[`review/review_sheet.md`](review/review_sheet.md) (no reference rows) and
-`review/labels_template.csv`. `evals/failures/review.py` validates the filled labels and writes
-`review/labels.csv` and `review/agreement.json`: accuracy and Cohen's kappa of rule vs human with
-95% bootstrap CIs, the confusion matrix, and how many rule-flagged failures the reviewer did not
-count as agent failures.
+The author labelled 40 sampled failures by hand (about two hours). Each item showed the
+question, the SQL or tool steps, the answer, the reference result and the rule's category, so
+the labels are not blind to the rule; the judge's rationale was not shown. Sample: up to 5 per rule category, then topped up from the
+largest, the same question at most once per category, seed 0. Labels and notes:
+[`review/labels.csv`](review/labels.csv); agreement: [`review/agreement.json`](review/agreement.json)
+(`evals/failures/review.py`, bootstrap B = 10000, seed 0).
+
+**The rules agree with the reviewer on 25 of 40: accuracy 0.62 [0.47, 0.78], Cohen's kappa
+0.56 [0.39, 0.73].**
+
+| Rule category | Reviewed | Agreed | What the reviewer saw instead |
+|---|---|---|---|
+| `answer_ok_ex_wrong` | 8 | 8 | |
+| `answer_misread` | 5 | 4 | 1 acceptable answer |
+| `answer_on_large_result` | 8 | 5 | 2 misread, 1 acceptable (it gave the exact total and said it showed the first 20) |
+| `tool_output_cut` | 1 | 1 | |
+| `wrong_query_logic` | 8 | 4 | 3 benchmark issues, 1 large result |
+| `wrong_output_shape` | 8 | 3 | 2 query logic, 1 misread, 1 answer ok, 1 loop |
+| `loop_or_extra_steps` | 2 | 0 | 1 query logic, 1 benchmark issue |
+
+What this says about the rules and about the agent:
+
+- **The rules that compare EX with the judge hold up; the ones built on the result's shape or
+  the fix count do not.** Every `answer_ok_ex_wrong` and 4 of 5 `answer_misread` were
+  confirmed. A different column count, or two fixes used, says little about why a query is
+  wrong: 5 of 8 `wrong_output_shape` and both `loop_or_extra_steps` were something else. The
+  counts in Results should be read with that in mind, the shape and loop rows least of all.
+- **4 of the 40 are benchmark issues, not agent failures:** gold queries that do not follow the
+  question's own external-knowledge formula (counting accounts where the hint says amounts), that
+  count client-month rows where the question asks for clients, that return NULL, or whose value
+  is exactly three times the agent's, which points to rows duplicated by a join in the gold. With
+  the 2 answers the reviewer accepted, 6 of the 40 rule-flagged failures are not the agent's.
+- **The answer step fails for a second reason besides the 20-row window: it does not see the
+  SQL.** In several cases the query already applied the filter the question asked for, and the
+  answer says it cannot tell (whether colours match, which hero the powers belong to) or drops
+  rows the query returned. The respond step is given the question and the result rows only.
+
+## Fixes this points to (not applied here)
+
+Each changes the agent, so each needs its own before/after run on the same items, with the
+numbers above kept:
+
+1. the calculator's unfilled `PLACEHOLDER` in agent v1's plan (19 of 555 runs, recovered);
+2. agent v1's 1,500-character cut of tool output (all 4 tool-eval failures);
+3. agent v2's respond step: the exact row count and the final SQL in its prompt, so it neither
+   guesses the size of a large result nor doubts a filter the query already applied.
 
 ## Files
 
